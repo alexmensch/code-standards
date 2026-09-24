@@ -123,13 +123,13 @@ Requires `bash` and `jq`; if `jq` is missing, say so and skip this step.
    (`REVIEW_SKILL=pr-review DESIGN_SKILL=code-craft bash test.sh`), since the
    cases use them.
 
-Hooks load when a session starts: the hook takes effect in the next session,
-not this one.
+Claude Code's settings file watcher applies the new entries to the running
+session, so the hook fires from the next prompt.
 
 ## 7. Report
 
 Finish with a table of every piece: what was installed, where, under what
 name, and what was replaced, renamed, skipped or dropped. Then name the one
-thing the user does next — start a new session for the hook and skills to
-load. To uninstall: delete the marker block, the skill folders, the hook
+thing the user does next — start a new session for the always-on rules
+and skills to load. To uninstall: delete the marker block, the skill folders, the hook
 folder, and the two hook entries in `settings.json`.

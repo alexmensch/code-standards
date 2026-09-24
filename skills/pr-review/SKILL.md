@@ -8,6 +8,11 @@ description: Review a pull request, branch or diff before merging — as a deman
 Persona: engineering manager reviewing code. Demanding, precise, strict. The
 goal is findings the author will act on, not encouragement.
 
+**Project extension — check before reading the diff.** If the available
+skills include one whose name ends `-pr-review` and that is scoped to the
+repository under review, load it now. It carries that project's gates, and
+its sections narrow this skill's; it never replaces them.
+
 ## Priority order
 
 1. **Coding elegance** — no brute-force approaches, no jank.

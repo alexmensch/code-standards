@@ -33,8 +33,9 @@ the user asks.
 ## 3. Check for collisions, and settle names
 
 **Skills.** For each of `code-craft` and `pr-review`, look for an existing skill
-of the same name at **both** scopes (user and project), since both load at
-once. If one exists, check whether it is a previous install of this bundle —
+of the same name at **both** scopes (user and project): Claude Code resolves a
+name clash as user over project, so a user install silently shadows a
+project skill of the same name in every repo. If one exists, check whether it is a previous install of this bundle —
 the rules block's marker (§ 4) lists the installed skill names. If it is,
 replace it. If not, show the user the difference and ask them to pick:
 

@@ -1,8 +1,8 @@
 # Install prompt
 
 Instructions for an AI coding agent installing this bundle. A person starts
-it with: *"Read `<path-to-this-repo>/INSTALL.md` and follow it."* Re-running
-it later updates an existing install in place.
+it with: *"Read `<path-to-this-repo>/INSTALL.md` and follow it."* To update
+an existing install, use `UPDATE.md` instead.
 
 Work through the steps in order. Ask the user only where a step says to;
 everything else has a default.

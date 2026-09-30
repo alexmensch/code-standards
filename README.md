@@ -11,8 +11,11 @@ Point an agent session at the install prompt:
 
 It asks whether to install for the user or for one project, checks for
 existing skills and rules with the same names or subjects, offers to rename
-or replace, and reports what went where. Re-running it updates an install in
-place.
+or replace, and reports what went where.
+
+To update an existing install, point a session at `UPDATE.md` instead. It
+merges bundle changes into the installed copies and keeps local edits,
+asking where both sides changed.
 
 ## What's here
 

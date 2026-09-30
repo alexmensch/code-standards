@@ -191,9 +191,29 @@ they disagree after a review, the doc is right and the plan is what gets
 corrected. Report the drift found and fixed alongside the code findings — it
 is review output, not bookkeeping.
 
+## Delegated reviews — the findings list is lossless
+
+When the review fans out to subagents, the user approves from the list, so
+every stage between a reviewer and that list copies, never condenses.
+
+- **Every reviewer prompt carries the reporting clause:** list every finding
+  as its own numbered item — no cap, no "and N similar", no grouping —
+  CONFIRMED and PLAUSIBLE marked separately. Never ask a reviewer to keep it
+  tight or return only confirmed findings.
+- **One findings file, written as reports arrive:** each reviewer's items
+  copied word for word under its own section with a stable ID (A1, A2 …);
+  the lead's own findings in a section of their own. Cross-reviewer
+  duplicates are cross-referenced, never merged away.
+- **Chat carries counts and the path, never a shortened list.** A status
+  line may say "A: 17 items, 0 P1"; it may not pick five of them.
+- **"Concise" in § Disposition applies to the lead's prose, not to the
+  list.** Approval is taken against the full file, item by item.
+
 ## Disposition of findings
 
-Output a concise report of what should change and why, then **get approval**.
+Output the full findings list (§ Delegated reviews, when the review
+delegated) with concise prose around it on what should change and why, then
+**get approval**.
 Do NOT start fixing until findings are agreed.
 
 **Every proposed fix is a design, and carries two lines** — run `code-craft`

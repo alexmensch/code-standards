@@ -10,7 +10,7 @@ everything else has a default.
 ## 1. Read the bundle
 
 Read every file in this repository before installing anything: `README.md`,
-`AGENTS.md.fragment`, both `skills/*/SKILL.md` and their `references/` and
+`AGENTS.md.fragment`, every `skills/*/SKILL.md` and its `references/` and
 `scripts/`, and `hooks/`. Nothing gets installed unread.
 
 Record the bundle version: `git -C <this-repo> rev-parse --short HEAD`.
@@ -32,7 +32,7 @@ the user asks.
 
 ## 3. Check for collisions, and settle names
 
-**Skills.** For each of `code-craft` and `pr-review`, look for an existing skill
+**Skills.** For each skill under `skills/`, look for an existing skill
 of the same name at **both** scopes (user and project): Claude Code resolves a
 name clash as user over project, so a user install silently shadows a
 project skill of the same name in every repo. If one exists, check whether it is a previous install of this bundle —
@@ -52,8 +52,8 @@ replace it. If not, show the user the difference and ask them to pick:
 copies, never in this repository:
 
 - the skill's folder name and its frontmatter `name:`
-- references in the other skill (`pr-review` loads `code-craft` and points at
-  `code-craft/references/…`)
+- references in the other skills (`pr-review` loads `code-craft` and points at
+  `code-craft/references/…`; `pickup` names both)
 - the rules block's § Code structure trigger and its mentions of both skills
 - the hook's `REVIEW_SKILL` / `DESIGN_SKILL` defaults
 
@@ -74,10 +74,14 @@ Insert `AGENTS.md.fragment` into the target rules file inside a marker block,
 applying any renames from § 3:
 
 ```
-<!-- code-standards:begin version=<sha> skills=<code-craft name>,<pr-review name> -->
+<!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… -->
 …fragment…
 <!-- code-standards:end -->
 ```
+
+One `skills=` entry per skill under `skills/`: its bundle name, then
+`:<installed name>` if renamed or `:-` if skipped — for example
+`code-craft,pr-review:acme-pr-review,pickup:-`. `UPDATE.md` reads it.
 
 - File has no block yet → append the block at the end.
 - File has a block → replace everything between the markers, and keep the

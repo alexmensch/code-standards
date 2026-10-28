@@ -107,7 +107,9 @@ gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="req
 git log --format='%h %G? %s' origin/<main>..HEAD
 ```
 
-Every commit must show `G`. An `N` comes from a plumbing rewrite (`git
+Only `N` (no signature) and `B` (bad signature) need the re-sign below; any
+other letter is a signature git cannot verify locally, and GitHub checks it
+on its side. An `N` comes from a plumbing rewrite (`git
 commit-tree` ignores `commit.gpgsign`) or from a `-c commit.gpgsign=false`
 carried over from somewhere that legitimately passes it, such as a test
 suite. Pass no signing flag on a branch that will be merged.
@@ -121,7 +123,7 @@ and verify the fix changed nothing but signatures:
 BEFORE=$(git rev-parse HEAD^{tree})
 git rebase -f -S origin/<main>
 [ "$BEFORE" = "$(git rev-parse HEAD^{tree})" ] || echo "TREE CHANGED — STOP"
-git log --format='%h %G?' origin/<main>..HEAD      # all G now
+git log --format='%h %G?' origin/<main>..HEAD      # no N or B now
 git push --force-with-lease origin <headRefName>
 ```
 

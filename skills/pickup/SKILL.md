@@ -120,8 +120,8 @@ question, so each one stands alone:
   (rows, outputs, "zero today, structural only"). Say which it is.
 - **Each option as an outcome**: what changes, what enforces it (the compiler,
   a test, a convention), and what it costs — a force-push, a wider diff, a
-  second copy kept in step. Only candidates the rules leave tied are
-  options.
+  second copy kept in step. Offer only the options `pr-review`'s decision
+  test names.
 - **Recommended option first**, marked, with the reason in its description.
 
 Each answer is approval for that finding's fix: apply it under the rules

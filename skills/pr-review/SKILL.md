@@ -259,6 +259,10 @@ A finding is a **decision** for the user only when:
   codebase — for example money, bandwidth, an external service, or
   rewriting history others have pulled.
 
+A tie's options are the tied candidates. A cost decision asks whether to
+accept that cost; its alternative is the best candidate that avoids it, or,
+if none does, leaving the defect — the one place that may be offered.
+
 Top candidates that tie and differ in neither: take the smaller diff,
 propose it alone, and say it was a tie-break.
 

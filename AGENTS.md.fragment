@@ -1,3 +1,5 @@
+<!-- code-standards bundle file. Never edit an installed copy in place: change it in the repo named by source= in the rules file's code-standards:begin marker, open a PR there, then sync with that repo's UPDATE.md. -->
+
 # Code standards — always-on rules
 
 Standing rules for design, code quality, commits and pull requests. The

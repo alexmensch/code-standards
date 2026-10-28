@@ -5,7 +5,8 @@ bundle. A person starts it with: *"Read `<path-to-this-repo>/UPDATE.md` and
 follow it."* No install yet → follow `INSTALL.md` instead.
 
 Local edits to an installed copy are the user's. Never overwrite one without
-their answer.
+their answer. Hold the installed-copy guard open while writing, as
+`INSTALL.md`'s opening says.
 
 ## 1. Find the install
 
@@ -60,8 +61,8 @@ entries), and `test.sh`, whose last line must read `all passed`.
 
 ## 6. Rewrite the marker
 
-Set `version=` to the new commit and `skills=` to the current entries,
-renames and skips preserved.
+Set `version=` to the new commit, `skills=` to the current entries (renames
+and skips preserved), and `source=` to this repo's absolute path, last.
 
 ## 7. Report
 

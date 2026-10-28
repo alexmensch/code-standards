@@ -7,6 +7,11 @@ an existing install, use `UPDATE.md` instead.
 Work through the steps in order. Ask the user only where a step says to;
 everything else has a default.
 
+**Installed copies are guarded.** Where a hook folder from a previous install
+exists (§ 2), `touch <hook folder>/.sync-in-progress` before the first write
+to an installed file, and `rm -f` it after the last; without it the
+installed-copy guard denies those writes (`hooks/README.md`).
+
 ## 1. Read the bundle
 
 Read every file in this repository before installing anything: `README.md`,
@@ -74,14 +79,16 @@ Insert `AGENTS.md.fragment` into the target rules file inside a marker block,
 applying any renames from § 3:
 
 ```
-<!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… -->
+<!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… source=<path> -->
 …fragment…
 <!-- code-standards:end -->
 ```
 
 One `skills=` entry per skill under `skills/`: its bundle name, then
 `:<installed name>` if renamed or `:-` if skipped — for example
-`code-craft,pr-review:acme-pr-review,pickup:-`. `UPDATE.md` reads it.
+`code-craft,pr-review:acme-pr-review,pickup:-`. `source=` is this repo's
+absolute path, and comes last, since it may contain spaces. `UPDATE.md` and
+the installed-copy guard read the marker.
 
 - File has no block yet → append the block at the end.
 - File has a block → replace everything between the markers, and keep the
@@ -112,8 +119,8 @@ value in the rules block for a project install.
 
 Requires `bash` and `jq`; if `jq` is missing, say so and skip this step.
 
-1. Copy `hooks/review-design-reminder.sh`, `hooks/skill-name.sh` and
-   `hooks/test.sh` to the hook folder from § 2; make them executable.
+1. Copy every `.sh` file in `hooks/` to the hook folder from § 2; make them
+   executable.
 2. If either skill was renamed, change the `REVIEW_SKILL` / `DESIGN_SKILL`
    defaults in the installed `review-design-reminder.sh`.
 3. Merge `hooks/settings.snippet.json` into the target `settings.json`,
@@ -136,4 +143,5 @@ Finish with a table of every piece: what was installed, where, under what
 name, and what was replaced, renamed, skipped or dropped. Then name the one
 thing the user does next — start a new session for the always-on rules
 and skills to load. To uninstall: delete the marker block, the skill folders, the hook
-folder, and the two hook entries in `settings.json`.
+folder, and the hook entries in `settings.json` (`hooks/README.md`
+§ Disabling) — the hook entries first, or the guard denies the rest.

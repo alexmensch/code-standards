@@ -17,6 +17,8 @@ description: >
   written; skips their dogma.
 ---
 
+<!-- code-standards bundle file. Never edit an installed copy in place: change it in the repo named by source= in the rules file's code-standards:begin marker, open a PR there, then sync with that repo's UPDATE.md. -->
+
 # Code craft
 
 The always-on subset is the code-standards rules' § Code structure, installed

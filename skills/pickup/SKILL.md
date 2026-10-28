@@ -70,7 +70,8 @@ different session; don't do it here.
 
 Claim the item, then implement it under the always-on rules and the project's
 instructions — worktree, branch, `code-craft` before planning, tests, topical
-commits, PR. Ends without a PR → report and stop; § 4 and § 5 need one.
+commits, PR. Ends without a PR → report and stop; Independent review and
+Triage and fix need one.
 
 ## 4. Independent review
 
@@ -125,6 +126,6 @@ above, one commit per finding.
 
 ## 6. Report
 
-Any finding still unanswered after § 5's questions first, each in full · PR link
+Any finding still unanswered after Asking about a finding first, each in full · PR link
 · fixed findings, number → commit · anything deferred and where it was filed.
 Merging stays the requester's call.

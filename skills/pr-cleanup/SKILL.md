@@ -14,10 +14,6 @@ landed, load it now. It carries that project's gates, ticket tracker and
 post-landing steps, and its sections narrow this skill's; it never replaces
 them.
 
-Editing this file: cross-reference sections by **name**, never by number, and
-**every check must be able to fail** — state what output means *no* before
-adding one.
-
 `<main>` below is the repository's default branch:
 `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 

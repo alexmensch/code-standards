@@ -39,3 +39,5 @@ and it names the skill to load for the full pass.
 - Skills cross-reference each other and the fragment by section name. A
   heading rename is a search across the whole repo, and `INSTALL.md` § 3
   lists every place a skill name appears.
+- Every check a skill tells the agent to run must be able to fail: state what
+  output means *no* before adding one.

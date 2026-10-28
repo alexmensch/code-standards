@@ -44,8 +44,9 @@ target="$(canon "$file")"
 
 case "$target" in "$hook_dir"/*) deny "hooks/${target#"$hook_dir"/}" ;; esac
 
+entries=()
 IFS=, read -ra entries <<< "$skills"
-for e in "${entries[@]}"; do
+for e in ${entries[@]+"${entries[@]}"}; do
   bundle="${e%%:*}"
   installed="$bundle"
   [[ "$e" == *:* ]] && installed="${e#*:}"

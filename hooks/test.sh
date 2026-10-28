@@ -110,4 +110,17 @@ check "guard stands aside during a sync" '[ -z "$(edit "$SCOPE/skills/pr-review/
 touch -t 200001010000 "$SCOPE/hooks/code-standards/.sync-in-progress"
 check "guard ignores a stale sync marker" '[ -n "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" ]'
 
+RULES_BODY="$(cat "$RULES")"
+set_rules() { printf '%s\n' "$1" > "$RULES"; }
+raw_edit() {
+  "${2:-bash}" "$GUARD" 2>&1 <<< "$(jq -n --arg f "$1" '{tool_name: "Edit", tool_input: {file_path: $f, old_string: "body"}}')"
+}
+
+set_rules '<!-- code-standards:begin version=abc source=/src -->
+x
+<!-- code-standards:end -->'
+check "guard survives a marker with no skills=, on the system bash" \
+  '[ -z "$(raw_edit "$SCOPE/skills/other/SKILL.md" /bin/bash)" ]'
+set_rules "$RULES_BODY"
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

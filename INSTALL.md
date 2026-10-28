@@ -32,6 +32,10 @@ project the session is in, if any.
 | Skills | `~/.claude/skills/<name>/` | `<repo>/.claude/skills/<name>/` | The harness's skill folder if it has one; otherwise `<repo>/docs/agent-skills/<name>/`, plus a trigger line per skill in the rules file (§ 4) |
 | Hook | `~/.claude/hooks/code-standards/` + `~/.claude/settings.json` | `<repo>/.claude/hooks/code-standards/` + `<repo>/.claude/settings.json` | Not installed — it uses Claude Code's hook events |
 
+`pr-cleanup` drives GitHub through `gh` and Claude Code's worktree and
+monitor tools: install it only on Claude Code, and record it as skipped
+(`:-`, § 4) elsewhere.
+
 A project install is written into the working tree; it is not committed unless
 the user asks.
 

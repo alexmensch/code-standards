@@ -34,11 +34,11 @@ canon() {
 
 rules=""
 for f in "$scope/CLAUDE.md" "$scope/../CLAUDE.md" "$scope/../AGENTS.md"; do
-  if [ -f "$f" ] && grep -qF "$BEGIN" "$f"; then rules="$(canon "$f")"; break; fi
+  if [ -f "$f" ] && grep -q "^$BEGIN " "$f"; then rules="$(canon "$f")"; break; fi
 done
 [ -n "$rules" ] || exit 0
 
-marker="$(grep -F "$BEGIN" "$rules" | head -1)"
+marker="$(grep "^$BEGIN " "$rules" | head -1)"
 skills="$(sed -n 's/.*skills=\([^ ]*\).*/\1/p' <<< "$marker")"
 source="$(sed -n 's/.*source=\(.*\) -->.*/\1/p' <<< "$marker")"
 
@@ -66,7 +66,7 @@ done
 [ "$target" = "$rules" ] || exit 0
 
 jq -e --rawfile f "$rules" --arg b "$BEGIN" --arg e "$END" '
-  def block: split($b)[1] // "" | split($e)[0];
+  def block: "\n" + . | split("\n" + $b + " ")[1] // "" | split("\n" + $e)[0];
   (if .tool_name == "Write" then .tool_input.content
    else reduce (.tool_input.edits // [.tool_input])[] as $x ($f;
      if ($x.old_string // "") == "" then . else split($x.old_string) | join($x.new_string // "") end)

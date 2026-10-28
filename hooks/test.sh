@@ -129,6 +129,11 @@ x
 <!-- code-standards:end -->'
 check "guard survives a marker with no skills=, on the system bash" \
   '[ -z "$(raw_edit "$SCOPE/skills/other/SKILL.md" /bin/bash)" ]'
+
+set_rules "Prose quoting <!-- code-standards:end --> and <!-- code-standards:begin skills=other -->.
+$RULES_BODY"
+check "guard ignores marker text in prose for the block" '[ -n "$(edit "$RULES" "DRY — inside")" ]'
+check "guard ignores marker text in prose for skills=" '[ -n "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" ]'
 set_rules "$RULES_BODY"
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

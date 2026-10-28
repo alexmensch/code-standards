@@ -143,6 +143,21 @@ set_rules "# No marker here"
 check "guard stands aside with no marker" '[ -z "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" ]'
 set_rules "$RULES_BODY"
 
+sh() { guard "$(jq -n --arg c "$1" '{tool_name: "Bash", tool_input: {command: $c}}')"; }
+check "guard denies sed -i on an installed skill" \
+  '[[ "$(sh "sed -i \"\" s/a/b/ $SCOPE/skills/pr-review/SKILL.md")" == *"skills/pr-review"* ]]'
+check "guard denies a redirect into an installed skill" '[ -n "$(sh "echo x > $SCOPE/skills/acme-craft/SKILL.md")" ]'
+check "guard denies cp into the hook folder" '[ -n "$(sh "cp a $SCOPE/hooks/code-standards/x.sh")" ]'
+check "guard denies a shell write to the rules file" \
+  '[[ "$(sh "printf x >> $RULES")" == *"file-edit tools"* ]]'
+check "guard matches a \$HOME spelling" \
+  '[ -n "$(HOME="$STATE/home" sh "rm \$HOME/.claude/skills/pr-review/SKILL.md")" ]'
+check "guard resolves a relative path against the payload's cwd" '[ -n "$(guard "$(jq -n --arg d "$SCOPE/skills" \
+  '"'"'{tool_name: "Bash", cwd: $d, tool_input: {command: "rm pr-review/SKILL.md"}}'"'"')")" ]'
+check "guard allows reading an installed skill" '[ -z "$(sh "grep -n x $SCOPE/skills/pr-review/SKILL.md 2>/dev/null")" ]'
+check "guard allows discarding output to /dev/null" '[ -z "$(sh "cat $SCOPE/skills/pr-review/SKILL.md >/dev/null")" ]'
+check "guard allows writes elsewhere" '[ -z "$(sh "sed -i \"\" s/a/b/ $SCOPE/skills/other/SKILL.md")" ]'
+
 check "guard reads NotebookEdit's path" '[ -n "$(guard "$(jq -n --arg f "$SCOPE/skills/pr-review/n.ipynb" \
   '"'"'{tool_name: "NotebookEdit", tool_input: {notebook_path: $f}}'"'"')")" ]'
 

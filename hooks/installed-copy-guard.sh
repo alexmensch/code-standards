@@ -7,10 +7,17 @@ set -uo pipefail
 BEGIN='<!-- code-standards:begin'
 END='<!-- code-standards:end -->'
 
+WRITES='(^|[^0-9&])>|sed[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*i|perl[[:space:]]+-[[:alnum:]]*i|(^|[^[:alnum:]_-])(tee|cp|mv|rm|install|ln|rsync|truncate)([[:space:]]|$)'
+
 command -v jq >/dev/null || exit 0
 input="$(cat)"
+cmd="$(jq -r 'select(.tool_name == "Bash") | .tool_input.command // empty' <<< "$input" 2>/dev/null)"
 file="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<< "$input" 2>/dev/null)"
-[ -n "$file" ] || exit 0
+if [ -n "$cmd" ]; then
+  sed -E 's#[0-9&]?>+[[:space:]]*/dev/null##g' <<< "$cmd" | grep -qE "$WRITES" || exit 0
+elif [ -z "$file" ]; then
+  exit 0
+fi
 
 hook_dir="$(cd "$(dirname "$0")" && pwd -P)"
 scope="$(dirname "$(dirname "$hook_dir")")"
@@ -43,7 +50,12 @@ skills="$(sed -n 's/.*skills=\([^ ]*\).*/\1/p' <<< "$marker")"
 source="$(sed -n 's/.*source=\(.*\) -->.*/\1/p' <<< "$marker")"
 
 deny() {
-  jq -n --arg r "$file is an installed copy of code-standards $1. Make the change in ${source:-the code-standards repo}/$1 on a branch and open a PR there, or propose it to the user; then sync installs with that repo's UPDATE.md." \
+  local what="$file is" tail=""
+  if [ -n "$cmd" ]; then
+    what="This shell command writes to"
+    [ "$1" = AGENTS.md.fragment ] && tail=" For the rest of the rules file, use the file-edit tools, which judge only the block."
+  fi
+  jq -n --arg r "$what an installed copy of code-standards $1. Make the change in ${source:-the code-standards repo}/$1 on a branch and open a PR there, or propose it to the user; then sync installs with that repo's UPDATE.md.$tail" \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
   exit 0
 }
@@ -59,12 +71,29 @@ for e in ${entries[@]+"${entries[@]}"}; do
   guards+=("$(canon "$scope/skills/$installed")|skills/$bundle")
 done
 
-target="$(canon "$file")"
+deny_guarded() {
+  local t="$1" g dir
+  for g in "${guards[@]}"; do
+    dir="${g%%|*}"
+    case "$t" in "$dir"/*) deny "${g#*|}/${t#"$dir"/}" ;; esac
+  done
+}
 
-for g in "${guards[@]}"; do
-  dir="${g%%|*}"
-  case "$target" in "$dir"/*) deny "${g#*|}/${target#"$dir"/}" ;; esac
-done
+if [ -n "$cmd" ]; then
+  cwd="$(jq -r '.cwd // empty' <<< "$input")"
+  [ -d "$cwd" ] && cd "$cwd"
+  while read -r tok; do
+    [[ "$tok" == */* ]] || continue
+    case "$tok" in "~"/*) tok="$HOME/${tok#"~"/}" ;; "\$HOME"/*) tok="$HOME/${tok#"\$HOME"/}" ;; esac
+    t="$(canon "$tok")"
+    deny_guarded "$t"
+    [ "$t" = "$rules" ] && deny "AGENTS.md.fragment"
+  done < <(tr -s " \t;|&<>()\"'" '\n' <<< "$cmd")
+  exit 0
+fi
+
+target="$(canon "$file")"
+deny_guarded "$target"
 
 [ "$target" = "$rules" ] || exit 0
 

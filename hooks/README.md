@@ -61,6 +61,14 @@ on:
   block (markers count only at the start of a line). Edits elsewhere in that
   file pass, including ones that use a marker line as their anchor.
 
+It also denies a `Bash` command that contains a known write form (a redirect
+other than to `/dev/null`, `sed -i`, `perl -i`, `tee`, `cp`, `mv`, `rm`,
+`install`, `ln`, `rsync`, `truncate`) and names one of those paths, or the
+rules file as a whole — each path-like word, with `~`, `$HOME` and the
+payload's `cwd` resolved, goes through the same path check. Commands without a
+write form pass, so reads are never blocked; a write tool not on that list
+passes too.
+
 The denial names the bundle path and the source repo (the marker's
 `source=`), so the agent makes the change there and opens a PR, then syncs
 with `UPDATE.md`. It finds the rules file from its own location: the scope
@@ -80,6 +88,6 @@ path — each exits silently.
 
 Remove the entries from `settings.json`: the reminder has one under
 `PreToolUse` (matcher `Skill`) and one under `UserPromptSubmit`; the guard has
-one under `PreToolUse` (matcher `Edit|Write|MultiEdit|NotebookEdit`). To
+one under `PreToolUse` (matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`). To
 silence the reminder for the rest of one session without editing settings,
 delete that session's `active-<session_id>` marker.

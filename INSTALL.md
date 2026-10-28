@@ -48,10 +48,11 @@ replace it. If not, show the user the difference and ask them to pick:
 - **Rename** this bundle's skill (ask for the name; suggest a team or project
   prefix, such as `acme-code-craft`).
 - **Skip** this skill.
-- **Extend** (`pr-review` and `pr-cleanup` only, when the existing one is a
-  project skill): rename the project skill to `<project>-<skill>` and cut it
-  to the project-specific parts. This bundle's skill loads any project skill
-  named that way, so a request or `/<skill>` still reaches both.
+- **Extend** (`pr-review` and `pr-cleanup` only, when the existing one is
+  specific to one project, at either scope): move it to that project's
+  skill folder as `<project>-<skill>` and cut it to the project-specific
+  parts. This bundle's skill loads any project skill named that way, so a
+  request or `/<skill>` still reaches both.
 
 **Renaming touches every reference.** Rewrite all of them in the installed
 copies, never in this repository:

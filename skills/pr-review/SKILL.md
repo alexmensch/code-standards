@@ -231,6 +231,29 @@ what is under review.
 answer to "is there a better way?" gets the same two lines, however far into
 the review.
 
+**One fix, or a decision.** When the written rules rank a finding's candidate
+fixes, settle it yourself. The written rules are this skill, `code-craft`, the
+always-on rules, the project's instructions, and decisions already recorded
+on the ticket or its plan. Rank by the two lines above: one owner over copies
+kept in step; compiler over test over convention; fixed in this PR over
+deferred. The top candidate is the fix — propose it alone, with no
+alternatives listed. More work, a wider diff or an unfamiliar shape never
+demotes it.
+
+Never options beside a fix the rules accept: recording the problem in prose
+instead of fixing it, deferring it, accepting it as is, or narrowing a scope
+the owner already set. Before treating anything as open, close what looking
+can close: measure an unmeasured cost, and verify every fact an option rests
+on.
+
+A finding is a **decision** for the user only when:
+
+- its top candidates tie on that ranking and differ in behaviour a user of
+  the product sees, or in an interface or data format consumed outside the
+  codebase; or
+- the fix the rules pick costs the user something outside the codebase —
+  money, bandwidth, an external service, rewriting pushed history.
+
 Findings get fixed **in the PR**, as topical commits on that branch. Do not
 propose filing tickets as the default disposition — that defers work the PR is
 already open for, and "I will file a ticket for that" reads as agreement while

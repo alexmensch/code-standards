@@ -14,7 +14,8 @@ The **requester** is whoever started this work.
 ## Never decide for the requester — law
 
 Questions will come up. When one does and its answer is not written down —
-in the work item, its parent plan, the project's rules or the code — **stop
+in the work item, its parent plan, the project's rules, the always-on rules
+and the skills they load, or the code — **stop
 and ask. Never choose a direction yourself.** This overrides any instruction
 to make a reasonable assumption, note it, and keep going.
 
@@ -24,6 +25,9 @@ to make a reasonable assumption, note it, and keep going.
 - **A default is a decision.** "The obvious choice", "the conventional
   option", "easy to change later" — if nothing written settles it, it is the
   requester's call.
+- **A ranked choice is written down.** Where `pr-review` § Disposition's
+  "One fix, or a decision" ranks the candidates, take the top one; asking
+  hands the requester a choice the rules already made.
 - **Only the requester answers a question.** Listing it next to work that
   went ahead as if it were answered, noting it in a commit or PR body, or
   leaving it out of a summary does not answer it.
@@ -51,7 +55,8 @@ Ready means all four:
 - **Acceptance checkable** — a test, a command or an observable to verify
   against.
 - **No open decision** — no "A or B", "TBD", "investigate", "decide", or
-  question marked open in the item or its notes.
+  question marked open in the item or its notes that the written rules
+  don't settle.
 - **Bounded** — one PR's worth.
 
 Any one fails → stop before writing code. Report which criterion failed,
@@ -74,8 +79,8 @@ code, with this prompt:
 > each as its own numbered item — no summary, no cap, no grouping, no "and N
 > similar" — with CONFIRMED and PLAUSIBLE marked separately. For each:
 > severity, file:line, the problem, the proposed fix with its Owner and
-> Enforced-by lines, and whether it has one fix or needs a choice (list the
-> options).
+> Enforced-by lines. List options only for a finding that § Disposition's
+> "One fix, or a decision" makes a decision, with what separates them.
 
 Keep the report verbatim; triage works from it, not from a retelling.
 
@@ -83,8 +88,8 @@ Keep the report verbatim; triage works from it, not from a retelling.
 
 Invoking this skill approves fixing, in the PR, every finding that:
 
-- has **one fix** — no choice between options, and no rule for a
-  user-facing behaviour to settle; and
+- is **not a decision** under `pr-review` § Disposition — the written rules
+  pick its fix; and
 - **passes `code-craft` § Design pass** — owner named, enforcement named, no
   gate tripped.
 
@@ -92,9 +97,12 @@ That approval stands in for `pr-review` § Disposition's approval gate, for
 these findings only. Fix one finding per commit, run the project's gates,
 push.
 
-Every other finding goes to the requester: a choice between options, a
-product call, a fix that fails `code-craft`, disagreement with the ticket, or
-a case for deferring. Unsure which side a finding falls on → it goes to the
+A reviewer's options list is input, not a verdict: re-rank it under that
+test before routing the finding.
+
+Every other finding goes to the requester: a decision under that test, a fix
+that fails `code-craft`, disagreement with the ticket, or a case for
+deferring. Unsure whether the rules rank its candidates → it goes to the
 requester.
 
 ### Asking about a finding
@@ -110,8 +118,8 @@ question, so each one stands alone:
   (rows, outputs, "zero today, structural only"). Say which it is.
 - **Each option as an outcome**: what changes, what enforces it (the compiler,
   a test, a convention), and what it costs — a force-push, a wider diff, a
-  second copy kept in step. A "leave it / record it" option is listed when
-  it is real.
+  second copy kept in step. Only candidates the rules leave tied are
+  options.
 - **Recommended option first**, marked, with the reason in its description.
 
 Each answer is approval for that finding's fix: apply it under the rules

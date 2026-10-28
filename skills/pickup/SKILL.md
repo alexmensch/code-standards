@@ -92,13 +92,33 @@ That approval stands in for `pr-review` § Disposition's approval gate, for
 these findings only. Fix one finding per commit, run the project's gates,
 push.
 
-Every other finding goes to the requester, as the reviewer's full text plus
-what it needs from them: a choice between options, a product call, a fix that
-fails `code-craft`, disagreement with the ticket, or a case for deferring.
-Unsure which side a finding falls on → it goes to the requester.
+Every other finding goes to the requester: a choice between options, a
+product call, a fix that fails `code-craft`, disagreement with the ticket, or
+a case for deferring. Unsure which side a finding falls on → it goes to the
+requester.
+
+### Asking about a finding
+
+Ask each such finding **in the chat, with the question tool** — one question
+per finding, batched at the tool's per-call limit — never as a list in a
+report the requester has to turn into answers. The requester reads only the
+question, so each one stands alone:
+
+- **What the code does now**, in plain words: the mechanism, not the
+  reviewer's label for it. Name the file only as a pointer.
+- **What goes wrong, and when** — the concrete failure, and its size today
+  (rows, outputs, "zero today, structural only"). Say which it is.
+- **Each option as an outcome**: what changes, what enforces it (the compiler,
+  a test, a convention), and what it costs — a force-push, a wider diff, a
+  second copy kept in step. A "leave it / record it" option is listed when
+  it is real.
+- **Recommended option first**, marked, with the reason in its description.
+
+Each answer is approval for that finding's fix: apply it under the rules
+above, one commit per finding.
 
 ## 6. Report
 
-Open questions and findings awaiting a decision first, each in full · PR link
+Any finding still unanswered after § 5's questions first, each in full · PR link
 · fixed findings, number → commit · anything deferred and where it was filed.
 Merging stays the requester's call.

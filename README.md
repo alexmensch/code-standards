@@ -24,6 +24,7 @@ asking where both sides changed.
 | `AGENTS.md.fragment` | Always, from the rules file | Tool attribution · code comments · never document absence · DRY · code-structure checks · commit granularity · PR descriptions · large-PR honesty · stale context · applying written rules |
 | `skills/code-craft/` | On design, refactor, review, recurring bug | Design pass, refactoring, review lens, bug classes; `references/` holds the smells table, patterns admissible by force, and write-time patterns |
 | `skills/pr-review/` | On a review request | Review priority order, resource and performance cost, diff efficiency with numbers (`scripts/diff-shape.sh`), plan drift, disposition of findings |
+| `skills/pr-cleanup/` | On "merge / land PR N", "/pr-cleanup" | Lands a named PR: merge the default branch in, signature check, squash-merge or arm auto-merge and watch, close tickets, remove the worktree, fast-forward local main; loads a project's `*-pr-cleanup` extension |
 | `skills/pickup/` | On "work on ticket X", "/pickup" | Takes shovel-ready work only: readiness gate, implement, PR, `pr-review` in a subagent, fix the findings `code-craft` settles, hand every decision back |
 | `hooks/` | Claude Code only | Keeps the design pass in front of the model on every turn of a review, and denies edits to installed copies — `hooks/README.md` |
 

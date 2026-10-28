@@ -34,8 +34,6 @@ and it names the skill to load for the full pass.
 ## Developing
 
 - `bash hooks/test.sh` — the hooks' behavioural tests.
-- Every skill and the fragment open with the same installed-copy notice
-  comment; a new skill copies it.
 - `bash skills/pr-review/scripts/diff-shape.sh <base>` — run from inside any
   repo to check the bucketing.
 - Skills cross-reference each other and the fragment by section name. A

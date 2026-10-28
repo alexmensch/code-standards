@@ -3,8 +3,6 @@ name: pr-cleanup
 description: Land a pull request and finish every follow-up — merge the default branch into it if behind, check commit signatures, squash-merge it (watching only if checks are still pending), close its tickets, remove its worktree, and fast-forward the local default branch. Use when asked to merge, land, or clean up after a PR ("merge PR 123 and clean up", "land this one", "/pr-cleanup 123").
 ---
 
-<!-- code-standards bundle file. Never edit an installed copy in place: change it in the repo named by source= in the rules file's code-standards:begin marker, open a PR there, then sync with that repo's UPDATE.md. -->
-
 # Landing a PR
 
 Run the steps in order; stop and ask the moment anything leaves the happy

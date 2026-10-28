@@ -3,8 +3,6 @@ name: pickup
 description: Pick up one piece of already-defined work — a ticket, "the next ready ticket under epic X", or a written plan file — and take it to an open PR, an independent review of it, and the review's fixes. Accepts only shovel-ready work (a stated outcome, a checkable acceptance, no open decision) and refuses exploratory or open-ended asks. Use for "/pickup <ticket>", "work on bead X", "pick up the next ready bead in epic Y", "implement plan.md".
 ---
 
-<!-- code-standards bundle file. Never edit an installed copy in place: change it in the repo named by source= in the rules file's code-standards:begin marker, open a PR there, then sync with that repo's UPDATE.md. -->
-
 # Pick up ready work
 
 Glue, not method. Each stage runs the skill or rule that owns it; this skill

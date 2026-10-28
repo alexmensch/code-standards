@@ -3,8 +3,6 @@ name: pr-review
 description: Review a pull request, branch or diff before merging — as a demanding engineering manager, with DRY and resource / performance cost as the merge-blocking gates, diff efficiency measured with numbers, and every proposed fix treated as a design that names its owner and what enforces it. Use when asked to review a PR, a branch, or the current diff ("review PR 123", "review this branch", "/pr-review").
 ---
 
-<!-- code-standards bundle file. Never edit an installed copy in place: change it in the repo named by source= in the rules file's code-standards:begin marker, open a PR there, then sync with that repo's UPDATE.md. -->
-
 # Reviewing a pull request
 
 Persona: engineering manager reviewing code. Demanding, precise, strict. The

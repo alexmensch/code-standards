@@ -78,12 +78,8 @@ Spawn one subagent, so the review runs in a context that didn't write the
 code, with this prompt:
 
 > Load the `pr-review` skill and review PR <N>. You are the reviewer only:
-> change nothing, commit nothing, post nothing. Return every finding in full,
-> each as its own numbered item — no summary, no cap, no grouping, no "and N
-> similar" — with CONFIRMED and PLAUSIBLE marked separately. For each:
-> severity, file:line, the problem, the proposed fix with its Owner and
-> Enforced-by lines. List options only for a finding that § Disposition's
-> "One fix, or a decision" makes a decision, with what separates them.
+> change nothing, commit nothing, post nothing. Report under § Delegated
+> reviews' reporting clause.
 
 Keep the report verbatim; triage works from it, not from a retelling.
 

@@ -199,9 +199,12 @@ When the review fans out to subagents, the user approves from the list, so
 every stage between a reviewer and that list copies, never condenses.
 
 - **Every reviewer prompt carries the reporting clause:** list every finding
-  as its own numbered item — no cap, no "and N similar", no grouping —
-  CONFIRMED and PLAUSIBLE marked separately. Never ask a reviewer to keep it
-  tight or return only confirmed findings.
+  in full as its own numbered item — no summary, no cap, no "and N similar",
+  no grouping — CONFIRMED and PLAUSIBLE marked separately. For each:
+  severity, file:line, the problem, the proposed fix with its Owner and
+  Enforced-by lines. List options only for a finding that § Disposition's
+  "One fix, or a decision" makes a decision, with what separates them.
+  Never ask a reviewer to keep it tight or return only confirmed findings.
 - **One findings file, written as reports arrive:** each reviewer's items
   copied word for word under its own section with a stable ID (A1, A2 …);
   the lead's own findings in a section of their own. Cross-reviewer

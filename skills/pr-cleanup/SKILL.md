@@ -127,9 +127,9 @@ check re-runs.
 
 ## Merge — never sit on CI
 
-CI-side verification is not yours to poll, so do not wait for green.
-Everything below turns on `mergeStateStatus` — read it, do not infer it from
-the checks page.
+Never wait for green before acting: merge now if `CLEAN`, otherwise arm
+auto-merge and let the watch report the outcome. Everything below turns on
+`mergeStateStatus` — read it, do not infer it from the checks page.
 
 **First, check stack membership — `gh pr merge` is refused on any PR in a
 stack**, whatever its position, including a bottom PR that already targets

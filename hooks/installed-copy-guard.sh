@@ -15,7 +15,7 @@ file="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<< 
 hook_dir="$(cd "$(dirname "$0")" && pwd -P)"
 scope="$(dirname "$(dirname "$hook_dir")")"
 
-[ -n "$(find "$hook_dir/.sync-in-progress" -mmin -60 2>/dev/null)" ] && exit 0
+[ -n "$(find "$hook_dir/.sync-in-progress" -mmin -15 2>/dev/null)" ] && exit 0
 
 canon() {
   local p="$1" rest="" link hops=0

@@ -57,8 +57,9 @@ on:
 - any file in an installed skill folder (from the marker's `skills=`, renames
   and skips applied),
 - any file in this hook folder,
-- the rules file, when the edit touches the `code-standards:begin`…`end`
-  block. Edits elsewhere in that file pass.
+- the rules file, when the edit would change the `code-standards:begin`…`end`
+  block (markers count only at the start of a line). Edits elsewhere in that
+  file pass, including ones that use a marker line as their anchor.
 
 The denial names the bundle path and the source repo (the marker's
 `source=`), so the agent makes the change there and opens a PR, then syncs
@@ -68,7 +69,8 @@ it, or `CLAUDE.md` / `AGENTS.md` beside it.
 
 **Syncing.** `INSTALL.md` and `UPDATE.md` write installed copies, so they hold
 the guard open with a `.sync-in-progress` file in this folder, and remove it
-when done. A marker older than an hour is ignored, so an abandoned sync
+when done. The file is not per session: while it is under 15 minutes old,
+every session's edits pass. An older one is ignored, so an abandoned sync
 re-arms the guard by itself.
 
 **Fails open.** No `jq`, no rules file with a marker, or a payload with no

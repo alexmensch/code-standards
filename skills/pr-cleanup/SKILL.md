@@ -8,7 +8,7 @@ description: Land a pull request and finish every follow-up — merge the defaul
 Run the steps in order; stop and ask the moment anything leaves the happy
 path ([Deviations](#deviations--stop-and-ask)).
 
-**Project extension — check before step 1.** If the available skills include
+**Project extension — check before Ground truth.** If the available skills include
 one whose name ends `-pr-cleanup` and that is scoped to the repository being
 landed, load it now. It carries that project's gates, ticket tracker and
 post-landing steps, and its sections narrow this skill's; it never replaces
@@ -27,9 +27,9 @@ For **the PR named at invocation**, and nothing else:
 
 - **Merge it.** Squash only.
 - **Merge `origin/<main>` into its branch and push**
-  ([Bring main in](#2-bring-main-in--always-check-even-when-nothing-suggests-it)).
+  ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in
-  [The signature trap](#3-the-signature-trap--check-before-arming-the-merge).**
+  [The signature trap](#the-signature-trap--check-before-arming-the-merge).**
   No other force-push is authorised; neither is `--force`.
 - **Close its tickets, remove its worktree, fast-forward local `<main>`.**
 
@@ -54,7 +54,7 @@ why** so a wrong pick is cheap to correct. Otherwise show the list and ask.
 Several are usually open at once and the others are someone else's in-flight
 work; merging one is not recoverable by an apology.
 
-## 1. Ground truth first
+## Ground truth first
 
 ```bash
 gh pr view <N> --json number,title,state,headRefName,mergeable,mergeStateStatus,autoMergeRequest,isDraft
@@ -64,9 +64,9 @@ git fetch origin
 
 **Check `state` before anything else — it may already be merged.** Auto-merge
 can fire between two of your own commands. If `MERGED`, the work left is
-[Close the tickets](#5-close-the-tickets) and
-[Worktree, branches, main](#6-worktree-branches-main) — never
-[Merge](#4-merge--never-sit-on-ci).
+[Close the tickets](#close-the-tickets) and
+[Worktree, branches, main](#worktree-branches-main) — never
+[Merge](#merge--never-sit-on-ci).
 
 Collect the tickets: their IDs appear in the PR title, body and commit
 subjects, in the pattern the project's tracker uses. Gather all three and
@@ -79,7 +79,7 @@ gh pr view <N> --json title,body,commits -q '.title, .body, (.commits[].messageH
 Read each ticket rather than trusting the ID: a PR sometimes *mentions* a
 ticket it does not close.
 
-## 2. Bring main in — always check, even when nothing suggests it
+## Bring main in — always check, even when nothing suggests it
 
 ```bash
 git status --porcelain                       # must be empty — merge refuses a dirty tree
@@ -97,7 +97,7 @@ Re-run the project's gates after the merge, then:
 git push origin <headRefName>
 ```
 
-## 3. The signature trap — check before arming the merge
+## The signature trap — check before arming the merge
 
 When the branch rules require signed commits, an unsigned commit blocks the
 merge **with every check green**, which reads exactly like the
@@ -129,7 +129,7 @@ git push --force-with-lease origin <headRefName>
 Do this **before** arming auto-merge: re-signing rewrites every SHA, so every
 check re-runs.
 
-## 4. Merge — never sit on CI
+## Merge — never sit on CI
 
 CI-side verification is not yours to poll, so do not wait for green.
 Everything below turns on `mergeStateStatus` — read it, do not infer it from
@@ -155,11 +155,11 @@ stop and ask; the rest of this section assumes a standalone PR.
 | `CLEAN` | mergeable, all required checks passed — merge now |
 | `BLOCKED` | required checks pending **or** [Deviations](#deviations--stop-and-ask)' blocked-with-no-failing-check |
 | `UNSTABLE` | mergeable, but something is failing — a [deviation](#deviations--stop-and-ask), never merge over it |
-| `BEHIND` / `DIRTY` | out of date / conflicting — back to [Bring main in](#2-bring-main-in--always-check-even-when-nothing-suggests-it) |
+| `BEHIND` / `DIRTY` | out of date / conflicting — back to [Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it) |
 | `UNKNOWN` | not computed yet — ordinary after a push; re-query, do not act |
 
 **Checks already green** (`CLEAN`) — merge and go straight to
-[Close the tickets](#5-close-the-tickets). The merge is synchronous, so there
+[Close the tickets](#close-the-tickets). The merge is synchronous, so there
 is nothing to watch:
 
 ```bash
@@ -209,13 +209,13 @@ done
 check blocks the merge for good while auto-merge stays armed, so a
 `fail`-only filter polls a PR that will never move. `Monitor` with
 `persistent: true`. Only `MERGED` continues to
-[Close the tickets](#5-close-the-tickets); every other exit is a
+[Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).
 
-## 5. Close the tickets
+## Close the tickets
 
 Only once the PR is actually `MERGED` — whether the watch reported it or
-[Ground truth](#1-ground-truth-first) found it already merged. Close each with
+[Ground truth](#ground-truth-first) found it already merged. Close each with
 a reason naming the PR, in the project's tracker.
 
 Leave a ticket open when the PR only advanced it. Say which, and why.
@@ -223,7 +223,7 @@ Leave a ticket open when the PR only advanced it. Say which, and why.
 **No tickets at all is normal, not a deviation.** A tooling, CI, or docs PR
 often has none. Say so and move on.
 
-## 6. Worktree, branches, main
+## Worktree, branches, main
 
 Order matters — you cannot remove the worktree from inside it. **What decides
 the route is who OWNS the worktree, not whether the session is pinned.**
@@ -283,7 +283,7 @@ Do not improvise past any of these. Say what you found, what you would do, and
 wait.
 
 **Blocked with no failing check.** Two known causes, in the order to check
-them: unsigned commits ([The signature trap](#3-the-signature-trap--check-before-arming-the-merge)),
+them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge)),
 then an orphaned required-status context — a renamed CI job strands its old
 name as a required check forever. Compare required against reported:
 

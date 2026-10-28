@@ -77,10 +77,13 @@ ticket it does not close.
 
 ## Bring main in — always check, even when nothing suggests it
 
+`<wt>` is the worktree holding `headRefName` (Ground truth's
+`git worktree list`):
+
 ```bash
-git status --porcelain                       # must be empty — merge refuses a dirty tree
-git rev-list --count HEAD..origin/<main>     # 0 → current; skip to the signature trap
-git merge --no-edit origin/<main>
+git -C <wt> status --porcelain                     # must be empty — merge refuses a dirty tree
+git -C <wt> rev-list --count HEAD..origin/<main>   # 0 → current; skip to the signature trap
+git -C <wt> merge --no-edit origin/<main>
 ```
 
 Merge, never rebase. The squash lands one commit titled by the PR, so the
@@ -90,7 +93,7 @@ conflict once against `<main>`'s tip where a rebase replays it per commit.
 Re-run the project's gates after the merge, then:
 
 ```bash
-git push origin <headRefName>
+git -C <wt> push origin <headRefName>
 ```
 
 ## The signature trap — check before arming the merge
@@ -104,7 +107,7 @@ then the commits:
 ```bash
 gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="required_signatures") | .type'
 # empty → signing not required; skip to Merge
-git log --format='%h %G? %s' origin/<main>..HEAD
+git -C <wt> log --format='%h %G? %s' origin/<main>..HEAD
 ```
 
 Only `N` (no signature) and `B` (bad signature) need the re-sign below; any
@@ -120,11 +123,11 @@ commit, conflicts and all. A branch carrying a merge from `<main>` is a
 and verify the fix changed nothing but signatures:
 
 ```bash
-BEFORE=$(git rev-parse HEAD^{tree})
-git rebase -f -S origin/<main>
-[ "$BEFORE" = "$(git rev-parse HEAD^{tree})" ] || echo "TREE CHANGED — STOP"
-git log --format='%h %G?' origin/<main>..HEAD      # no N or B now
-git push --force-with-lease origin <headRefName>
+BEFORE=$(git -C <wt> rev-parse HEAD^{tree})
+git -C <wt> rebase -f -S origin/<main>
+[ "$BEFORE" = "$(git -C <wt> rev-parse HEAD^{tree})" ] || echo "TREE CHANGED — STOP"
+git -C <wt> log --format='%h %G?' origin/<main>..HEAD      # no N or B now
+git -C <wt> push --force-with-lease origin <headRefName>
 ```
 
 Do this **before** arming auto-merge: re-signing rewrites every SHA, so every

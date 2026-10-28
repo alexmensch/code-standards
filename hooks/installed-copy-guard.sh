@@ -75,7 +75,10 @@ deny_guarded() {
   local t="$1" g dir
   for g in "${guards[@]}"; do
     dir="${g%%|*}"
-    case "$t" in "$dir"/*) deny "${g#*|}/${t#"$dir"/}" ;; esac
+    case "$t" in
+      "$dir") deny "${g#*|}" ;;
+      "$dir"/*) deny "${g#*|}/${t#"$dir"/}" ;;
+    esac
   done
 }
 

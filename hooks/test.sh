@@ -152,6 +152,8 @@ check "guard denies a shell write to the rules file" \
   '[[ "$(sh "printf x >> $RULES")" == *"file-edit tools"* ]]'
 check "guard matches a \$HOME spelling" \
   '[ -n "$(HOME="$STATE/home" sh "rm \$HOME/.claude/skills/pr-review/SKILL.md")" ]'
+check "guard denies removing a whole installed skill folder" \
+  '[[ "$(sh "rm -rf $SCOPE/skills/pr-review")" == *"code-standards skills/pr-review."* ]]'
 check "guard resolves a relative path against the payload's cwd" '[ -n "$(guard "$(jq -n --arg d "$SCOPE/skills" \
   '"'"'{tool_name: "Bash", cwd: $d, tool_input: {command: "rm pr-review/SKILL.md"}}'"'"')")" ]'
 check "guard allows reading an installed skill" '[ -z "$(sh "grep -n x $SCOPE/skills/pr-review/SKILL.md 2>/dev/null")" ]'

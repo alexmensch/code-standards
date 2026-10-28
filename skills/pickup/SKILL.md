@@ -106,8 +106,9 @@ requester.
 
 ### Asking about a finding
 
-Ask each such finding **in the chat, with the question tool** — one question
-per finding, batched at the tool's per-call limit — never as a list in a
+Ask each such finding **in the chat, with the harness's question tool** — one
+question per finding, batched at the tool's per-call limit; without one, one
+numbered question per message — never as a list in a
 report the requester has to turn into answers. The requester reads only the
 question, so each one stands alone:
 

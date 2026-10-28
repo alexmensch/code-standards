@@ -268,10 +268,14 @@ the route is who OWNS the worktree, not whether the session is pinned.**
 Then, from the main checkout:
 
 ```bash
-git fetch --prune                  # drops the auto-deleted remote branch
+git fetch --prune                  # drops the remote branch, if auto-deleted
 git branch -D <headRefName>        # no-op if ExitWorktree took it
 git pull --ff-only                 # main checkout, <main> branch
+gh repo view --json deleteBranchOnMerge -q .deleteBranchOnMerge
 ```
+
+`false` → the remote branch remains; report it. Deleting it is the user's
+call.
 
 Then run the project's sanity check against what actually landed.
 

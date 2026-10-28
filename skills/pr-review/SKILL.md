@@ -234,7 +234,8 @@ answer to "is there a better way?" gets the same two lines, however far into
 the review.
 
 **One fix, or a decision.** When the written rules rank a finding's candidate
-fixes, settle it yourself. The written rules are this skill, `code-craft`, the
+fixes, choose the fix yourself; approval above still applies. The written
+rules are this skill, `code-craft`, the
 always-on rules, the project's instructions, and decisions already recorded
 on the ticket or its plan. Rank by the two lines above: one owner over copies
 kept in step; compiler over test over convention; fixed in this PR over

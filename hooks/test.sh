@@ -91,6 +91,11 @@ check "guard denies an installed skill, naming the source" \
 check "guard maps a renamed skill to its bundle name" \
   '[[ "$(edit "$SCOPE/skills/acme-craft/SKILL.md" body)" == *"skills/code-craft/SKILL.md"* ]]'
 check "guard follows a symlinked path" '[ -n "$(edit "$STATE/home/linked-skills/pr-review/SKILL.md" body)" ]'
+check "guard denies a new folder's file through a symlink" \
+  '[ -n "$(write "$STATE/home/linked-skills/pr-review/refs/new.md" x)" ]'
+check "guard denies a new folder's file through .." '[ -n "$(write "$SCOPE/skills/other/../pr-review/refs/new.md" x)" ]'
+ln -s "$SCOPE/skills/pr-review/SKILL.md" "$STATE/home/linked-file.md"
+check "guard follows a symlinked file" '[ -n "$(edit "$STATE/home/linked-file.md" body)" ]'
 check "guard allows a skipped skill" '[ -z "$(edit "$SCOPE/skills/pickup/SKILL.md" body)" ]'
 check "guard allows an unrelated skill" '[ -z "$(edit "$SCOPE/skills/other/SKILL.md" body)" ]'
 check "guard denies a new file in the hook folder" \

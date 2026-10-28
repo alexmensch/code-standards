@@ -18,10 +18,18 @@ scope="$(dirname "$(dirname "$hook_dir")")"
 [ -n "$(find "$hook_dir/.sync-in-progress" -mmin -60 2>/dev/null)" ] && exit 0
 
 canon() {
-  if [ -e "$1" ]; then realpath "$1"
-  elif [ -d "$(dirname "$1")" ]; then echo "$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"
-  else echo "$1"
-  fi
+  local p="$1" rest="" link hops=0
+  while [ ! -d "$p" ] && [ "$hops" -lt 40 ]; do
+    hops=$((hops + 1))
+    if [ -L "$p" ]; then
+      link="$(readlink "$p")"
+      case "$link" in /*) p="$link" ;; *) p="$(dirname "$p")/$link" ;; esac
+    else
+      rest="/$(basename "$p")$rest"
+      p="$(dirname "$p")"
+    fi
+  done
+  echo "$(cd "$p" 2>/dev/null && pwd -P)$rest"
 }
 
 rules=""

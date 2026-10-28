@@ -237,9 +237,10 @@ the review.
 fixes, choose the fix yourself; approval above still applies. The written
 rules are this skill, `code-craft`, the
 always-on rules, the project's instructions, and decisions already recorded
-on the ticket or its plan. Rank by the two lines above: one owner over copies
-kept in step; compiler over test over convention; fixed in this PR over
-deferred. The top candidate is the fix — propose it alone, with no
+on the ticket or its plan. Rank by the two lines above, each key deciding
+before the next is consulted: one owner over copies kept in step; then
+compiler over test over convention; then fixed in this PR over deferred.
+The top candidate is the fix — propose it alone, with no
 alternatives listed. More work, a wider diff or an unfamiliar shape never
 demotes it.
 

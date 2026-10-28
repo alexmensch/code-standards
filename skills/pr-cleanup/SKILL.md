@@ -237,16 +237,20 @@ the route is who OWNS the worktree, not whether the session is pinned.**
   **It will refuse after a squash merge** — the squash is a *new* commit, so
   the branch is not an ancestor and the tool reads it as unmerged work. That
   refusal is the last thing between the merge and `discard_changes: true`
-  deleting commits permanently, so override it only on a check that can fail:
+  deleting work permanently, so override it only when all three of these
+  landing checks pass — each fails on what the squash would not carry:
 
   ```bash
   git fetch origin
-  git log --oneline -20 origin/<main> | grep '(#<N>)'    # the squash commit
+  git -C <wt> status --porcelain                          # empty: nothing uncommitted
+  [ "$(git -C <wt> rev-parse HEAD)" = "$(gh pr view <N> --json headRefOid -q .headRefOid)" ] \
+    && echo "head matches"                                # nothing committed after the merged head
+  git merge-base --is-ancestor "$(gh pr view <N> --json mergeCommit -q .mergeCommit.oid)" \
+    origin/<main> && echo "squash on <main>"
   ```
 
   Never substitute `git cat-file -e origin/<main>:<path>`: `-e` asks only
-  whether the path exists, which it may have before the PR too. Test for
-  something the PR **introduced**.
+  whether the path exists, which it may have before the PR too.
 
 - **An earlier session created it** — the usual case, since the PR's worktree
   often predates this session. Reaching it with `EnterWorktree({path})` does
@@ -258,7 +262,7 @@ the route is who OWNS the worktree, not whether the session is pinned.**
   `action: "keep"` (plain `cd` if the session never entered), then
   `git worktree remove <path>` from the main checkout.
 
-  Still run the squash-commit check before removing: `git worktree remove`
+  Still run the landing checks before removing: `git worktree remove`
   drops the directory whether or not the work landed.
 
 Then, from the main checkout:

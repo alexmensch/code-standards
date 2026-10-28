@@ -134,6 +134,16 @@ set_rules "Prose quoting <!-- code-standards:end --> and <!-- code-standards:beg
 $RULES_BODY"
 check "guard ignores marker text in prose for the block" '[ -n "$(edit "$RULES" "DRY — inside")" ]'
 check "guard ignores marker text in prose for skills=" '[ -n "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" ]'
+
+set_rules "${RULES_BODY/ source=\/src\/code standards/}"
+check "guard names the repo generically without source=" \
+  '[[ "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" == *"the code-standards repo/skills/pr-review"* ]]'
+
+set_rules "# No marker here"
+check "guard stands aside with no marker" '[ -z "$(edit "$SCOPE/skills/pr-review/SKILL.md" body)" ]'
 set_rules "$RULES_BODY"
+
+check "guard reads NotebookEdit's path" '[ -n "$(guard "$(jq -n --arg f "$SCOPE/skills/pr-review/n.ipynb" \
+  '"'"'{tool_name: "NotebookEdit", tool_input: {notebook_path: $f}}'"'"')")" ]'
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

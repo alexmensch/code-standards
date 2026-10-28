@@ -259,6 +259,9 @@ A finding is a **decision** for the user only when:
   codebase — for example money, bandwidth, an external service, or
   rewriting history others have pulled.
 
+Top candidates that tie and differ in neither: take the smaller diff,
+propose it alone, and say it was a tie-break.
+
 Findings get fixed **in the PR**, as topical commits on that branch. Do not
 propose filing tickets as the default disposition — that defers work the PR is
 already open for, and "I will file a ticket for that" reads as agreement while

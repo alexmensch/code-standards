@@ -41,9 +41,10 @@ the first two:
 | changed | changed | Show the user both diffs, and ask: keep local, take new, or merge (then show the merged result before writing it) |
 | unchanged | unchanged | Nothing to do |
 
-For the rules block, compare section by section: a section missing from the
-local block is one the user dropped at install, and stays dropped unless they
-say otherwise.
+For the rules block, compare section by section, counting the text above the
+first heading as one section. A section in old but missing from local is one
+the user dropped at install, and stays dropped unless they say otherwise; a
+section in new only is new — take it.
 
 ## 4. Skills added or removed since the install
 

@@ -48,10 +48,7 @@ deny() {
   exit 0
 }
 
-target="$(canon "$file")"
-
-case "$target" in "$hook_dir"/*) deny "hooks/${target#"$hook_dir"/}" ;; esac
-
+guards=("$hook_dir|hooks")
 entries=()
 IFS=, read -ra entries <<< "$skills"
 for e in ${entries[@]+"${entries[@]}"}; do
@@ -59,8 +56,14 @@ for e in ${entries[@]+"${entries[@]}"}; do
   installed="$bundle"
   [[ "$e" == *:* ]] && installed="${e#*:}"
   [ "$installed" = "-" ] && continue
-  dir="$(canon "$scope/skills/$installed")"
-  case "$target" in "$dir"/*) deny "skills/$bundle/${target#"$dir"/}" ;; esac
+  guards+=("$(canon "$scope/skills/$installed")|skills/$bundle")
+done
+
+target="$(canon "$file")"
+
+for g in "${guards[@]}"; do
+  dir="${g%%|*}"
+  case "$target" in "$dir"/*) deny "${g#*|}/${target#"$dir"/}" ;; esac
 done
 
 [ "$target" = "$rules" ] || exit 0

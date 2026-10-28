@@ -149,7 +149,8 @@ gh api graphql -F owner='{owner}' -F name='{repo}' -f query='
 ```
 
 Non-null → hand off to the `gh-stack` skill if one is installed, otherwise
-stop and ask; the rest of this section assumes a standalone PR.
+stop and ask. An error (the host has no `stack` field) → stop and ask. The
+rest of this section assumes a standalone PR.
 
 | | |
 |---|---|

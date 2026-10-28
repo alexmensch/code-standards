@@ -9,6 +9,15 @@
             "command": "<HOOK_DIR>/review-design-reminder.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<HOOK_DIR>/installed-copy-guard.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

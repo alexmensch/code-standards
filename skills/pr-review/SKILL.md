@@ -197,9 +197,12 @@ When the review fans out to subagents, the user approves from the list, so
 every stage between a reviewer and that list copies, never condenses.
 
 - **Every reviewer prompt carries the reporting clause:** list every finding
-  as its own numbered item — no cap, no "and N similar", no grouping —
-  CONFIRMED and PLAUSIBLE marked separately. Never ask a reviewer to keep it
-  tight or return only confirmed findings.
+  in full as its own numbered item — no summary, no cap, no "and N similar",
+  no grouping — CONFIRMED and PLAUSIBLE marked separately. For each:
+  severity, file:line, the problem, the proposed fix with its Owner and
+  Enforced-by lines. List options only for a finding that § Disposition's
+  "One fix, or a decision" makes a decision, with what separates them.
+  Never ask a reviewer to keep it tight or return only confirmed findings.
 - **One findings file, written as reports arrive:** each reviewer's items
   copied word for word under its own section with a stable ID (A1, A2 …);
   the lead's own findings in a section of their own. Cross-reviewer
@@ -230,6 +233,39 @@ what is under review.
 **Follow-up turns are design turns.** A replacement fix, an alternative, an
 answer to "is there a better way?" gets the same two lines, however far into
 the review.
+
+**One fix, or a decision.** When the written rules rank a finding's candidate
+fixes, choose the fix yourself; approval above still applies. The written
+rules are this skill, `code-craft`, the
+always-on rules, the project's instructions, and decisions already recorded
+on the ticket or its plan. Rank by the two lines above, each key deciding
+before the next is consulted: one owner over copies kept in step; then
+compiler over test over convention; then fixed in this PR over deferred.
+The top candidate is the fix — propose it alone, with no
+alternatives listed. More work, a wider diff or an unfamiliar shape never
+demotes it.
+
+Anything that leaves the defect in place is never an option beside a fix the
+rules accept — for example recording it in prose, deferring it, accepting it
+as is, or narrowing a scope the owner already set. Before treating anything as open, close what looking
+can close: measure an unmeasured cost, and verify every fact an option rests
+on.
+
+A finding is a **decision** for the user only when:
+
+- its top candidates tie on that ranking and differ in behaviour a user of
+  the product sees, or in an interface or data format consumed outside the
+  codebase; or
+- the fix the rules pick carries a cost or risk the user bears outside the
+  codebase — for example money, bandwidth, an external service, or
+  rewriting history others have pulled.
+
+A tie's options are the tied candidates. A cost decision asks whether to
+accept that cost; its alternative is the best candidate that avoids it, or,
+if none does, leaving the defect — the one place that may be offered.
+
+Top candidates that tie and differ in neither: take the smaller diff,
+propose it alone, and say it was a tie-break.
 
 Findings get fixed **in the PR**, as topical commits on that branch. Do not
 propose filing tickets as the default disposition — that defers work the PR is

@@ -5,7 +5,8 @@ bundle. A person starts it with: *"Read `<path-to-this-repo>/UPDATE.md` and
 follow it."* No install yet → follow `INSTALL.md` instead.
 
 Local edits to an installed copy are the user's. Never overwrite one without
-their answer.
+their answer. Hold the installed-copy guard open while writing, as
+`INSTALL.md`'s opening says.
 
 ## 1. Find the install
 
@@ -26,8 +27,9 @@ file in full at `HEAD`. Nothing gets installed unread.
 ## 3. Merge each installed piece three ways
 
 The pieces: the rules block, each installed skill folder, and the hook
-folder. For each, compare three versions, applying the marker's renames to
-the first two:
+folder. For each, compare three versions, applying the install's own changes
+— the marker's renames and the installed-copy notice (`INSTALL.md` § 4) — to
+old and new, so they never read as local edits:
 
 - **old** — the bundle at `version=` (`git show <version>:<path>`)
 - **local** — the installed copy
@@ -40,9 +42,10 @@ the first two:
 | changed | changed | Show the user both diffs, and ask: keep local, take new, or merge (then show the merged result before writing it) |
 | unchanged | unchanged | Nothing to do |
 
-For the rules block, compare section by section: a section missing from the
-local block is one the user dropped at install, and stays dropped unless they
-say otherwise.
+For the rules block, compare section by section, counting the text above the
+first heading as one section. A section in old but missing from local is one
+the user dropped at install, and stays dropped unless they say otherwise; a
+section in new only is new — take it.
 
 ## 4. Skills added or removed since the install
 
@@ -60,8 +63,8 @@ entries), and `test.sh`, whose last line must read `all passed`.
 
 ## 6. Rewrite the marker
 
-Set `version=` to the new commit and `skills=` to the current entries,
-renames and skips preserved.
+Set `version=` to the new commit, `skills=` to the current entries (renames
+and skips preserved), and `source=` to this repo's absolute path, last.
 
 ## 7. Report
 

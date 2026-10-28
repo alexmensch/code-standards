@@ -7,6 +7,11 @@ an existing install, use `UPDATE.md` instead.
 Work through the steps in order. Ask the user only where a step says to;
 everything else has a default.
 
+**Installed copies are guarded.** Where a hook folder from a previous install
+exists (§ 2), `touch <hook folder>/.sync-in-progress` before the first write
+to an installed file, and `rm -f` it after the last; without it the
+installed-copy guard denies those writes (`hooks/README.md`).
+
 ## 1. Read the bundle
 
 Read every file in this repository before installing anything: `README.md`,
@@ -27,6 +32,10 @@ project the session is in, if any.
 | Skills | `~/.claude/skills/<name>/` | `<repo>/.claude/skills/<name>/` | The harness's skill folder if it has one; otherwise `<repo>/docs/agent-skills/<name>/`, plus a trigger line per skill in the rules file (§ 4) |
 | Hook | `~/.claude/hooks/code-standards/` + `~/.claude/settings.json` | `<repo>/.claude/hooks/code-standards/` + `<repo>/.claude/settings.json` | Not installed — it uses Claude Code's hook events |
 
+`pr-cleanup` drives GitHub through `gh` and Claude Code's worktree and
+monitor tools: install it only on Claude Code, and record it as skipped
+(`:-`, § 4) elsewhere.
+
 A project install is written into the working tree; it is not committed unless
 the user asks.
 
@@ -43,10 +52,11 @@ replace it. If not, show the user the difference and ask them to pick:
 - **Rename** this bundle's skill (ask for the name; suggest a team or project
   prefix, such as `acme-code-craft`).
 - **Skip** this skill.
-- **Extend** (`pr-review` only, when the existing one is a project skill):
-  rename the project skill to `<project>-pr-review` and cut it to the
-  project-specific gates. This bundle's `pr-review` loads any project skill
-  named that way, so "review PR 123" and `/pr-review` still reach both.
+- **Extend** (`pr-review` and `pr-cleanup` only, when the existing one is
+  specific to one project, at either scope): move it to that project's
+  skill folder as `<project>-<skill>` and cut it to the project-specific
+  parts. This bundle's skill loads any project skill named that way, so a
+  request or `/<skill>` still reaches both.
 
 **Renaming touches every reference.** Rewrite all of them in the installed
 copies, never in this repository:
@@ -74,18 +84,33 @@ Insert `AGENTS.md.fragment` into the target rules file inside a marker block,
 applying any renames from § 3:
 
 ```
-<!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… -->
+<!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… source=<path> -->
+<installed-copy notice for AGENTS.md.fragment>
 …fragment…
 <!-- code-standards:end -->
 ```
 
+The **installed-copy notice** is this one line, with `<bundle path>` the
+installed file's path in this repo and `<path>` as in `source=`:
+
+```
+<!-- Installed copy of code-standards <bundle path>, from <path>. Never edit it here: change it there, open a PR, then sync with UPDATE.md. -->
+```
+
+It is written only at install, never kept in this repo, so a model reading
+the file to edit it sees it, and the always-loaded rules carry nothing extra
+(the harness strips comments when it loads them).
+
 One `skills=` entry per skill under `skills/`: its bundle name, then
 `:<installed name>` if renamed or `:-` if skipped — for example
-`code-craft,pr-review:acme-pr-review,pickup:-`. `UPDATE.md` reads it.
+`code-craft,pr-review:acme-pr-review,pickup:-`. `source=` is this repo's
+absolute path, and comes last, since it may contain spaces. `UPDATE.md` and
+the installed-copy guard read the marker.
 
 - File has no block yet → append the block at the end.
-- File has a block → replace everything between the markers, and keep the
-  skill names the old marker recorded unless the user asks to change them.
+- File has a block → rewrite the begin line with the new `version=`, the
+  `skills=` entries the old marker recorded (unless the user asks to change
+  them) and `source=`, then replace everything between the markers.
 - Sections dropped in § 3 are removed from the inserted copy.
 
 Harness with no skill folder: add one line per skill to the block, after the
@@ -95,7 +120,9 @@ Harness with no skill folder: add one line per skill to the block, after the
 ## 5. Install the skills
 
 Copy `skills/<name>/` to the target skill folder for each skill not skipped,
-under its final name, replacing any previous install of it. Then make
+under its final name, replacing any previous install of it, and add the
+installed-copy notice (§ 4) for `skills/<name>/SKILL.md` on the line after
+its frontmatter. Then make
 `scripts/diff-shape.sh` executable and run it once from the target repo (or,
 for a user install, from the repo the session is in):
 
@@ -112,8 +139,8 @@ value in the rules block for a project install.
 
 Requires `bash` and `jq`; if `jq` is missing, say so and skip this step.
 
-1. Copy `hooks/review-design-reminder.sh`, `hooks/skill-name.sh` and
-   `hooks/test.sh` to the hook folder from § 2; make them executable.
+1. Copy every `.sh` file in `hooks/` to the hook folder from § 2; make them
+   executable.
 2. If either skill was renamed, change the `REVIEW_SKILL` / `DESIGN_SKILL`
    defaults in the installed `review-design-reminder.sh`.
 3. Merge `hooks/settings.snippet.json` into the target `settings.json`,
@@ -136,4 +163,5 @@ Finish with a table of every piece: what was installed, where, under what
 name, and what was replaced, renamed, skipped or dropped. Then name the one
 thing the user does next — start a new session for the always-on rules
 and skills to load. To uninstall: delete the marker block, the skill folders, the hook
-folder, and the two hook entries in `settings.json`.
+folder, and the hook entries in `settings.json` (`hooks/README.md`
+§ Disabling) — the hook entries first, or the guard denies the rest.

@@ -91,8 +91,9 @@ absolute path, and comes last, since it may contain spaces. `UPDATE.md` and
 the installed-copy guard read the marker.
 
 - File has no block yet → append the block at the end.
-- File has a block → replace everything between the markers, and keep the
-  skill names the old marker recorded unless the user asks to change them.
+- File has a block → rewrite the begin line with the new `version=`, the
+  `skills=` entries the old marker recorded (unless the user asks to change
+  them) and `source=`, then replace everything between the markers.
 - Sections dropped in § 3 are removed from the inserted copy.
 
 Harness with no skill folder: add one line per skill to the block, after the

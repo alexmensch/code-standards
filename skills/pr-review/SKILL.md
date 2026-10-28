@@ -244,9 +244,9 @@ The top candidate is the fix — propose it alone, with no
 alternatives listed. More work, a wider diff or an unfamiliar shape never
 demotes it.
 
-Never options beside a fix the rules accept: recording the problem in prose
-instead of fixing it, deferring it, accepting it as is, or narrowing a scope
-the owner already set. Before treating anything as open, close what looking
+Anything that leaves the defect in place is never an option beside a fix the
+rules accept — for example recording it in prose, deferring it, accepting it
+as is, or narrowing a scope the owner already set. Before treating anything as open, close what looking
 can close: measure an unmeasured cost, and verify every fact an option rests
 on.
 
@@ -255,8 +255,9 @@ A finding is a **decision** for the user only when:
 - its top candidates tie on that ranking and differ in behaviour a user of
   the product sees, or in an interface or data format consumed outside the
   codebase; or
-- the fix the rules pick costs the user something outside the codebase —
-  money, bandwidth, an external service, rewriting pushed history.
+- the fix the rules pick carries a cost or risk the user bears outside the
+  codebase — for example money, bandwidth, an external service, or
+  rewriting history others have pulled.
 
 Findings get fixed **in the PR**, as topical commits on that branch. Do not
 propose filing tickets as the default disposition — that defers work the PR is

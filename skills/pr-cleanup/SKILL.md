@@ -98,9 +98,12 @@ git push origin <headRefName>
 When the branch rules require signed commits, an unsigned commit blocks the
 merge **with every check green**, which reads exactly like the
 orphaned-context failure in [Deviations](#deviations--stop-and-ask) and is a
-different cause. Check every PR:
+different cause. Check every PR — first whether the rules require signing,
+then the commits:
 
 ```bash
+gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="required_signatures") | .type'
+# empty → signing not required; skip to Merge
 git log --format='%h %G? %s' origin/<main>..HEAD
 ```
 

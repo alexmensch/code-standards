@@ -85,9 +85,21 @@ applying any renames from § 3:
 
 ```
 <!-- code-standards:begin version=<sha> skills=<entry>,<entry>,… source=<path> -->
+<installed-copy notice for AGENTS.md.fragment>
 …fragment…
 <!-- code-standards:end -->
 ```
+
+The **installed-copy notice** is this one line, with `<bundle path>` the
+installed file's path in this repo and `<path>` as in `source=`:
+
+```
+<!-- Installed copy of code-standards <bundle path>, from <path>. Never edit it here: change it there, open a PR, then sync with UPDATE.md. -->
+```
+
+It is written only at install, never kept in this repo, so a model reading
+the file to edit it sees it, and the always-loaded rules carry nothing extra
+(the harness strips comments when it loads them).
 
 One `skills=` entry per skill under `skills/`: its bundle name, then
 `:<installed name>` if renamed or `:-` if skipped — for example
@@ -108,7 +120,9 @@ Harness with no skill folder: add one line per skill to the block, after the
 ## 5. Install the skills
 
 Copy `skills/<name>/` to the target skill folder for each skill not skipped,
-under its final name, replacing any previous install of it. Then make
+under its final name, replacing any previous install of it, and add the
+installed-copy notice (§ 4) for `skills/<name>/SKILL.md` on the line after
+its frontmatter. Then make
 `scripts/diff-shape.sh` executable and run it once from the target repo (or,
 for a user install, from the repo the session is in):
 

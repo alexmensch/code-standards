@@ -27,8 +27,9 @@ file in full at `HEAD`. Nothing gets installed unread.
 ## 3. Merge each installed piece three ways
 
 The pieces: the rules block, each installed skill folder, and the hook
-folder. For each, compare three versions, applying the marker's renames to
-the first two:
+folder. For each, compare three versions, applying the install's own changes
+— the marker's renames and the installed-copy notice (`INSTALL.md` § 4) — to
+old and new, so they never read as local edits:
 
 - **old** — the bundle at `version=` (`git show <version>:<path>`)
 - **local** — the installed copy

@@ -5,10 +5,6 @@ Standing rules for design, code quality, commits and pull requests. The
 every write, skill loaded or not. A project rule may override one of these
 **explicitly**; it never silently wins by being nearby.
 
-These rules and the skills named in the `code-standards:begin` marker around
-them are installed copies. Never edit one in place: change it in the repo the
-marker's `source=` names, open a PR there, then sync with its `UPDATE.md`.
-
 ## No tool attribution in commits, PRs or code — law
 
 Never output `🤖 Generated with [Claude Code](https://claude.com/claude-code)`

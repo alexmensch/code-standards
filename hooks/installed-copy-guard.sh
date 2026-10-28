@@ -67,11 +67,9 @@ done
 
 jq -e --rawfile f "$rules" --arg b "$BEGIN" --arg e "$END" '
   def block: split($b)[1] // "" | split($e)[0];
-  ($f | index($b)) as $s
-  | (($f | index($e)) + ($e | utf8bytelength)) as $t
-  | if .tool_name == "Write" then (.tool_input.content | block) != ($f | block)
-    else [(.tool_input.edits // [.tool_input])[] | .old_string // "" | select(length > 0)
-          | . as $o | $f | indices($o)[] | select(. < $t and . + ($o | utf8bytelength) > $s)]
-         | length > 0
-    end' <<< "$input" >/dev/null 2>&1 && deny "AGENTS.md.fragment"
+  (if .tool_name == "Write" then .tool_input.content
+   else reduce (.tool_input.edits // [.tool_input])[] as $x ($f;
+     if ($x.old_string // "") == "" then . else split($x.old_string) | join($x.new_string // "") end)
+   end) as $after
+  | ($after | block) != ($f | block)' <<< "$input" >/dev/null 2>&1 && deny "AGENTS.md.fragment"
 exit 0

@@ -104,6 +104,9 @@ check "guard denies an edit inside the rules block" '[[ "$(edit "$RULES" "DRY �
 check "guard denies an edit spanning the begin marker" '[ -n "$(edit "$RULES" "before
 <!-- code")" ]'
 check "guard allows an edit outside the rules block" '[ -z "$(edit "$RULES" "Mine — after")" ]'
+check "guard allows an edit anchored on the end marker that keeps it" '[ -z "$(guard "$(jq -n --arg f "$RULES" \
+  '"'"'{tool_name: "Edit", tool_input: {file_path: $f, old_string: "<!-- code-standards:end -->",
+    new_string: "<!-- code-standards:end -->\n## New rule"}}'"'"')")" ]'
 check "guard denies a MultiEdit touching the block" '[ -n "$(guard "$(jq -n --arg f "$RULES" \
   '"'"'{tool_name: "MultiEdit", tool_input: {file_path: $f, edits: [{old_string: "Mine — after"}, {old_string: "inside"}]}}'"'"')")" ]'
 check "guard allows a Write leaving the block unchanged" \

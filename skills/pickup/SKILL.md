@@ -27,9 +27,10 @@ to make a reasonable assumption, note it, and keep going.
 - **A default is a decision.** "The obvious choice", "the conventional
   option", "easy to change later" — if nothing written settles it, it is the
   requester's call.
-- **A ranked choice is written down.** Where `pr-review` § Disposition's
-  "One fix, or a decision" ranks the candidates, take the top one; asking
-  hands the requester a choice the rules already made.
+- **What `pr-review`'s decision test settles is written down.** A finding
+  that § Disposition's "One fix, or a decision" does not call a decision —
+  ranked or tie-broken — takes the fix it names; asking hands the requester
+  a choice the rules already made.
 - **Only the requester answers a question.** Listing it next to work that
   went ahead as if it were answered, noting it in a commit or PR body, or
   leaving it out of a summary does not answer it.
@@ -90,8 +91,7 @@ Keep the report verbatim; triage works from it, not from a retelling.
 
 Invoking this skill approves fixing, in the PR, every finding that:
 
-- is **not a decision** under `pr-review` § Disposition — the written rules
-  pick its fix; and
+- is **not a decision** under `pr-review` § Disposition's test; and
 - **passes `code-craft` § Design pass** — owner named, enforcement named, no
   gate tripped.
 
@@ -104,7 +104,7 @@ test before routing the finding.
 
 Every other finding goes to the requester: a decision under that test, a fix
 that fails `code-craft`, disagreement with the ticket, or a case for
-deferring. Unsure whether the rules rank its candidates → it goes to the
+deferring. Unsure whether that test makes it a decision → it goes to the
 requester.
 
 ### Asking about a finding

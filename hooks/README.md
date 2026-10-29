@@ -103,8 +103,9 @@ code-craft  *.ts *.tsx *.js *.mjs *.cjs *.py *.sh *.wgsl *.glsl
 
 **How it arms.** A skill invocation naming a rule's skill, scoped spellings
 included (`is_skill`), writes
-`${TMPDIR:-/tmp}/claude-skill-guard/<skill>-<session_id>`. An edit passes once
-that marker exists. As with the review reminder, two routes invoke a skill: a
+`${TMPDIR:-/tmp}/claude-skill-guard/<skill>-<session_id>`, suffixed
+`-<agent_id>` when the payload comes from a subagent, whose context holds only
+the skills it loaded itself. An edit passes once that marker exists. As with the review reminder, two routes invoke a skill: a
 `Skill` tool call (PreToolUse, matcher `Skill`), and a prompt whose first word
 is the slash command (`UserPromptSubmit`, run as `skill-guard.sh prompt`). The denial names the marker, so a harness that never runs
 PreToolUse on `Skill` calls can arm by hand instead of looping on the skill.

@@ -197,6 +197,16 @@ no_session='{"tool_name": "Edit", "tool_input": {"file_path": "/r/a.css"}}'
 check "skill guard refuses a guarded edit without a session id" 'sg "$no_session" >/dev/null 2>&1; [ $? -eq 2 ]'
 no_session_md='{"tool_name": "Edit", "tool_input": {"file_path": "/r/x.md"}}'
 check "skill guard passes an unguarded edit without a session id" 'sg "$no_session_md" >/dev/null 2>&1'
+sg_agent() {
+  sg "$(jq -n --arg t "$1" --arg a "$2" --arg f "$3" \
+    '{session_id: "a1", agent_id: $a, tool_name: $t, tool_input: {skill: $f, file_path: $f}}')"
+}
+sg_agent Skill sub1 cube-css >/dev/null
+check "skill guard: a subagent's arming stays its own" \
+  '[ -z "$(sg_agent Edit sub1 /r/a.css)" ] && [ -n "$(sg_edit /r/a.css a1)" ] && [ -n "$(sg_agent Edit sub2 /r/a.css)" ]'
+sg_skill cube-css a1 >/dev/null
+check "skill guard: the parent's arming does not reach a subagent" '[ -n "$(sg_agent Edit sub3 /r/a.css)" ]'
+
 sg_prompt() {
   TMPDIR="$STATE" SKILL_GUARD_RULES="$SG_RULES" bash "$SG" prompt <<< \
     "$(jq -n --arg p "$1" --arg s "$2" '{hook_event_name: "UserPromptSubmit", session_id: $s, prompt: $p}')"

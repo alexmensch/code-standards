@@ -22,10 +22,11 @@ fi
 input="$(cat)"
 tool="$(jq -r '.tool_name // ""' <<< "$input")"
 session="$(jq -r '.session_id // ""' <<< "$input")"
+agent="$(jq -r '.agent_id // ""' <<< "$input")"
 
 STATE_DIR="${TMPDIR:-/tmp}/claude-skill-guard"
 mkdir -p "$STATE_DIR"
-marker() { echo "$STATE_DIR/$1-$session"; }
+marker() { echo "$STATE_DIR/$1-$session${agent:+-$agent}"; }
 
 invoked="$(invoked_skill "$input")"
 if [ -n "$invoked" ]; then

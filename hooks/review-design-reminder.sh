@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-. "$(dirname "$0")/skill-name.sh"
+. "$(dirname "$0")/hook-lib.sh"
 
 REVIEW_SKILL="${REVIEW_SKILL:-pr-review}"
 DESIGN_SKILL="${DESIGN_SKILL:-code-craft}"
@@ -21,22 +21,9 @@ MARKER="$STATE_DIR/active-$session"
 
 event="$(printf '%s' "$input" | jq -r '.hook_event_name // ""')"
 
-case "$event" in
-  PreToolUse)
-    skill="$(printf '%s' "$input" | jq -r '.tool_input.skill // ""')"
-    if is_skill "$skill" "$REVIEW_SKILL"; then : > "$MARKER"; fi
-    ;;
-  UserPromptSubmit)
-    prompt="$(printf '%s' "$input" | jq -r '.prompt // ""')"
-    command="${prompt#"${prompt%%[![:space:]]*}"}"
-    command="${command%%[[:space:]]*}"
-    if [ "${command:0:1}" = / ] && is_skill "${command#/}" "$REVIEW_SKILL"; then
-      : > "$MARKER"
-    fi
-    if [ -f "$MARKER" ]; then
-      jq -n --arg ctx "$REMINDER" \
-        '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
-    fi
-    ;;
-esac
+if is_skill "$(invoked_skill "$input")" "$REVIEW_SKILL"; then : > "$MARKER"; fi
+if [ "$event" = UserPromptSubmit ] && [ -f "$MARKER" ]; then
+  jq -n --arg ctx "$REMINDER" \
+    '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
+fi
 exit 0

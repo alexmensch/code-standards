@@ -69,7 +69,7 @@ check "renamed skills via env" '[[ "$(REVIEW_SKILL=team-review DESIGN_SKILL=team
 SCOPE="$STATE/home/.claude"
 mkdir -p "$SCOPE/hooks/code-standards" "$SCOPE/skills/pr-review" "$SCOPE/skills/acme-craft" \
   "$SCOPE/skills/pickup" "$SCOPE/skills/other"
-cp "$HERE/installed-copy-guard.sh" "$SCOPE/hooks/code-standards/"
+cp "$HERE/installed-copy-guard.sh" "$HERE/hook-lib.sh" "$SCOPE/hooks/code-standards/"
 GUARD="$SCOPE/hooks/code-standards/installed-copy-guard.sh"
 ln -s "$SCOPE/skills" "$STATE/home/linked-skills"
 for s in pr-review acme-craft pickup other; do echo "body" > "$SCOPE/skills/$s/SKILL.md"; done

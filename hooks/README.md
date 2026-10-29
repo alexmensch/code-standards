@@ -6,7 +6,7 @@ Three Claude Code hooks, installed together by `INSTALL.md` § 6.
 
 ```
 review-design-reminder.sh   review reminder; skill names in REVIEW_SKILL / DESIGN_SKILL
-skill-name.sh               is_skill: matches a skill name under any scope prefix (x, prefix:x)
+hook-lib.sh                 sourced by all three: is_skill (x, prefix:x), invoked_skill, deny_pretooluse
 installed-copy-guard.sh     denies edits to installed copies of this bundle
 skill-guard.sh              denies an edit until the skill its file needs is loaded; rules in SKILL_GUARD_RULES
 settings.snippet.json       the settings.json entries, with a <HOOK_DIR> placeholder

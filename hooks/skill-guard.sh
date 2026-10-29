@@ -6,7 +6,7 @@ set -uo pipefail
 # Rule globs must match file paths, never expand against the cwd.
 set -f
 
-. "$(dirname "$0")/skill-name.sh"
+. "$(dirname "$0")/hook-lib.sh"
 
 SKILL_GUARD_RULES="${SKILL_GUARD_RULES:-cube-css *.scss *.css
 code-craft *.ts *.tsx *.js *.mjs *.cjs *.py *.sh *.wgsl *.glsl}"
@@ -25,7 +25,7 @@ marker() { echo "$STATE_DIR/$1-$session"; }
 
 if [ "$tool" = Skill ]; then
   [ -n "$session" ] || exit 0
-  invoked="$(jq -r '.tool_input.skill // ""' <<< "$input")"
+  invoked="$(invoked_skill "$input")"
   while read -r skill _; do
     if [ -n "$skill" ] && is_skill "$invoked" "$skill"; then : > "$(marker "$skill")"; fi
   done <<< "$SKILL_GUARD_RULES"
@@ -48,10 +48,9 @@ done <<< "$SKILL_GUARD_RULES"
 state_file="$(marker "$required")"
 [ -f "$state_file" ] && exit 0
 
-jq -n --arg r "Refusing $tool on $(basename "$file") — invoke the $required skill first this session.
+deny_pretooluse "Refusing $tool on $(basename "$file") — invoke the $required skill first this session.
 
 Fix: call the Skill tool with skill '$required', then retry the edit.
 
-If you have just done that and this still denies, your harness does not run PreToolUse on Skill calls: arm the session with \`touch $state_file\` and carry on — do not invoke the skill again." \
-  '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+If you have just done that and this still denies, your harness does not run PreToolUse on Skill calls: arm the session with \`touch $state_file\` and carry on — do not invoke the skill again."
 exit 0

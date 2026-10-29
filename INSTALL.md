@@ -144,18 +144,18 @@ Requires `bash` and `jq`; if `jq` is missing, say so and skip this step.
    executable.
 2. If either skill was renamed, change the `REVIEW_SKILL` / `DESIGN_SKILL`
    defaults in the installed `review-design-reminder.sh`, and the name in the
-   `SKILL_GUARD_RULES` default in the installed `skill-guard.sh`. A rule there
-   whose skill is installed at neither scope denies its files in every
-   session — `cube-css` is not part of this bundle, and `code-craft` may be
-   skipped — so for each such rule, ask the user whether to install that
-   skill or drop the rule.
-3. Merge `hooks/settings.snippet.json` into the target `settings.json`,
+   `SKILL_GUARD_RULES` default in the installed `skill-guard.sh`.
+3. For each rule in that `SKILL_GUARD_RULES` default whose skill is installed
+   at neither scope, ask the user whether to install that skill or drop the
+   rule: left in, it denies its files in every session. `cube-css` is not
+   part of this bundle, and `code-craft` may have been skipped.
+4. Merge `hooks/settings.snippet.json` into the target `settings.json`,
    replacing `<HOOK_DIR>` with the folder — an absolute path for a user
    install, `$CLAUDE_PROJECT_DIR/.claude/hooks/code-standards` for a project
    install. **Append** to existing `PreToolUse` and `UserPromptSubmit`
    arrays; never replace them, and don't add a second copy of an entry that
    is already there.
-4. Run the installed `test.sh`. The last line must read `all passed`. For a
+5. Run the installed `test.sh`. The last line must read `all passed`. For a
    renamed install, run it with the original names
    (`REVIEW_SKILL=pr-review DESIGN_SKILL=code-craft bash test.sh`), since the
    cases use them.

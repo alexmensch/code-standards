@@ -1,15 +1,16 @@
 # Hooks
 
-Two Claude Code hooks, installed together by `INSTALL.md` § 6.
+Three Claude Code hooks, installed together by `INSTALL.md` § 6.
 
 ## Files
 
 ```
 review-design-reminder.sh   review reminder; skill names in REVIEW_SKILL / DESIGN_SKILL
-skill-name.sh               is_skill: matches a skill name under any scope prefix (x, prefix:x)
+hook-lib.sh                 sourced by all three: is_skill (x, prefix:x), invoked_skill, deny_pretooluse
 installed-copy-guard.sh     denies edits to installed copies of this bundle
+skill-guard.sh              denies an edit until the skill its file needs is loaded; rules in SKILL_GUARD_RULES
 settings.snippet.json       the settings.json entries, with a <HOOK_DIR> placeholder
-test.sh                     behavioural tests for both: bash test.sh
+test.sh                     behavioural tests for all three: bash test.sh
 ```
 
 ## Review design reminder
@@ -84,10 +85,45 @@ re-arms the guard by itself.
 **Fails open.** No `jq`, no rules file with a marker, or a payload with no
 path — each exits silently.
 
+## Skill guard
+
+A rule in prose — load `cube-css` before touching a stylesheet, `code-craft`
+before any code change — is skipped exactly when the edit looks too small to
+need it. This hook makes it a gate: an `Edit`, `Write`, `MultiEdit` or
+`NotebookEdit` on a file a rule names is denied until that rule's skill has
+been invoked in the session.
+
+Rules are one per line in `SKILL_GUARD_RULES` — a skill name, then the file
+globs it covers; the first rule whose glob matches the path wins. Defaults:
+
+```
+cube-css    *.scss *.css
+code-craft  *.ts *.tsx *.js *.mjs *.cjs *.py *.sh *.wgsl *.glsl
+```
+
+**How it arms.** A skill invocation naming a rule's skill, scoped spellings
+included (`is_skill`), writes
+`${TMPDIR:-/tmp}/claude-skill-guard/<skill>-<session_id>`, suffixed
+`-<agent_id>` when the payload comes from a subagent, whose context holds only
+the skills it loaded itself. An edit passes once that marker exists. As with the review reminder, two routes invoke a skill: a
+`Skill` tool call (PreToolUse, matcher `Skill`), and a prompt whose first word
+is the slash command (`UserPromptSubmit`, run as `skill-guard.sh prompt`). The denial names the marker, so a harness that never runs
+PreToolUse on `Skill` calls can arm by hand instead of looping on the skill.
+
+**Fails closed.** Without `jq` it cannot read the payload, so every call
+under its PreToolUse matcher exits 2 with the reason on stderr — `Skill`
+calls and unguarded files included; only the prompt entry stands aside. With
+`jq`, a guarded edit whose payload has no `session_id` exits 2 the same way,
+a `Skill` call is never blocked, and a file no rule names always passes. An
+edit made without the skill is the failure this hook exists to stop.
+
 ## Disabling
 
 Remove the entries from `settings.json`: the reminder has one under
-`PreToolUse` (matcher `Skill`) and one under `UserPromptSubmit`; the guard has
-one under `PreToolUse` (matcher `Edit|Write|MultiEdit|NotebookEdit|Bash`). To
-silence the reminder for the rest of one session without editing settings,
-delete that session's `active-<session_id>` marker.
+`PreToolUse` (matcher `Skill`) and one under `UserPromptSubmit`; the
+installed-copy guard has one under `PreToolUse` (matcher
+`Edit|Write|MultiEdit|NotebookEdit|Bash`); the skill guard has one under
+`PreToolUse` (matcher `Skill|Edit|Write|MultiEdit|NotebookEdit`) and one under
+`UserPromptSubmit`. To silence
+the reminder for the rest of one session without editing settings, delete
+that session's `active-<session_id>` marker.

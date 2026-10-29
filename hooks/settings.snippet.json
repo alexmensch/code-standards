@@ -18,6 +18,15 @@
             "command": "<HOOK_DIR>/installed-copy-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Skill|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<HOOK_DIR>/skill-guard.sh"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -26,6 +35,10 @@
           {
             "type": "command",
             "command": "<HOOK_DIR>/review-design-reminder.sh"
+          },
+          {
+            "type": "command",
+            "command": "<HOOK_DIR>/skill-guard.sh prompt"
           }
         ]
       }

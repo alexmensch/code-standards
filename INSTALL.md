@@ -65,7 +65,8 @@ copies, never in this repository:
 - references in the other skills (`pr-review` loads `code-craft` and points at
   `code-craft/references/…`; `pickup` names both)
 - the rules block's § Code structure trigger and its mentions of both skills
-- the hook's `REVIEW_SKILL` / `DESIGN_SKILL` defaults
+- the hooks' `REVIEW_SKILL` / `DESIGN_SKILL` defaults and `SKILL_GUARD_RULES`
+  default
 
 Verify with a search over the installed files for the old names; zero hits
 outside prose that genuinely means the old name.
@@ -142,14 +143,19 @@ Requires `bash` and `jq`; if `jq` is missing, say so and skip this step.
 1. Copy every `.sh` file in `hooks/` to the hook folder from § 2; make them
    executable.
 2. If either skill was renamed, change the `REVIEW_SKILL` / `DESIGN_SKILL`
-   defaults in the installed `review-design-reminder.sh`.
-3. Merge `hooks/settings.snippet.json` into the target `settings.json`,
+   defaults in the installed `review-design-reminder.sh`, and the name in the
+   `SKILL_GUARD_RULES` default in the installed `skill-guard.sh`.
+3. For each rule in that `SKILL_GUARD_RULES` default whose skill is installed
+   at neither scope, ask the user whether to install that skill or drop the
+   rule: left in, it denies its files in every session. `cube-css` is not
+   part of this bundle, and `code-craft` may have been skipped.
+4. Merge `hooks/settings.snippet.json` into the target `settings.json`,
    replacing `<HOOK_DIR>` with the folder — an absolute path for a user
    install, `$CLAUDE_PROJECT_DIR/.claude/hooks/code-standards` for a project
    install. **Append** to existing `PreToolUse` and `UserPromptSubmit`
    arrays; never replace them, and don't add a second copy of an entry that
    is already there.
-4. Run the installed `test.sh`. The last line must read `all passed`. For a
+5. Run the installed `test.sh`. The last line must read `all passed`. For a
    renamed install, run it with the original names
    (`REVIEW_SKILL=pr-review DESIGN_SKILL=code-craft bash test.sh`), since the
    cases use them.

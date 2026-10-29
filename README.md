@@ -26,7 +26,7 @@ asking where both sides changed.
 | `skills/pr-review/` | On a review request | Review priority order, resource and performance cost, diff efficiency with numbers (`scripts/diff-shape.sh`), plan drift, disposition of findings |
 | `skills/pr-cleanup/` | Claude Code + GitHub only; on "merge / land PR N", "/pr-cleanup" | Lands a named PR: merge the default branch in, signature check, squash-merge or arm auto-merge and watch, close tickets, remove the worktree, fast-forward local main; loads a project's `*-pr-cleanup` extension |
 | `skills/pickup/` | On "work on ticket X", "/pickup" | Takes shovel-ready work only: readiness gate, implement, PR, `pr-review` in a subagent, fix the findings `code-craft` settles, hand every decision back |
-| `hooks/` | Claude Code only | Keeps the design pass in front of the model on every turn of a review, and denies edits to installed copies — `hooks/README.md` |
+| `hooks/` | Claude Code only | Keeps the design pass in front of the model on every turn of a review, denies edits to installed copies, and denies a stylesheet or code edit until `cube-css` or `code-craft` is loaded — `hooks/README.md` |
 
 The fragment is the always-on half: short enough to load in every session,
 and it names the skill to load for the full pass.

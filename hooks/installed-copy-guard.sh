@@ -4,6 +4,8 @@
 
 set -uo pipefail
 
+. "$(dirname "$0")/hook-lib.sh"
+
 BEGIN='<!-- code-standards:begin'
 END='<!-- code-standards:end -->'
 
@@ -55,8 +57,7 @@ deny() {
     what="This shell command writes to"
     [ "$1" = AGENTS.md.fragment ] && tail=" For the rest of the rules file, use the file-edit tools, which judge only the block."
   fi
-  jq -n --arg r "$what an installed copy of code-standards $1. Make the change in ${source:-the code-standards repo}/$1 on a branch and open a PR there, or propose it to the user; then sync installs with that repo's UPDATE.md.$tail" \
-    '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+  deny_pretooluse "$what an installed copy of code-standards $1. Make the change in ${source:-the code-standards repo}/$1 on a branch and open a PR there, or propose it to the user; then sync installs with that repo's UPDATE.md.$tail"
   exit 0
 }
 

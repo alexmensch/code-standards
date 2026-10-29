@@ -163,4 +163,45 @@ check "guard allows writes elsewhere" '[ -z "$(sh "sed -i \"\" s/a/b/ $SCOPE/ski
 check "guard reads NotebookEdit's path" '[ -n "$(guard "$(jq -n --arg f "$SCOPE/skills/pr-review/n.ipynb" \
   '"'"'{tool_name: "NotebookEdit", tool_input: {notebook_path: $f}}'"'"')")" ]'
 
+SG="$HERE/skill-guard.sh"
+SG_RULES='cube-css *.scss *.css
+code-craft *.ts *.sh'
+sg() { TMPDIR="$STATE" SKILL_GUARD_RULES="$SG_RULES" bash "$SG" <<< "$1"; }
+sg_reason() { sg "$1" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null; }
+sg_skill() { sg "$(jq -n --arg k "$1" --arg s "${2:-s1}" '{session_id: $s, tool_name: "Skill", tool_input: {skill: $k}}')"; }
+sg_edit() {
+  sg_reason "$(jq -n --arg f "$1" --arg s "${2:-s1}" --arg t "${3:-Edit}" \
+    '{session_id: $s, tool_name: $t, tool_input: {file_path: $f}}')"
+}
+
+check "skill guard denies a stylesheet edit before its skill" '[[ "$(sg_edit /r/site.scss)" == *"invoke the cube-css skill"* ]]'
+check "skill guard denies a code edit before its skill" '[[ "$(sg_edit /r/a.sh)" == *"code-craft"* ]]'
+check "skill guard passes a file no rule names" '[ -z "$(sg_edit /r/README.md)" ]'
+check "skill guard denies Write and MultiEdit" '[ -n "$(sg_edit /r/a.css s1 Write)" ] && [ -n "$(sg_edit /r/a.css s1 MultiEdit)" ]'
+check "skill guard reads NotebookEdit's path" '[ -n "$(sg_reason "$(jq -n '"'"'{session_id: "s1", tool_name: "NotebookEdit",
+  tool_input: {notebook_path: "/r/n.ts"}}'"'"')")" ]'
+check "skill guard never blocks a Skill call" '[ -z "$(sg_skill pr-review)" ]'
+check "skill guard: another skill does not arm" '[ -n "$(sg_edit /r/a.css)" ]'
+sg_skill cube-css >/dev/null
+check "skill guard allows the edit once its skill is invoked" '[ -z "$(sg_edit /r/a.css)" ]'
+check "skill guard arming is per skill" '[ -n "$(sg_edit /r/a.ts)" ]'
+check "skill guard arming is per session" '[ -n "$(sg_edit /r/a.css s2)" ]'
+sg_skill .claude/worktrees/wt:code-craft s2 >/dev/null
+check "skill guard arms on a scoped name" '[ -z "$(sg_edit /r/a.ts s2)" ]'
+sg_skill plugin:code-crafty s3 >/dev/null
+check "skill guard does not arm on a longer name" '[ -n "$(sg_edit /r/a.ts s3)" ]'
+fallback="$(sg_edit /r/a.css s4 | sed -n 's/.*`touch \([^`]*\)`.*/\1/p')"
+touch "$fallback"
+check "skill guard honours the fallback marker it names" '[ -n "$fallback" ] && [ -z "$(sg_edit /r/a.css s4)" ]'
+no_session='{"tool_name": "Edit", "tool_input": {"file_path": "/r/a.css"}}'
+check "skill guard refuses a guarded edit without a session id" 'sg "$no_session" >/dev/null 2>&1; [ $? -eq 2 ]'
+no_session_md='{"tool_name": "Edit", "tool_input": {"file_path": "/r/x.md"}}'
+check "skill guard passes an unguarded edit without a session id" 'sg "$no_session_md" >/dev/null 2>&1'
+mkdir -p "$STATE/nojq"
+ln -s "$(command -v dirname)" "$STATE/nojq/dirname"
+check "skill guard fails closed without jq" \
+  'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" <<< "{}" 2>/dev/null; [ $? -eq 2 ]'
+default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
+check "skill guard default rules cover scss and code" '[ -n "$(default_edit /r/a.scss)" ] && [ -n "$(default_edit /r/a.py)" ]'
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

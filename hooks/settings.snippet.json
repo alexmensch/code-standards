@@ -35,6 +35,10 @@
           {
             "type": "command",
             "command": "<HOOK_DIR>/review-design-reminder.sh"
+          },
+          {
+            "type": "command",
+            "command": "<HOOK_DIR>/skill-guard.sh prompt"
           }
         ]
       }

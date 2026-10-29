@@ -197,10 +197,22 @@ no_session='{"tool_name": "Edit", "tool_input": {"file_path": "/r/a.css"}}'
 check "skill guard refuses a guarded edit without a session id" 'sg "$no_session" >/dev/null 2>&1; [ $? -eq 2 ]'
 no_session_md='{"tool_name": "Edit", "tool_input": {"file_path": "/r/x.md"}}'
 check "skill guard passes an unguarded edit without a session id" 'sg "$no_session_md" >/dev/null 2>&1'
+sg_prompt() {
+  TMPDIR="$STATE" SKILL_GUARD_RULES="$SG_RULES" bash "$SG" prompt <<< \
+    "$(jq -n --arg p "$1" --arg s "$2" '{hook_event_name: "UserPromptSubmit", session_id: $s, prompt: $p}')"
+}
+check "skill guard is silent on a prompt" '[ -z "$(sg_prompt "/cube-css tidy the header" p1)" ]'
+check "skill guard arms on a slash command" '[ -z "$(sg_edit /r/a.css p1)" ]'
+sg_prompt "/.claude/worktrees/wt:code-craft" p2 >/dev/null
+check "skill guard arms on a scoped slash command" '[ -z "$(sg_edit /r/a.ts p2)" ]'
+sg_prompt "load /cube-css first" p3 >/dev/null
+check "skill guard does not arm on a mid-prompt mention" '[ -n "$(sg_edit /r/a.css p3)" ]'
+
 mkdir -p "$STATE/nojq"
 ln -s "$(command -v dirname)" "$STATE/nojq/dirname"
 check "skill guard fails closed without jq" \
   'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" <<< "{}" 2>/dev/null; [ $? -eq 2 ]'
+check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" prompt <<< "{}"'
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 

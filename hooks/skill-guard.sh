@@ -13,7 +13,11 @@ code-craft *.ts *.tsx *.js *.mjs *.cjs *.py *.sh *.wgsl *.glsl}"
 
 refuse() { echo "skill-guard: $1" >&2; exit 2; }
 
-command -v jq >/dev/null || refuse "jq is not installed, so edits cannot be checked for required skills. Install jq and retry."
+if ! command -v jq >/dev/null; then
+  # Exit 2 on UserPromptSubmit erases the user's prompt; only tool calls refuse.
+  [ "${1:-}" = prompt ] && exit 0
+  refuse "jq is not installed, so edits cannot be checked for required skills. Install jq and retry."
+fi
 
 input="$(cat)"
 tool="$(jq -r '.tool_name // ""' <<< "$input")"
@@ -23,9 +27,9 @@ STATE_DIR="${TMPDIR:-/tmp}/claude-skill-guard"
 mkdir -p "$STATE_DIR"
 marker() { echo "$STATE_DIR/$1-$session"; }
 
-if [ "$tool" = Skill ]; then
+invoked="$(invoked_skill "$input")"
+if [ -n "$invoked" ]; then
   [ -n "$session" ] || exit 0
-  invoked="$(invoked_skill "$input")"
   while read -r skill _; do
     if [ -n "$skill" ] && is_skill "$invoked" "$skill"; then : > "$(marker "$skill")"; fi
   done <<< "$SKILL_GUARD_RULES"

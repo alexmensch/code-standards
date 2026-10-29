@@ -211,7 +211,7 @@ check "skill guard does not arm on a mid-prompt mention" '[ -n "$(sg_edit /r/a.c
 mkdir -p "$STATE/nojq"
 ln -s "$(command -v dirname)" "$STATE/nojq/dirname"
 check "skill guard fails closed without jq" \
-  'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" <<< "{}" 2>/dev/null; [ $? -eq 2 ]'
+  'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" <<< "$no_session_md" 2>/dev/null; [ $? -eq 2 ]'
 check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" prompt <<< "{}"'
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'

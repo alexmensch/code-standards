@@ -109,10 +109,12 @@ that marker exists. As with the review reminder, two routes invoke a skill: a
 is the slash command (`UserPromptSubmit`, run as `skill-guard.sh prompt`). The denial names the marker, so a harness that never runs
 PreToolUse on `Skill` calls can arm by hand instead of looping on the skill.
 
-**Fails closed.** No `jq`, or a guarded edit whose payload has no
-`session_id`, exits 2 with the reason on stderr: an edit made without the
-skill is the failure this hook exists to stop. A `Skill` call is never
-blocked, and a file no rule names always passes.
+**Fails closed.** Without `jq` it cannot read the payload, so every call
+under its PreToolUse matcher exits 2 with the reason on stderr — `Skill`
+calls and unguarded files included; only the prompt entry stands aside. With
+`jq`, a guarded edit whose payload has no `session_id` exits 2 the same way,
+a `Skill` call is never blocked, and a file no rule names always passes. An
+edit made without the skill is the failure this hook exists to stop.
 
 ## Disabling
 

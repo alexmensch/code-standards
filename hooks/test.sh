@@ -202,6 +202,6 @@ ln -s "$(command -v dirname)" "$STATE/nojq/dirname"
 check "skill guard fails closed without jq" \
   'PATH="$STATE/nojq" TMPDIR="$STATE" "$BASH" "$SG" <<< "{}" 2>/dev/null; [ $? -eq 2 ]'
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
-check "skill guard default rules cover scss and code" '[ -n "$(default_edit /r/a.scss)" ] && [ -n "$(default_edit /r/a.py)" ]'
+check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

@@ -58,7 +58,7 @@ section in new only is new — take it.
 ## 5. Hook (Claude Code only)
 
 After § 3 settles the hook files, re-run `INSTALL.md` § 6 steps 2–4: renamed
-skill defaults, the `settings.json` merge (append-only, no duplicate
+skill defaults and skill-guard rules, the `settings.json` merge (append-only, no duplicate
 entries), and `test.sh`, whose last line must read `all passed`.
 
 ## 6. Rewrite the marker

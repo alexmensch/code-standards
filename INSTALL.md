@@ -33,8 +33,9 @@ project the session is in, if any.
 | Hook | `~/.claude/hooks/code-standards/` + `~/.claude/settings.json` | `<repo>/.claude/hooks/code-standards/` + `<repo>/.claude/settings.json` | Not installed — it uses Claude Code's hook events |
 
 `pr-cleanup` drives GitHub through `gh` and Claude Code's worktree and
-monitor tools: install it only on Claude Code, and record it as skipped
-(`:-`, § 4) elsewhere.
+monitor tools, and `pickup-epic` drives Claude Code background sessions and
+messages between them: install both only on Claude Code, and record them as
+skipped (`:-`, § 4) elsewhere.
 
 `beads` is the command reference for one ticket tracker, `bd`. Install it only
 when the project in scope (or, for a user install, any project the user works
@@ -68,7 +69,9 @@ copies, never in this repository:
 
 - the skill's folder name and its frontmatter `name:`
 - references in the other skills (`pr-review` loads `code-craft` and points at
-  `code-craft/references/…`; `pickup-task` names both)
+  `code-craft/references/…`; `pickup-task` names both; `pickup-epic` names
+  `pickup-task` and `pr-cleanup`; both pickup skills and `beads` name each
+  other)
 - the rules block's § Code structure trigger and its mentions of both skills
 - the hooks' `REVIEW_SKILL` / `DESIGN_SKILL` defaults and `SKILL_GUARD_RULES`
   default

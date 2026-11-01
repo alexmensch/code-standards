@@ -5,7 +5,8 @@ description: >
   closing with a reason, wiring dependencies in the correct argument order,
   appending notes, updating fields, and storing memories. Use whenever a session
   runs or plans to run `bd`, or the user mentions beads, bd, a bead, or an issue
-  ID like `foo-a3f8`. Read this instead of reaching for `bd --help`.
+  ID like `foo-a3f8`. Read this instead of reaching for `bd --help`. Also the
+  tracker reference `pickup-task` and `pickup-epic` load in a bd project.
 ---
 
 Syntax reference for `bd`. Verified against **bd 1.2.2**.
@@ -13,6 +14,29 @@ Syntax reference for `bd`. Verified against **bd 1.2.2**.
 Covers the common operations only. The `bd prime` output is loaded every
 session and carries the workflow rules, priority scale and command inventory —
 none of that is repeated here.
+
+## Tracker operations — what the pickup skills name, in bd
+
+`pickup-task` and `pickup-epic` name tracker operations, never commands. In a
+bd project:
+
+| Operation | bd |
+| --- | --- |
+| Read an item and its parent chain | `bd show <id>`; repeat on its `PARENT` line to the root |
+| Ready items under an epic, any depth | `bd ready --parent <epic> --exclude-type epic --limit 0` |
+| The whole tree under an epic | `bd list --all --json --limit 0`, walked down the `parent` key from the epic ([never by ID](#a-hierarchical-id-never-follows-a-reparent--read-the-parent-not-the-id)) |
+| What an item waits on · what waits on it | `bd dep list <id>` · `bd dep list <id> --direction=up` |
+| Record a dependency | `bd dep add <blocked> <blocker>`, then verify ([order](#dependencies--argument-order-is-the-trap)) |
+| Claim · release | `bd update <id> --claim` · `bd update <id> -s open -a ""` |
+| Append a decision or finding | `bd note <id> "text"` |
+| File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
+| Close | `bd close <id> -r "Shipped in PR #N"` |
+
+`bd ready --parent` without `--exclude-type epic` returns the sub-epics too,
+and without `--limit 0` stops at 100. In the `--json` tree, an item's open
+blockers are its `dependencies[]` entries with `type == "blocks"` whose
+`depends_on_id` is not `closed`; `parent-child` and `relates-to` entries never
+block.
 
 ## Create
 
@@ -334,9 +358,11 @@ CLI. While using `bd`, if you ever:
 - used a `bd` feature worth having on hand next time, or
 - **had the user correct a `bd` action of yours.**
 
-then **edit `~/.claude/skills/beads/SKILL.md` in that same session.** Do not ask
-permission and do not defer it to a follow-up; an unrecorded lookup is a lookup
-every future session repeats.
+then **change it at the source in that same session**: the installed copy's
+notice names the bundle repo, and the installed copy itself is guarded. Edit
+`skills/beads/SKILL.md` there on a branch in its own worktree and open a PR. Do
+not ask permission and do not defer it to a follow-up; an unrecorded lookup is
+a lookup every future session repeats.
 
 That last trigger is the one that gets skipped, because the rule usually *does*
 exist somewhere and the miss reads as carelessness rather than a documentation

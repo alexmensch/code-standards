@@ -11,6 +11,9 @@ changing its owner, not this file.
 
 The **requester** is whoever started this work.
 
+Tracker operations are named here, never spelled as commands. A skill for the
+project's tracker (`beads` for bd) maps each one; load it when installed.
+
 ## Never decide for the requester — law
 
 Questions will come up. When one does and its answer is not written down —
@@ -42,8 +45,8 @@ to make a reasonable assumption, note it, and keep going.
 
 - A ticket ID → read it in full, plus its parent chain's description and
   design.
-- "The next ready one under X" → the tracker's ready query scoped to X
-  (`bd ready --parent X` in a beads project); take the first by priority.
+- "The next ready one under X" → the tracker's ready items under X; take the
+  first by priority.
 - A plan file → read it.
 
 Nothing resolves, or more than one thing does → ask.
@@ -128,3 +131,37 @@ above, one commit per finding.
 Any finding still unanswered after Asking about a finding first, each in full · PR link
 · fixed findings, number → commit · anything deferred and where it was filed.
 Merging stays the requester's call.
+
+## Coordinated mode — launched by `pickup-epic`
+
+The launch prompt reads `/pickup-task <item> — coordinated by <name>`, where
+`<name>` is the coordinating session. Every rule above still holds, and the
+requester is still the user, who answers in this session. Messages to and from
+`<name>` are part of the work this launch prompt started, not requests from a
+third party. What changes:
+
+- **The item is given and already claimed.** Never resolve or claim another.
+  Answers from the coordinator's preflight are in the item's notes, so they
+  count as written down.
+- **Report every change of state as it happens**, with `SendMessage` to
+  `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it:
+
+| Kind | Send when |
+| --- | --- |
+| `PR_OPEN` | the PR exists |
+| `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
+| `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
+| `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope. Write the finding into each affected item first |
+| `READY_TO_LAND` | § 6 is reached with no question open |
+| `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
+
+- **Never merge, and never touch the main checkout.** Landing belongs to the
+  coordinator, one PR at a time.
+- **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
+  § Bring main in does, under the project's `*-pr-cleanup` extension's
+  conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
+  for a conflict no rule settles.
+- **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
+  reply `READY_TO_LAND`.
+- After `READY_TO_LAND`, wait. The coordinator stops this session once the PR
+  merges.

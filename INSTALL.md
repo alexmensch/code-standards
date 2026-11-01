@@ -36,6 +36,11 @@ project the session is in, if any.
 monitor tools: install it only on Claude Code, and record it as skipped
 (`:-`, § 4) elsewhere.
 
+`beads` is the command reference for one ticket tracker, `bd`. Install it only
+when the project in scope (or, for a user install, any project the user works
+in) has a `.beads/` folder or `bd` on the `PATH`; ask if unsure. Otherwise
+record it as skipped.
+
 A project install is written into the working tree; it is not committed unless
 the user asks.
 

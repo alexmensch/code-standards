@@ -26,6 +26,7 @@ asking where both sides changed.
 | `skills/pr-review/` | On a review request | Review priority order, resource and performance cost, diff efficiency with numbers (`scripts/diff-shape.sh`), plan drift, disposition of findings |
 | `skills/pr-cleanup/` | Claude Code + GitHub only; on "merge / land PR N", "/pr-cleanup" | Lands a named PR: merge the default branch in, signature check, squash-merge or arm auto-merge and watch, close tickets, remove the worktree, fast-forward local main; loads a project's `*-pr-cleanup` extension |
 | `skills/pickup-task/` | On "work on ticket X", "/pickup-task" | Takes shovel-ready work only: readiness gate, implement, PR, `pr-review` in a subagent, fix the findings `code-craft` settles, hand every decision back |
+| `skills/beads/` | Projects tracked with `bd` only; whenever a session runs `bd` | `bd` command syntax and its traps: dependency argument order, silent truncation, parentage from the `parent` field, closing with a reason |
 | `hooks/` | Claude Code only | Keeps the design pass in front of the model on every turn of a review, denies edits to installed copies, and denies a stylesheet or code edit until `cube-css` or `code-craft` is loaded — `hooks/README.md` |
 
 The fragment is the always-on half: short enough to load in every session,

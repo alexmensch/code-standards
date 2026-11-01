@@ -63,7 +63,7 @@ copies, never in this repository:
 
 - the skill's folder name and its frontmatter `name:`
 - references in the other skills (`pr-review` loads `code-craft` and points at
-  `code-craft/references/…`; `pickup` names both)
+  `code-craft/references/…`; `pickup-task` names both)
 - the rules block's § Code structure trigger and its mentions of both skills
 - the hooks' `REVIEW_SKILL` / `DESIGN_SKILL` defaults and `SKILL_GUARD_RULES`
   default
@@ -104,7 +104,7 @@ the file to edit it sees it, and the always-loaded rules carry nothing extra
 
 One `skills=` entry per skill under `skills/`: its bundle name, then
 `:<installed name>` if renamed or `:-` if skipped — for example
-`code-craft,pr-review:acme-pr-review,pickup:-`. `source=` is this repo's
+`code-craft,pr-review:acme-pr-review,pickup-task:-`. `source=` is this repo's
 absolute path, and comes last, since it may contain spaces. `UPDATE.md` and
 the installed-copy guard read the marker.
 

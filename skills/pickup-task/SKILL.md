@@ -1,6 +1,6 @@
 ---
-name: pickup
-description: Pick up one piece of already-defined work — a ticket, "the next ready ticket under epic X", or a written plan file — and take it to an open PR, an independent review of it, and the review's fixes. Accepts only shovel-ready work (a stated outcome, a checkable acceptance, no open decision) and refuses exploratory or open-ended asks. Use for "/pickup <ticket>", "work on bead X", "pick up the next ready bead in epic Y", "implement plan.md".
+name: pickup-task
+description: Pick up one piece of already-defined work — a ticket, "the next ready ticket under epic X", or a written plan file — and take it to an open PR, an independent review of it, and the review's fixes. Accepts only shovel-ready work (a stated outcome, a checkable acceptance, no open decision) and refuses exploratory or open-ended asks. Use for "/pickup-task <ticket>", "work on ticket X", "pick up the next ready ticket in epic Y", "implement plan.md". Working through a whole epic in parallel is `pickup-epic`.
 ---
 
 # Pick up ready work

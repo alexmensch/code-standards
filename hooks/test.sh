@@ -68,15 +68,15 @@ check "renamed skills via env" '[[ "$(REVIEW_SKILL=team-review DESIGN_SKILL=team
 
 SCOPE="$STATE/home/.claude"
 mkdir -p "$SCOPE/hooks/code-standards" "$SCOPE/skills/pr-review" "$SCOPE/skills/acme-craft" \
-  "$SCOPE/skills/pickup" "$SCOPE/skills/other"
+  "$SCOPE/skills/pickup-task" "$SCOPE/skills/other"
 cp "$HERE/installed-copy-guard.sh" "$HERE/hook-lib.sh" "$SCOPE/hooks/code-standards/"
 GUARD="$SCOPE/hooks/code-standards/installed-copy-guard.sh"
 ln -s "$SCOPE/skills" "$STATE/home/linked-skills"
-for s in pr-review acme-craft pickup other; do echo "body" > "$SCOPE/skills/$s/SKILL.md"; done
+for s in pr-review acme-craft pickup-task other; do echo "body" > "$SCOPE/skills/$s/SKILL.md"; done
 RULES="$SCOPE/CLAUDE.md"
 cat > "$RULES" <<'EOF'
 # Mine — before
-<!-- code-standards:begin version=abc skills=code-craft:acme-craft,pr-review,pickup:- source=/src/code standards -->
+<!-- code-standards:begin version=abc skills=code-craft:acme-craft,pr-review,pickup-task:- source=/src/code standards -->
 ## DRY — inside
 <!-- code-standards:end -->
 # Mine — after
@@ -96,7 +96,7 @@ check "guard denies a new folder's file through a symlink" \
 check "guard denies a new folder's file through .." '[ -n "$(write "$SCOPE/skills/other/../pr-review/refs/new.md" x)" ]'
 ln -s "$SCOPE/skills/pr-review/SKILL.md" "$STATE/home/linked-file.md"
 check "guard follows a symlinked file" '[ -n "$(edit "$STATE/home/linked-file.md" body)" ]'
-check "guard allows a skipped skill" '[ -z "$(edit "$SCOPE/skills/pickup/SKILL.md" body)" ]'
+check "guard allows a skipped skill" '[ -z "$(edit "$SCOPE/skills/pickup-task/SKILL.md" body)" ]'
 check "guard allows an unrelated skill" '[ -z "$(edit "$SCOPE/skills/other/SKILL.md" body)" ]'
 check "guard denies a new file in the hook folder" \
   '[[ "$(write "$SCOPE/hooks/code-standards/new.sh" x)" == *"hooks/new.sh"* ]]'

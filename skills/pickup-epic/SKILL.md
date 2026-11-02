@@ -40,8 +40,8 @@ its children are closed. Each merge still needs the user's answer for that PR
 (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
-answer a worker's question for the user, or close the named epic without
-asking.
+answer a worker's question for the user, close the named epic without
+asking, or delete a session (`claude rm`) — the owner deletes finished ones.
 
 ## The plan is just-in-time
 
@@ -69,6 +69,8 @@ nowhere else:
 - landing approvals given and the landing queue;
 - promises to parked workers ("UNBLOCKED when X lands");
 - a landing in progress, and its step;
+- finished workers, stopped and safe for the owner to delete — name, id, and
+  whether their final message was confirmed;
 - the last commit main's post-landing step ran on.
 
 Anything only this conversation knows is lost at a resume and may be lost at
@@ -188,7 +190,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
-| `ABANDONED` | stop the worker, release its claim if still held |
+| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then wait and stop as § 7.3's brief does after `LANDED`; the worker joins the finished list |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a
@@ -212,14 +214,20 @@ version files and lockfiles conflict between any two PRs that both bump them.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents
-   --json`) owns the worktree — `claude stop <id>` before removing it, then
-   take the "an earlier session created it" route; skip the project
-   extension's post-landing step (the coordinator runs it before the next
-   launch); wait for the merge in foreground calls of at most ten minutes
-   each; return `merged`, `CI_FAILED <checks>`, or the deviation `pr-cleanup`
-   stopped on. A failed or cancelled check → `CI_FAILED #N <checks>` to the
-   worker, and the PR goes to the back of the queue.
-4. **Update the run state**, then § 1.
+   --json`) owns the worktree. Once the tickets are closed and before the
+   worktree step: `SendMessage` `LANDED #N` to `pickup-<item>`; poll that
+   id's `status` in `claude agents --json` every 5 s until it has read
+   `busy` and then `idle`, for at most 3 minutes; then `claude stop <id>` —
+   never `claude rm`. Then take the "an earlier session created it" route;
+   skip the project extension's post-landing step (the coordinator runs it
+   before the next launch); wait for the merge in foreground calls of at
+   most ten minutes each; return `merged` with `final message confirmed` or
+   `timed out`, `CI_FAILED <checks>`, or the deviation `pr-cleanup` stopped
+   on. A failed or cancelled check → `CI_FAILED #N <checks>` to the worker,
+   and the PR goes to the back of the queue.
+4. **Update the run state** — the worker joins the finished list — and tell
+   the user in one line that `pickup-<item>` is safe to delete (on
+   `timed out`: to read its last message first). Then § 1.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
@@ -230,7 +238,9 @@ build's.
 When every item under the epic is closed: close each sub-epic whose children
 are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
-why (held, outside blocker, abandoned) · items filed during the run.
+why (held, outside blocker, abandoned) · items filed during the run ·
+finished sessions safe to delete, name and id from the run state, flagging
+any whose final message timed out.
 
 ## Resume
 

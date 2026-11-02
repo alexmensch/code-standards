@@ -331,7 +331,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents
-   --json`) owns the worktree; skip the project extension's post-landing
+   --json`) owns the worktree — for one of the user's own items, the user's
+   session does; skip the project extension's post-landing
    step (the coordinator runs it before the next launch). In order:
    1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
       of at most ten minutes each.

@@ -29,7 +29,7 @@ on the critical path.
 | An item's code, branch, worktree, PR | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, preflight answers, closing sub-epics, the run state | the coordinator |
+| Claims, preflight answers, closing sub-epics, the run state, the coordinator field | the coordinator |
 
 ## What invoking this authorises — and only this
 
@@ -63,7 +63,6 @@ One record on the named epic, **replaced** (not appended) after every event
 that changes it — the tracker skill maps the operation. It holds what exists
 nowhere else:
 
-- this session's name, which workers message;
 - items in the run from outside the tree, and why;
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
@@ -73,6 +72,14 @@ nowhere else:
 
 Anything only this conversation knows is lost at a resume and may be lost at
 a compaction. Write it here first.
+
+**The coordinator field.** This session's name — the one workers and every
+other session message — lives in its own field on the named epic, never in
+the run state, so there is one copy to keep current. Set it at kickoff and on
+resume; clear it at § 8 and whenever the run is stopped. A session outside
+the run finds a live coordinator by listing epics with the field set and
+confirming the name in `ListAgents`; a name no live session carries means no
+coordinator. The tracker skill maps all three operations.
 
 ## 1. Read the state
 
@@ -143,7 +150,8 @@ A shared file is a hazard to sequence, not a conflict to predict.
 
 Read the state and rank, then show the user: the first items to launch with
 their preflight questions, any outside blockers, and the parallel cap
-(default 3; the user's attention is the limit). Start on their answer.
+(default 3; the user's attention is the limit). Start on their answer: set
+the coordinator field first.
 
 **Compaction.** The coordinator cannot run `/compact` itself. In the kickoff,
 tell the user once to set a window that suits a long run — `/autocompact
@@ -230,15 +238,16 @@ build's.
 When every item under the epic is closed: close each sub-epic whose children
 are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
-why (held, outside blocker, abandoned) · items filed during the run.
+why (held, outside blocker, abandoned) · items filed during the run. Then
+clear the coordinator field.
 
 ## Resume
 
 `/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
 from § 1 with the run state first. Then:
 
-- this session's name differs from the run state's → `NOTE` every live
-  worker with the new name, and record it;
+- this session's name differs from the coordinator field → `NOTE` every
+  live worker with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - a post-landing step may have been cut off → run it before any launch.
 

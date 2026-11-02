@@ -32,6 +32,7 @@ bd project:
 | File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
 | Close | `bd close <id> -r "Shipped in PR #N"` |
 | Replace · read the epic's run state | `bd update <epic> --set-metadata "run_state=<text>"` · `bd show <epic> --json \| jq -r '.[0].metadata.run_state'` |
+| Set · clear · find the coordinator field | `bd update <epic> --set-metadata "coordinator=<name>"` · `bd update <epic> --unset-metadata coordinator` · `bd list --has-metadata-key coordinator --json \| jq -r '.[].metadata.coordinator'` |
 
 `bd ready --parent` without `--exclude-type epic` returns the sub-epics too,
 and without `--limit 0` stops at 100. In the `--json` tree, an item's open

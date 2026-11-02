@@ -85,8 +85,9 @@ a compaction. Write it here first.
   launch. Read an item in full only at its preflight (§ 3).
 - **Open PRs** naming an item in the tree or the run:
   `gh pr list --state open --json number,title,headRefName,body`. Also
-  **merged PRs whose items are still open**: a landing cut off mid-way —
-  finish it with `pr-cleanup`'s already-merged route.
+  **merged PRs whose items are still open or whose worker still runs**: a
+  landing cut off mid-way — finish it with § 7.3's brief, whose `pr-cleanup`
+  takes the already-merged route; the worker still gets `LANDED`.
 - **Workers**: `claude agents --json`, named `pickup-<item>`.
 
 An item in progress with no worker and no PR → ask the user whether it is

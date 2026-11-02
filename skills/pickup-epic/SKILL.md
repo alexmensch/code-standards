@@ -242,14 +242,15 @@ worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
 1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
    append the gate's own check — § 7.3's landing checks or § Hand-off's
-   pushed check — and run `bash <path>`:
+   pushed check — and run `bash <path>`. Every appended check prints
+   nothing when it passes and something when it fails:
 
    ```bash
    id=<id>; wt=<worktree>
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
-   claude stop "$id"; end=$((SECONDS+60))
+   claude stop "$id" >/dev/null; end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
    out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"
             git -C "$wt" status --porcelain
@@ -259,7 +260,8 @@ worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting.
-   Exit 0 and empty output: the session's process has exited, nothing is
+   `claude stop` reports success on stdout, which the script discards, and
+   failure on stderr, which it keeps. Exit 0 and empty output: the session's process has exited, nothing is
    uncommitted, and no background shell, task, subagent or other process has
    its working directory or a file open under the worktree. Any output →
    stop and ask; the session stays stopped and is never removed. `lsof`
@@ -281,12 +283,16 @@ session. A later worker starts fresh from that record (§ 5).
 
    ```bash
    [ "$(git -C "$wt" rev-parse HEAD)" = "$(git ls-remote origin "refs/heads/<branch>" | cut -f1)" ] \
-     && echo "pushed"                               # no output: origin lacks the local head
+     || echo "origin lacks the local head of <branch>"
    ```
 
-   No `pushed`, or no handoff naming the branch, fails it. A handoff with
-   `branch: none` has `git -C "$wt" rev-list --count origin/<main>..HEAD`
-   printing `0` as its gate instead. The branch stays on origin; for a
+   No handoff naming the branch also fails it. A handoff with
+   `branch: none` has this gate instead:
+
+   ```bash
+   [ "$(git -C "$wt" rev-list --count origin/<main>..HEAD)" = 0 ] \
+     || echo "commits not on origin/<main>"
+   ``` The branch stays on origin; for a
    released item, report it to the user — deleting a remote branch is
    theirs.
 3. **Run state**: a hibernated or parked item joins the hibernated list, with

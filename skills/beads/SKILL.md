@@ -31,6 +31,7 @@ bd project:
 | Append a decision or finding | `bd note <id> "text"` |
 | File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
 | Close | `bd close <id> -r "Shipped in PR #N"` |
+| Replace · read the epic's run state | `bd update <epic> --set-metadata "run_state=<text>"` · `bd show <epic> --json \| jq -r '.[0].metadata.run_state'` |
 
 `bd ready --parent` without `--exclude-type epic` returns the sub-epics too,
 and without `--limit 0` stops at 100. In the `--json` tree, an item's open

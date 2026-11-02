@@ -133,7 +133,9 @@ Read the item in full, with its notes and parent chain, then all four:
   and ask whether to bring that item in.
 
 Ask only decisions the item **leaves open in writing**. Never recommend an
-option you have not checked against the code it touches; a decision that
+option you have not checked against the code it touches. A proposed
+dependency is a recommendation too: read both items in full before putting
+it to the user — through a subagent when there are many. A decision that
 only appears once the code is read belongs to the worker, who asks the user
 directly. Ask with the question tool, batched across the items about to
 launch, each question standing alone in the shape of `pickup-task` § Asking

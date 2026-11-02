@@ -199,7 +199,7 @@ What changes:
   removes this session and its worktree; nothing is sent here first.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
-  is released) → § Hand off.
+  will be released) → § Hand off.
 
 ### Hand off
 

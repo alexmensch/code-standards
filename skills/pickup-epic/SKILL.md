@@ -220,7 +220,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
 | A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
-| `ABANDONED` | release its claim if still held, then § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
+| `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
 
@@ -266,7 +266,7 @@ branch, the handoff note on its item, the run state — and removes its
 session. A later worker starts fresh from that record (§ 5).
 
 1. **Trigger**: `HIBERNATE <item>` (§ Hibernate), `HIBERNATE <item> — parked
-   on <X>`, or `RELEASED <item>` once the claim is released. The worker runs
+   on <X>`, or `RELEASED <item>`. The worker runs
    `pickup-task` § Hand off and replies `HIBERNATED <item>`.
 2. **Remove** the session (§ Removing a worker's session). Its gate, with
    the branch the item's latest handoff names:
@@ -280,7 +280,8 @@ session. A later worker starts fresh from that record (§ 5).
    on origin.
 3. **Run state**: a hibernated or parked item joins the hibernated list, with
    `resume` or `<X> lands` as what relaunches it. A released item does not:
-   its claim is gone and it ranks with the rest.
+   release its claim now, never earlier — a replan before the old session is
+   gone could launch a second worker on it — and it ranks with the rest.
 
 ## Hibernate
 

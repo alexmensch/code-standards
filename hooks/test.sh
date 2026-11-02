@@ -4,6 +4,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+SKILLS_LAYOUTS=("$HERE/../skills" "$HERE/../../skills")
+SKILLS=""
+for d in "${SKILLS_LAYOUTS[@]}"; do
+  compgen -G "$d/*/SKILL.md" >/dev/null && { SKILLS="$(cd "$d" && pwd)"; break; }
+done
 HOOK="$HERE/review-design-reminder.sh"
 STATE="$(mktemp -d)"
 trap 'rm -rf "$STATE"' EXIT
@@ -226,10 +231,6 @@ check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
-loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
-substituted="$(grep -nE "$loader_substitutes" "$HERE"/../skills/*/SKILL.md)"
-check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
-
 unclosed_fence() {
   awk '/^[[:space:]]*```/ { rest = $0; sub(/^[[:space:]]*```/, "", rest)
          if (!open) open = FNR; else if (rest ~ /^[[:space:]]*$/) open = 0 }
@@ -237,7 +238,20 @@ unclosed_fence() {
 }
 printf '```bash\nx\n``` text after the fence\nprose\n' > "$STATE/unclosed.md"
 check "fence check flags a closer with text after it" '[ -n "$(unclosed_fence "$STATE/unclosed.md")" ]'
-unclosed="$(find "$HERE/../skills" -name '*.md' 2>/dev/null | while read -r f; do unclosed_fence "$f"; done)"
-check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+
+if [ -z "$SKILLS" ]; then
+  check "a skills folder holds a SKILL.md" \
+    '{ echo "no */SKILL.md under any of:"; printf "  %s\n" "${SKILLS_LAYOUTS[@]}"; false; }'
+else
+  skill_bodies=("$SKILLS"/*/SKILL.md)
+  check "a skills folder holds a SKILL.md (${#skill_bodies[@]} in $SKILLS)" true
+
+  loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
+  substituted="$(grep -nE "$loader_substitutes" "${skill_bodies[@]}")"
+  check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
+
+  unclosed="$(find "$SKILLS" -name '*.md' | while read -r f; do unclosed_fence "$f"; done)"
+  check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+fi
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

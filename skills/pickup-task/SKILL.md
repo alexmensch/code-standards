@@ -195,9 +195,9 @@ What changes:
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait.
 - **`LANDED #N`** → the PR merged and its item is closed. Send nothing back;
-  write the final message: PR #N merged, item closed, ending with the
-  closing line `Session finished — safe to delete.` The coordinator stops
-  this session once it goes idle; the owner deletes it.
+  write the final message: PR #N merged, item closed, ending with
+  § Closing line. The coordinator stops this session once it goes idle; the
+  owner deletes it.
 - **`RELEASED <item>`** → the coordinator's answer to `ABANDONED`: the claim
   is released. Same final message, naming the abandoned item and any PR left
-  open, then the same closing line.
+  open, then § Closing line.

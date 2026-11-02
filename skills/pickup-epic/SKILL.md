@@ -387,9 +387,9 @@ from § 1 with the run state first. Then:
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - a post-landing step may have been cut off → run it before any launch;
-- the run state is marked `HIBERNATED` → set the coordinator field, clear the
-  mark, and relaunch each item hibernated with `resume` (§ 5) ahead of new
-  items, up to the cap.
+- the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
+  each item hibernated with `resume`, and each parked one whose `<X> lands`
+  happened meanwhile, ahead of new items, up to the cap.
 
 ## Deviations — stop and ask
 

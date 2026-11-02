@@ -241,7 +241,8 @@ claimed at its first launch, so skip § 1–2.
 
    ```bash
    git fetch origin && git switch <branch>
-   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/<branch>)" ] && echo "on pushed head"
+   [ "$(git rev-parse --abbrev-ref HEAD)" = "<branch>" ] \
+     && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/<branch>)" ] && echo "on pushed head"
    git branch -D <the branch the worktree was created on>
    ```
 

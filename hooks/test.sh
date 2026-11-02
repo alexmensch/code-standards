@@ -4,6 +4,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/hook-lib.sh"
 HOOK="$HERE/review-design-reminder.sh"
 STATE="$(mktemp -d)"
 trap 'rm -rf "$STATE"' EXIT
@@ -226,10 +227,6 @@ check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
-loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
-substituted="$(grep -nE "$loader_substitutes" "$HERE"/../skills/*/SKILL.md)"
-check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
-
 unclosed_fence() {
   awk '/^[[:space:]]*```/ { rest = $0; sub(/^[[:space:]]*```/, "", rest)
          if (!open) open = FNR; else if (rest ~ /^[[:space:]]*$/) open = 0 }
@@ -237,7 +234,50 @@ unclosed_fence() {
 }
 printf '```bash\nx\n``` text after the fence\nprose\n' > "$STATE/unclosed.md"
 check "fence check flags a closer with text after it" '[ -n "$(unclosed_fence "$STATE/unclosed.md")" ]'
-unclosed="$(find "$HERE/../skills" -name '*.md' 2>/dev/null | while read -r f; do unclosed_fence "$f"; done)"
-check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+
+# bundle_skill_bodies <hook_dir> — the bundle's SKILL.md files: the repo's skills/, else the installed
+# skills carrying INSTALL.md's installed-copy notice (change the pattern with that notice).
+bundle_skill_bodies() {
+  local repo installed
+  repo="$(cd "$1/.." && pwd)/skills"
+  installed="$(install_scope "$1")/skills"
+  if compgen -G "$repo/*/SKILL.md" >/dev/null; then
+    printf '%s\n' "$repo"/*/SKILL.md
+  elif ! { compgen -G "$installed/*/SKILL.md" >/dev/null \
+           && grep -l '^<!-- Installed copy of code-standards skills/' "$installed"/*/SKILL.md; }; then
+    echo "no SKILL.md under $repo, nor one carrying the installed-copy notice under $installed" >&2
+    return 1
+  fi
+}
+
+LAYOUT="$STATE/layout/.claude"
+mkdir -p "$LAYOUT/hooks/code-standards" "$LAYOUT/skills/ours" "$LAYOUT/skills/theirs"
+printf -- '---\nname: ours\n---\n<!-- Installed copy of code-standards skills/ours/SKILL.md, from /src. -->\n' \
+  > "$LAYOUT/skills/ours/SKILL.md"
+printf -- '---\nname: theirs\n---\n' > "$LAYOUT/skills/theirs/SKILL.md"
+check "installed, only skills carrying the installed-copy notice are the bundle's" \
+  '[ "$(bundle_skill_bodies "$LAYOUT/hooks/code-standards")" = "$(cd "$LAYOUT" && pwd -P)/skills/ours/SKILL.md" ]'
+mkdir -p "$LAYOUT/repo/hooks" "$LAYOUT/repo/skills/mine"
+echo body > "$LAYOUT/repo/skills/mine/SKILL.md"
+check "the repo layout wins over an installed one" \
+  '[ "$(bundle_skill_bodies "$LAYOUT/repo/hooks")" = "$LAYOUT/repo/skills/mine/SKILL.md" ]'
+mkdir -p "$STATE/bare/.claude/hooks/code-standards"
+check "no skills found fails, naming both places" '! bundle_skill_bodies "$STATE/bare/.claude/hooks/code-standards" >/dev/null 2>&1 \
+  && [[ "$(bundle_skill_bodies "$STATE/bare/.claude/hooks/code-standards" 2>&1)" == *"hooks/skills, nor"*"/.claude/skills" ]]'
+
+bodies="$(bundle_skill_bodies "$HERE")"
+first_body="${bodies%%$'\n'*}"
+check "the bundle's SKILL.md files are found ($(grep -c . <<< "$bodies")${bodies:+ in ${first_body%/*/SKILL.md}})" \
+  '[ -n "$bodies" ]'
+
+if [ -n "$bodies" ]; then
+  loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
+  substituted="$(while read -r b; do grep -nHE "$loader_substitutes" "$b"; done <<< "$bodies")"
+  check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
+
+  unclosed="$(while read -r b; do find "${b%/SKILL.md}" -name '*.md'; done <<< "$bodies" \
+    | while read -r f; do unclosed_fence "$f"; done)"
+  check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+fi
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

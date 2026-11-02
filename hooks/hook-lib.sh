@@ -24,6 +24,11 @@ invoked_skill() {
   if [ "${command:0:1}" = / ]; then echo "${command#/}"; fi
 }
 
+# install_scope <hook_dir> — the .claude folder an installed hook folder sits in, symlinks resolved.
+install_scope() {
+  dirname "$(dirname "$(cd "$1" && pwd -P)")"
+}
+
 # deny_pretooluse <reason> — prints the reply that refuses the tool call.
 deny_pretooluse() {
   jq -n --arg r "$1" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'

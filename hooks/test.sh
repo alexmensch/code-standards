@@ -4,7 +4,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SKILLS_LAYOUTS=("$HERE/../skills" "$HERE/../../skills")
+. "$HERE/hook-lib.sh"
+SKILLS_LAYOUTS=("$HERE/../skills" "$(install_scope "$HERE")/skills")
 SKILLS=""
 for d in "${SKILLS_LAYOUTS[@]}"; do
   compgen -G "$d/*/SKILL.md" >/dev/null && { SKILLS="$(cd "$d" && pwd)"; break; }

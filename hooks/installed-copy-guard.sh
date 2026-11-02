@@ -22,7 +22,7 @@ elif [ -z "$file" ]; then
 fi
 
 hook_dir="$(cd "$(dirname "$0")" && pwd -P)"
-scope="$(dirname "$(dirname "$hook_dir")")"
+scope="$(install_scope "$hook_dir")"
 
 [ -n "$(find "$hook_dir/.sync-in-progress" -mmin -15 2>/dev/null)" ] && exit 0
 

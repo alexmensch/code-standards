@@ -1,6 +1,6 @@
 ---
 name: pickup-epic
-description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>", "/pickup-epic <epic> hibernate", "work through epic X", "run epic X in parallel", "hibernate". One item at a time is `pickup-task`.
+description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>" with or without free text, "work through epic X", "run epic X in parallel", and any plain-language request to wind the run down so it can resume later ("hibernate", "I'm stepping away", "pause for the night"). One item at a time is `pickup-task`.
 ---
 
 # Coordinate an epic
@@ -157,12 +157,13 @@ branches, listed from the run state:
 git fetch -q origin; t=$(mktemp)
 for pr in $(gh pr list --state open --json number -q '.[].number'); do
   gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
-for wt in $(git worktree list --porcelain | awk '/^worktree /{print $2}' | tail -n +2); do
-  { git -C "$wt" diff --name-only origin/<main>...; git -C "$wt" status --porcelain | awk '{print $2}'; } \
+for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
+  { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
+    git -C "$wt" ls-files --others --exclude-standard; } \
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
 for b in <each hibernated item's branch>; do
-  git diff --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
-awk '{n[$2]++; who[$2]=who[$2]" "$1} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
+  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
+awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 
 A shared file is a hazard to sequence, not a conflict to predict.
@@ -239,27 +240,31 @@ Stop, check, remove — in that order, so nothing of the worker can still be
 changing the worktree once it is checked. From the main checkout, with the
 worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
-1. `claude stop <id>`.
-2. **Check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`, append the
-   gate's own check — § 7.3's landing checks or § Hand-off's pushed check —
-   and run `bash <path>`:
+1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
+   append the gate's own check — § 7.3's landing checks or § Hand-off's
+   pushed check — and run `bash <path>`:
 
    ```bash
-   id=<id>; wt=<worktree>; end=$((SECONDS+60))
-   while p=$(claude agents --json --all | jq -r --arg id "$id" '.[] | select(.id==$id) | .pid // empty')
-         [ -n "$p" ] && [ "$SECONDS" -lt "$end" ]; do sleep 2; done
-   out=$( { [ -n "$p" ] && echo "session process $p still running"
+   id=<id>; wt=<worktree>
+   entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
+   [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
+   pid=$(jq -r '.pid // empty' <<< "$entry")
+   claude stop "$id"; end=$((SECONDS+60))
+   while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
+   out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"
             git -C "$wt" status --porcelain
             lsof +D "$wt" 2>/dev/null; } )
    [ -z "$out" ] || { echo "$out"; exit 1; }
    ```
 
+   The pid is read before the stop because `claude agents` reports it null
+   as soon as the stop is accepted, while the process is still exiting.
    Exit 0 and empty output: the session's process has exited, nothing is
    uncommitted, and no background shell, task, subagent or other process has
    its working directory or a file open under the worktree. Any output →
    stop and ask; the session stays stopped and is never removed. `lsof`
    exits 1 whether or not it finds anything, so its output decides.
-3. `claude rm <id>`. It deletes the worktree, git's record of it and the
+2. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 
 ## Hand-off — hibernate, park and release
@@ -297,10 +302,13 @@ uncached. Hibernating removes every session instead; resume launches fresh
 workers that load only their item, handoff and branch. Never resume old
 workers with `claude --resume`.
 
-Triggered by the user saying "hibernate" in this session, or
-`/pickup-epic <epic> hibernate` here. Only the coordinator hibernates: the
-command anywhere else would make a second coordinator (§ Deviations). A
-wind-down, not an immediate stop:
+Triggered by any request from the user, in plain words, to wind the run
+down so it can resume later — stepping away, pausing for the night,
+"hibernate" — said in this session or written as free text after
+`/pickup-epic <epic>` here. The intent decides; there is no fixed syntax or
+argument order. Only the coordinator hibernates: the request anywhere else
+would make a second coordinator (§ Deviations). A wind-down, not an
+immediate stop:
 
 1. Launch nothing new. Wait for a landing in progress to finish, and for
    each shared-resource grant a project extension made (a GPU grant runs to
@@ -386,7 +394,8 @@ clear the coordinator field.
 ## Resume
 
 `/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
-from § 1 with the run state first. Then:
+from § 1 with the run state first — unless its free text asks to wind the
+run down, which is § Hibernate's trigger. Then:
 
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker

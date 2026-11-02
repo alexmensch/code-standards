@@ -230,4 +230,14 @@ loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
 substituted="$(grep -nE "$loader_substitutes" "$HERE"/../skills/*/SKILL.md)"
 check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
 
+unclosed_fence() {
+  awk '/^[[:space:]]*```/ { rest = $0; sub(/^[[:space:]]*```/, "", rest)
+         if (!open) open = FNR; else if (rest ~ /^[[:space:]]*$/) open = 0 }
+       END { if (open) print FILENAME ":" open ": code fence never closed" }' "$1"
+}
+printf '```bash\nx\n``` text after the fence\nprose\n' > "$STATE/unclosed.md"
+check "fence check flags a closer with text after it" '[ -n "$(unclosed_fence "$STATE/unclosed.md")" ]'
+unclosed="$(find "$HERE/../skills" -name '*.md' 2>/dev/null | while read -r f; do unclosed_fence "$f"; done)"
+check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

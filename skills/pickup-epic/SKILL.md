@@ -158,11 +158,11 @@ git fetch -q origin; t=$(mktemp)
 for pr in $(gh pr list --state open --json number -q '.[].number'); do
   gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
 for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
-  { git -C "$wt" diff --name-only origin/<main>...; git -C "$wt" diff --name-only HEAD
+  { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
     git -C "$wt" ls-files --others --exclude-standard; } \
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
 for b in <each hibernated item's branch>; do
-  git diff --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
+  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
 awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 

@@ -292,9 +292,10 @@ session. A later worker starts fresh from that record (§ 5).
    ```bash
    [ "$(git -C "$wt" rev-list --count origin/<main>..HEAD)" = 0 ] \
      || echo "commits not on origin/<main>"
-   ``` The branch stays on origin; for a
-   released item, report it to the user — deleting a remote branch is
-   theirs.
+   ```
+
+   The branch stays on origin; for a released item, report it to the user —
+   deleting a remote branch is theirs.
 3. **Run state**: a hibernated or parked item joins the hibernated list, with
    `resume` or `<X> lands` as what relaunches it. A released item does not:
    release its claim now, never earlier — a replan before the old session is

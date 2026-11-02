@@ -35,8 +35,8 @@ on the critical path.
 
 For items in the tree under the named epic, and items the user brings into
 the run: claim them, write the user's preflight answers into them, launch
-workers, stop and remove a worker's session once its check passes (§ 7.3's
-landing checks, § Hand-off's check), send the coordinator's message kinds,
+workers, stop and remove a worker's session (§ Removing a worker's session),
+send the coordinator's message kinds,
 close a sub-epic once all its children are closed. Each merge still needs the
 user's answer for that PR (§ 7).
 
@@ -221,7 +221,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
 | A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | release its claim if still held, then § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
-| `HIBERNATED` | § Hand-off, steps 2–4 |
+| `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a
@@ -229,6 +229,35 @@ landing to approve, a hold, a deviation. Never restate a worker's report.
 
 Then fill free slots up to the cap: first hibernated items whose `<X> lands`
 has happened, then rank, preflight, launch.
+
+## Removing a worker's session
+
+Stop, check, remove — in that order, so nothing of the worker can still be
+changing the worktree once it is checked. From the main checkout, with the
+worker's id (`claude agents --json`) and its worktree (`git worktree list`):
+
+1. `claude stop <id>`.
+2. **Check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`, append the
+   gate's own check — § 7.3's landing checks or § Hand-off's pushed check —
+   and run `bash <path>`:
+
+   ```bash
+   id=<id>; wt=<worktree>; end=$((SECONDS+60))
+   while p=$(claude agents --json --all | jq -r --arg id "$id" '.[] | select(.id==$id) | .pid // empty')
+         [ -n "$p" ] && [ "$SECONDS" -lt "$end" ]; do sleep 2; done
+   out=$( { [ -n "$p" ] && echo "session process $p still running"
+            git -C "$wt" status --porcelain
+            lsof +D "$wt" 2>/dev/null; } )
+   [ -z "$out" ] || { echo "$out"; exit 1; }
+   ```
+
+   Exit 0 and empty output: the session's process has exited, nothing is
+   uncommitted, and no background shell, task, subagent or other process has
+   its working directory or a file open under the worktree. Any output →
+   stop and ask; the session stays stopped and is never removed. `lsof`
+   exits 1 whether or not it finds anything, so its output decides.
+3. `claude rm <id>`. It deletes the worktree, git's record of it and the
+   local branch. A `kept` reply or a non-zero exit → stop and ask.
 
 ## Hand-off — hibernate, park and release
 
@@ -239,20 +268,17 @@ session. A later worker starts fresh from that record (§ 5).
 1. **Trigger**: `HIBERNATE <item>` (§ Hibernate), `HIBERNATE <item> — parked
    on <X>`, or `RELEASED <item>` once the claim is released. The worker runs
    `pickup-task` § Hand off and replies `HIBERNATED <item>`.
-2. **Check**, from the main checkout, with the branch the item's latest
-   handoff names and the worktree `git worktree list` shows on it:
+2. **Remove** the session (§ Removing a worker's session). Its gate, with
+   the branch the item's latest handoff names:
 
    ```bash
-   b=<branch>; wt=<worktree>
-   git -C "$wt" status --porcelain                  # empty: nothing uncommitted
-   [ "$(git -C "$wt" rev-parse HEAD)" = "$(git ls-remote origin "refs/heads/$b" | cut -f1)" ] \
+   [ "$(git -C "$wt" rev-parse HEAD)" = "$(git ls-remote origin "refs/heads/<branch>" | cut -f1)" ] \
      && echo "pushed"                               # no output: origin lacks the local head
    ```
 
-   Output from the first, no `pushed`, or no handoff naming `$b` → stop and
-   ask; the session stays.
-3. **Remove** the session as § 7.3 step 4 does. The branch stays on origin.
-4. **Run state**: a hibernated or parked item joins the hibernated list, with
+   No `pushed`, or no handoff naming the branch, fails it. The branch stays
+   on origin.
+3. **Run state**: a hibernated or parked item joins the hibernated list, with
    `resume` or `<X> lands` as what relaunches it. A released item does not:
    its claim is gone and it ranks with the rest.
 
@@ -297,16 +323,14 @@ version files and lockfiles conflict between any two PRs that both bump them.
    1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
       of at most ten minutes each.
    2. § Close the tickets.
-   3. § Worktree, branches, main's three landing checks on the worker's
-      worktree. Any one fails → stop and return it; never remove the
-      session.
-   4. Remove the session: `claude stop <id>`, then `claude rm <id>`, which
-      deletes its worktree too.
-   5. From the main checkout, § Worktree, branches, main's closing block:
+   3. Remove the session: § Removing a worker's session, copied into the
+      brief, with § Worktree, branches, main's three landing checks as its
+      gate. A failed check → stop and return it.
+   4. From the main checkout, § Worktree, branches, main's closing block:
       delete the local branch, `git fetch --prune`, fast-forward `<main>`,
       report a remote branch left behind.
-   6. Return `merged`, `CI_FAILED <checks>`, the landing check that failed,
-      or the deviation `pr-cleanup` stopped on.
+   5. Return `merged`, `CI_FAILED <checks>`, the check that failed, or the
+      deviation `pr-cleanup` stopped on.
 
    **Hold.** The brief also gives the subagent its reply to the
    coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
@@ -316,15 +340,16 @@ version files and lockfiles conflict between any two PRs that both bump them.
    this.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
-   the PR goes to the back of the queue. A failed landing check → ask the
-   user; the session stays.
+   the PR goes to the back of the queue. A failed removal check → ask the
+   user; the session stays stopped.
 
-   One of the user's own items: skip steps 3 and 4, and step 5's branch
+   One of the user's own items: skip step 3, and step 4's branch
    deletion. Landing never stops or removes the user's session, its worktree
    or its branch.
 
-   A landing cut off after step 4 resumes at step 5: the session gone from
-   `claude agents --json --all` and its worktree gone means `claude rm` ran.
+   A landing cut off resumes at step 4 when the session is gone from
+   `claude agents --json --all` and its worktree is gone — `claude rm` ran;
+   otherwise at step 3.
 4. **Update the run state**, then § 1.
 
 Run the project's post-landing step without a pipe on its output, or with
@@ -361,5 +386,5 @@ from § 1 with the run state first. Then:
 - An item claimed by someone else.
 - A `PLAN_CHANGE` that touches an item already landed.
 - `pr-cleanup` stops on one of its own deviations.
-- § Hand-off's check fails.
+- A removal check fails (§ Removing a worker's session).
 - A post-landing step fails — no launches until the user answers.

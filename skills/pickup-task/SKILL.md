@@ -197,6 +197,53 @@ What changes:
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and
   removes this session and its worktree; nothing is sent here first.
-- **`RELEASED <item>`** → the coordinator's answer to `ABANDONED`: the claim
-  is released. Write the final message, naming the abandoned item and any PR
-  left open.
+- **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
+  **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
+  is released) → § Hand off.
+
+### Hand off
+
+The coordinator is about to remove this session; a fresh one may resume the
+item from what this leaves behind.
+
+1. **Reach the next commit boundary**: finish the commit-sized chunk in
+   progress, or the review or triage step this session is in. Commit
+   normally — never a WIP commit — and push, even a branch with no commits
+   of its own, so origin holds it.
+2. **Write the handoff** onto the item with the tracker's handoff operation.
+   The latest one is the item's handoff; a resumed session's own supersedes
+   it:
+
+   ```
+   HANDOFF
+   branch: <branch>
+   PR: #<N> | none
+   phase: implementing | in review | triaging | awaiting owner answer | ready to land | parked on <X> | released
+   done: <what is committed and pushed>
+   next: <the next step, concrete enough to start on>
+   question: <a question open to the requester, word for word> | none
+   findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
+   ```
+
+   A question this session is blocked on goes in `question:` word for word;
+   it is asked again on resume.
+3. **Reply `HIBERNATED <item>`** and end the turn.
+
+### Resuming from a handoff
+
+A launch prompt ending `— resume from handoff`: the item was preflighted and
+claimed at its first launch, so skip § 1–2.
+
+1. Read the item and its latest handoff.
+2. Enter a worktree as usual, then put it on the handoff's branch — the PR,
+   if any, stays on it:
+
+   ```bash
+   git fetch origin && git switch <branch>
+   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/<branch>)" ] && echo "on pushed head"
+   git branch -D <the branch the worktree was created on>
+   ```
+
+   No `on pushed head` → stop and ask.
+3. A `question:` → `NEEDS_INPUT`, then ask it again with the question tool.
+4. Continue from `next`, in the stage `phase` names.

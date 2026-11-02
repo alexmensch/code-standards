@@ -1,6 +1,6 @@
 ---
 name: pickup-epic
-description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker. Claude Code only. Use for "/pickup-epic <epic>", "work through epic X", "run epic X in parallel". One item at a time is `pickup-task`.
+description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>", "/pickup-epic <epic> hibernate", "work through epic X", "run epic X in parallel", "hibernate". One item at a time is `pickup-task`.
 ---
 
 # Coordinate an epic
@@ -26,7 +26,7 @@ on the critical path.
 
 | Thing | Sole writer |
 | --- | --- |
-| An item's code, branch, worktree, PR | its worker |
+| An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, preflight answers, closing sub-epics, the run state, the coordinator field | the coordinator |
@@ -35,9 +35,10 @@ on the critical path.
 
 For items in the tree under the named epic, and items the user brings into
 the run: claim them, write the user's preflight answers into them, launch
-workers, stop and remove a worker's session once § 7.3's landing checks pass, send the
-coordinator's message kinds, close a sub-epic once all its children are
-closed. Each merge still needs the user's answer for that PR (§ 7).
+workers, stop and remove a worker's session once its check passes (§ 7.3's
+landing checks, § Hand-off's check), send the coordinator's message kinds,
+close a sub-epic once all its children are closed. Each merge still needs the
+user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a worker's question for the user, close the named epic without
@@ -66,7 +67,9 @@ nowhere else:
 - items in the run from outside the tree, and why;
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
-- promises to parked workers ("UNBLOCKED when X lands");
+- hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
+  what relaunches it: `resume`, or `<X> lands`;
+- the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
 
@@ -77,8 +80,8 @@ a compaction. Write it here first.
 
 This session's name — the one workers and every other session message — lives in its own field on the named epic, never in
 the run state, so there is one copy to keep current. Set it at kickoff and on
-resume; clear it at § 8, and when the user tells this session to stop or
-abandon the run, before the final message.
+resume; clear it at § 8, at § Hibernate, and when the user tells this
+session to stop or abandon the run, before the final message.
 
 A coordinator killed mid-run cannot clear it, so the field may outlive its
 session: a reader never trusts it alone. A session outside the run finds a
@@ -102,8 +105,8 @@ The tracker skill maps all three operations.
 - **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
   is a **live worker**.
 
-An item in progress with no worker and no PR → ask the user whether it is
-another session's work or should be released.
+An item in progress with no worker, no PR and no place on the hibernated list
+→ ask the user whether it is another session's work or should be released.
 
 ## 2. Rank
 
@@ -180,6 +183,10 @@ claude --bg -n pickup-<item> --permission-mode <this session's mode> \
   "/pickup-task <item> — coordinated by \"<this session's name>\""
 ```
 
+A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
+first launch: relaunch it with ` — resume from handoff` appended to that
+prompt, and check only its lane, from its pushed branch.
+
 `ListAgents` prints this session's name; quote it exactly, since names
 contain spaces. A different permission mode holds every message between the
 two sessions for approval. Then `SendMessage` to `pickup-<item>` with
@@ -205,13 +212,61 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
-| `ABANDONED` | release its claim if still held, send `RELEASED <item>`; tell the user, naming any PR it left open |
+| A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
+| `ABANDONED` | release its claim if still held, then § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
+| `HIBERNATED` | § Hand-off, steps 2–4 |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation. Never restate a worker's report.
 
-Then fill free slots up to the cap: rank, preflight, launch.
+Then fill free slots up to the cap: first hibernated items whose `<X> lands`
+has happened, then rank, preflight, launch.
+
+## Hand-off — hibernate, park and release
+
+One procedure moves a worker's state into the durable record — its pushed
+branch, the handoff note on its item, the run state — and removes its
+session. A later worker starts fresh from that record (§ 5).
+
+1. **Trigger**: `HIBERNATE <item>` (§ Hibernate), `HIBERNATE <item> — parked
+   on <X>`, or `RELEASED <item>` once the claim is released. The worker runs
+   `pickup-task` § Hand off and replies `HIBERNATED <item>`.
+2. **Check**, from the main checkout, with the branch the item's latest
+   handoff names and the worktree `git worktree list` shows on it:
+
+   ```bash
+   b=<branch>; wt=<worktree>
+   git -C "$wt" status --porcelain                  # empty: nothing uncommitted
+   [ "$(git -C "$wt" rev-parse HEAD)" = "$(git ls-remote origin "refs/heads/$b" | cut -f1)" ] \
+     && echo "pushed"                               # no output: origin lacks the local head
+   ```
+
+   Output from the first, no `pushed`, or no handoff naming `$b` → stop and
+   ask; the session stays.
+3. **Remove** the session as § 7.3 step 4 does. The branch stays on origin.
+4. **Run state**: a hibernated or parked item joins the hibernated list, with
+   `resume` or `<X> lands` as what relaunches it. A released item does not:
+   its claim is gone and it ranks with the rest.
+
+## Hibernate
+
+With many workers running, an owner stepping away leaves sessions whose
+prompt caches go cold, and resuming each later reloads its whole transcript
+uncached. Hibernating removes every session instead; resume launches fresh
+workers that load only their item, handoff and branch. Never resume old
+workers with `claude --resume`.
+
+Triggered by the user saying "hibernate" in this session, or
+`/pickup-epic <epic> hibernate`. A wind-down, not an immediate stop:
+
+1. Launch nothing new. A landing in progress finishes. Project-extension
+   holds end first, the way the extension ends them.
+2. § Hand-off for every live worker, with `HIBERNATE <item>`. Each reaches
+   its next commit boundary before replying, so replies arrive over minutes.
+3. Once every worker is removed: mark the run state `HIBERNATED`, clear the
+   coordinator field, and end with a final message that this coordinator
+   session is finished and safe to delete.
 
 ## 7. Land — one at a time
 
@@ -274,7 +329,10 @@ from § 1 with the run state first. Then:
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
-- a post-landing step may have been cut off → run it before any launch.
+- a post-landing step may have been cut off → run it before any launch;
+- the run state is marked `HIBERNATED` → set the coordinator field, clear the
+  mark, and relaunch each item hibernated with `resume` (§ 5) ahead of new
+  items, up to the cap.
 
 ## Deviations — stop and ask
 
@@ -284,4 +342,5 @@ from § 1 with the run state first. Then:
 - An item claimed by someone else.
 - A `PLAN_CHANGE` that touches an item already landed.
 - `pr-cleanup` stops on one of its own deviations.
+- § Hand-off's check fails.
 - A post-landing step fails — no launches until the user answers.

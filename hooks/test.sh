@@ -257,6 +257,13 @@ printf -- '---\nname: ours\n---\n<!-- Installed copy of code-standards skills/ou
 printf -- '---\nname: theirs\n---\n' > "$LAYOUT/skills/theirs/SKILL.md"
 check "installed, only skills carrying the installed-copy notice are the bundle's" \
   '[ "$(bundle_skill_bodies "$LAYOUT/hooks/code-standards")" = "$(cd "$LAYOUT" && pwd -P)/skills/ours/SKILL.md" ]'
+mkdir -p "$LAYOUT/repo/hooks" "$LAYOUT/repo/skills/mine"
+echo body > "$LAYOUT/repo/skills/mine/SKILL.md"
+check "the repo layout wins over an installed one" \
+  '[ "$(bundle_skill_bodies "$LAYOUT/repo/hooks")" = "$LAYOUT/repo/skills/mine/SKILL.md" ]'
+mkdir -p "$STATE/bare/.claude/hooks/code-standards"
+check "no skills found fails, naming both places" '! bundle_skill_bodies "$STATE/bare/.claude/hooks/code-standards" >/dev/null 2>&1 \
+  && [[ "$(bundle_skill_bodies "$STATE/bare/.claude/hooks/code-standards" 2>&1)" == *"hooks/skills, nor"*"/.claude/skills" ]]'
 
 bodies="$(bundle_skill_bodies "$HERE")"
 first_body="${bodies%%$'\n'*}"

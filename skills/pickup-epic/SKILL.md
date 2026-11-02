@@ -308,6 +308,13 @@ version files and lockfiles conflict between any two PRs that both bump them.
    6. Return `merged`, `CI_FAILED <checks>`, the landing check that failed,
       or the deviation `pr-cleanup` stopped on.
 
+   **Hold.** The brief also gives the subagent its reply to the
+   coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
+   then run nothing local — gates, builds, tests, worktree or session removal
+   — until `RESUME`; a merge already armed on the host may complete; reply
+   with the step it stopped at. A project extension maps its own pauses onto
+   this.
+
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue. A failed landing check → ask the
    user; the session stays.

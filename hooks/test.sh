@@ -240,13 +240,12 @@ unclosed_fence() {
 printf '```bash\nx\n``` text after the fence\nprose\n' > "$STATE/unclosed.md"
 check "fence check flags a closer with text after it" '[ -n "$(unclosed_fence "$STATE/unclosed.md")" ]'
 
-if [ -z "$SKILLS" ]; then
-  check "a skills folder holds a SKILL.md" \
-    '{ echo "no */SKILL.md under any of:"; printf "  %s\n" "${SKILLS_LAYOUTS[@]}"; false; }'
-else
-  skill_bodies=("$SKILLS"/*/SKILL.md)
-  check "a skills folder holds a SKILL.md (${#skill_bodies[@]} in $SKILLS)" true
+skill_bodies=()
+[ -n "$SKILLS" ] && skill_bodies=("$SKILLS"/*/SKILL.md)
+check "a skills folder holds a SKILL.md${SKILLS:+ (${#skill_bodies[@]} in $SKILLS)}" \
+  '[ -n "$SKILLS" ] || { echo "no */SKILL.md under any of:"; printf "  %s\n" "${SKILLS_LAYOUTS[@]}"; false; }'
 
+if [ -n "$SKILLS" ]; then
   loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
   substituted="$(grep -nE "$loader_substitutes" "${skill_bodies[@]}")"
   check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'

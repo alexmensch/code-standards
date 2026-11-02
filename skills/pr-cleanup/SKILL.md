@@ -247,7 +247,7 @@ the route is who OWNS the worktree, not whether the session is pinned.**
 
   ```bash
   git fetch -q origin
-  git -C <wt> status --porcelain                          # lists anything uncommitted
+  git -C <wt> status --porcelain
   [ "$(git -C <wt> rev-parse HEAD)" = "$(gh pr view <N> --json headRefOid -q .headRefOid)" ] \
     || echo "commits after the merged head"
   git merge-base --is-ancestor "$(gh pr view <N> --json mergeCommit -q .mergeCommit.oid)" \

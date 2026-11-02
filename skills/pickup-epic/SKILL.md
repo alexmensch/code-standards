@@ -172,7 +172,7 @@ A shared file is a hazard to sequence, not a conflict to predict.
 
 Read the state and rank, then show the user: the first items to launch with
 their preflight questions, any outside blockers, and the parallel cap
-(default 3; the user's attention is the limit). Start on their answer: set
+(default 5; the user's attention is the limit). Start on their answer: set
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
 

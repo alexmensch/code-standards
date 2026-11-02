@@ -137,8 +137,8 @@ Any finding still unanswered after Asking about a finding first, each in full ·
 · fixed findings, number → commit · anything deferred and where it was filed
 · **manual smoke owed**: the exact steps from the PR body, or `none` and why.
 Merging stays the requester's call, and never before a smoke that is owed.
-Ends with § Closing line: not yet deletable while the PR is open — a line
-that goes stale once #N merges elsewhere.
+Uncoordinated, it ends with § Closing line: not yet deletable while the PR is
+open — a line that goes stale once #N merges elsewhere.
 
 When the requester lands the PR with `pr-cleanup` in this session, that
 turn's final message ends with the closing line too, now deletable once the
@@ -146,8 +146,9 @@ PR is merged and its tickets closed.
 
 ### Closing line
 
-Every final message of this session ends with one line the owner acts on
-without asking anyone:
+In an uncoordinated session, every final message ends with one line the
+owner acts on without asking anyone. A coordinated session has none: its
+coordinator removes it (§ Coordinated mode).
 
 - **`Not yet safe to delete —`** followed by what is pending, whenever this
   session still has any of: its PR open awaiting merge, a question awaiting
@@ -194,11 +195,8 @@ What changes:
   for a conflict no rule settles.
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
-- After `READY_TO_LAND`, wait.
-- **`LANDED #N`** → the PR merged and its item is closed. Send nothing back;
-  write the final message: PR #N merged, item closed, ending with
-  § Closing line. The coordinator stops this session once it goes idle; the
-  owner deletes it.
+- After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and
+  removes this session and its worktree; nothing is sent here first.
 - **`RELEASED <item>`** → the coordinator's answer to `ABANDONED`: the claim
-  is released. Same final message, naming the abandoned item and any PR left
-  open, then § Closing line.
+  is released. Write the final message, naming the abandoned item and any PR
+  left open.

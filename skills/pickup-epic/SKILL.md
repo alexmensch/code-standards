@@ -34,14 +34,14 @@ on the critical path.
 ## What invoking this authorises — and only this
 
 For items in the tree under the named epic, and items the user brings into
-the run: claim them, write the user's preflight answers into them, launch and
-stop workers, send the coordinator's message kinds, close a sub-epic once all
-its children are closed. Each merge still needs the user's answer for that PR
-(§ 7).
+the run: claim them, write the user's preflight answers into them, launch
+workers, stop and remove a worker's session once § 7.3's landing checks pass, send the
+coordinator's message kinds, close a sub-epic once all its children are
+closed. Each merge still needs the user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a worker's question for the user, close the named epic without
-asking, or delete a session (`claude rm`) — the owner deletes finished ones.
+asking, or remove a session before its checks pass.
 
 ## The plan is just-in-time
 
@@ -68,9 +68,6 @@ nowhere else:
 - landing approvals given and the landing queue;
 - promises to parked workers ("UNBLOCKED when X lands");
 - a landing in progress, and its step;
-- finished workers, stopped and safe for the owner to delete — name, id,
-  whether their final message was confirmed, and for an abandoned one its
-  worktree path and any PR it left open;
 - the last commit main's post-landing step ran on.
 
 Anything only this conversation knows is lost at a resume and may be lost at
@@ -101,11 +98,9 @@ The tracker skill maps all three operations.
   `gh pr list --state open --json number,title,headRefName,body`. Also
   **merged PRs whose items are still open or whose worker still runs**: a
   landing cut off mid-way — finish it with § 7.3's brief, whose `pr-cleanup`
-  takes the already-merged route; the worker still gets `LANDED`.
-- **Workers**: `claude agents --json`, named `pickup-<item>`. A **live
-  worker** is one listed there and not on the finished list. Drop from the
-  finished list each one `claude agents --json --all` no longer shows: the
-  owner deleted it.
+  takes the already-merged route.
+- **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
+  is a **live worker**.
 
 An item in progress with no worker and no PR → ask the user whether it is
 another session's work or should be released.
@@ -210,7 +205,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
-| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then run § 7.3's final-message wait and act on its result as step 3 there does; the worker joins the finished list; tell the user it is safe to delete, naming any PR it left open |
+| `ABANDONED` | release its claim if still held, send `RELEASED <item>`; tell the user, naming any PR it left open |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a
@@ -239,47 +234,24 @@ version files and lockfiles conflict between any two PRs that both bump them.
    1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
       of at most ten minutes each.
    2. § Close the tickets.
-   3. `SendMessage` `LANDED #N` to `pickup-<item>`, then run the final-message
-      wait below. `confirmed` or `timed out` → `claude stop <id>`; `gone` →
-      nothing to stop; `blocked` → the worker is asking the user something:
-      leave it running and return that. Never `claude rm`.
-   4. § Worktree, branches, main, by the "an earlier session created it"
-      route. The worktree already gone is the owner having deleted the
-      finished session (`claude rm` deletes its worktree), not
-      `pr-cleanup`'s no-worktree deviation: skip to the branches and main.
-   5. Return `merged` with the wait's result, `CI_FAILED <checks>`, or the
-      deviation `pr-cleanup` stopped on.
+   3. § Worktree, branches, main's three landing checks on the worker's
+      worktree. Any one fails → stop and return it; never remove the
+      session.
+   4. Remove the session: `claude stop <id>`, then `claude rm <id>`, which
+      deletes its worktree too.
+   5. From the main checkout, § Worktree, branches, main's closing block:
+      delete the local branch, `git fetch --prune`, fast-forward `<main>`,
+      report a remote branch left behind.
+   6. Return `merged`, `CI_FAILED <checks>`, the landing check that failed,
+      or the deviation `pr-cleanup` stopped on.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
-   the PR goes to the back of the queue.
+   the PR goes to the back of the queue. A failed landing check → ask the
+   user; the session stays.
 
-   **The final-message wait.** A worker's `state` reads `done` once its last
-   turn ended finished, and `working` while it waits after `READY_TO_LAND`.
-   Write this to `${TMPDIR:-/tmp}/final-wait-<id>.sh` and run `bash <path>`
-   in the foreground:
-
-   ```bash
-   ID=<id>; changed=0; end=$((SECONDS+180))
-   while [ "$SECONDS" -lt "$end" ]; do
-     json=$(claude agents --json) || { sleep 5; continue; }
-     s=$(jq -r --arg id "$ID" '.[] | select(.id==$id) | "\(.status) \(.state)"' <<< "$json")
-     case "$s" in
-       "") echo gone; exit ;;
-       *" blocked") echo blocked; exit ;;
-       "idle done") [ "$changed" = 1 ] && { echo confirmed; exit; } ;;
-       *) changed=1 ;;
-     esac
-     sleep 5
-   done
-   echo "timed out"
-   ```
-
-   It prints exactly one line; no output means it was killed, and counts as
-   `timed out`. `idle done` before any other reading is the state from
-   before `LANDED`, so it confirms nothing.
-4. **Update the run state** — the worker joins the finished list — and tell
-   the user in one line that `pickup-<item>` is safe to delete (on
-   `timed out`: to read its last message first). Then § 1.
+   A landing cut off after step 4 resumes at step 5: the session gone from
+   `claude agents --json --all` and its worktree gone means `claude rm` ran.
+4. **Update the run state**, then § 1.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
@@ -290,9 +262,8 @@ build's.
 When every item under the epic is closed: close each sub-epic whose children
 are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
-why (held, outside blocker, abandoned) · items filed during the run ·
-finished sessions safe to delete, name and id from the run state, flagging
-any whose final message timed out. Then clear the coordinator field.
+why (held, outside blocker, abandoned) · items filed during the run. Then
+clear the coordinator field.
 
 ## Resume
 

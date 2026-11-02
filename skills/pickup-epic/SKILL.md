@@ -295,7 +295,9 @@ workers that load only their item, handoff and branch. Never resume old
 workers with `claude --resume`.
 
 Triggered by the user saying "hibernate" in this session, or
-`/pickup-epic <epic> hibernate`. A wind-down, not an immediate stop:
+`/pickup-epic <epic> hibernate` here. Only the coordinator hibernates: the
+command anywhere else would make a second coordinator (§ Deviations). A
+wind-down, not an immediate stop:
 
 1. Launch nothing new. Wait for a landing in progress to finish, and for
    each shared-resource grant a project extension made (a GPU grant runs to

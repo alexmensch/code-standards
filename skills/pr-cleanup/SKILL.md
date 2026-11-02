@@ -242,15 +242,16 @@ the route is who OWNS the worktree, not whether the session is pinned.**
   the branch is not an ancestor and the tool reads it as unmerged work. That
   refusal is the last thing between the merge and `discard_changes: true`
   deleting work permanently, so override it only when all three of these
-  landing checks pass — each fails on what the squash would not carry:
+  landing checks pass — each fails on what the squash would not carry, and
+  they pass only when together they print nothing:
 
   ```bash
-  git fetch origin
-  git -C <wt> status --porcelain                          # empty: nothing uncommitted
+  git fetch -q origin
+  git -C <wt> status --porcelain
   [ "$(git -C <wt> rev-parse HEAD)" = "$(gh pr view <N> --json headRefOid -q .headRefOid)" ] \
-    && echo "head matches"                                # nothing committed after the merged head
+    || echo "commits after the merged head"
   git merge-base --is-ancestor "$(gh pr view <N> --json mergeCommit -q .mergeCommit.oid)" \
-    origin/<main> && echo "squash on <main>"
+    origin/<main> || echo "squash not on <main>"
   ```
 
   Never substitute `git cat-file -e origin/<main>:<path>`: `-e` asks only

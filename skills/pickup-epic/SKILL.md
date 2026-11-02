@@ -224,7 +224,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
       nothing to stop; `blocked` → the worker is asking the user something:
       leave it running and return that. Never `claude rm`.
    4. § Worktree, branches, main, by the "an earlier session created it"
-      route.
+      route. The worktree already gone is the owner having deleted the
+      finished session (`claude rm` deletes its worktree), not
+      `pr-cleanup`'s no-worktree deviation: skip to the branches and main.
    5. Return `merged` with the wait's result, `CI_FAILED <checks>`, or the
       deviation `pr-cleanup` stopped on.
 

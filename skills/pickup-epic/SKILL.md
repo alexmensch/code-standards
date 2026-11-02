@@ -297,8 +297,9 @@ workers with `claude --resume`.
 Triggered by the user saying "hibernate" in this session, or
 `/pickup-epic <epic> hibernate`. A wind-down, not an immediate stop:
 
-1. Launch nothing new. A landing in progress finishes. Project-extension
-   holds end first, the way the extension ends them.
+1. Launch nothing new. Wait for a landing in progress to finish, and for
+   each shared-resource grant a project extension made (a GPU grant runs to
+   its end) — never cut one short.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
    every live worker, with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.

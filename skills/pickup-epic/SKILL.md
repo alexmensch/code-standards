@@ -69,8 +69,9 @@ nowhere else:
 - landing approvals given and the landing queue;
 - promises to parked workers ("UNBLOCKED when X lands");
 - a landing in progress, and its step;
-- finished workers, stopped and safe for the owner to delete — name, id, and
-  whether their final message was confirmed;
+- finished workers, stopped and safe for the owner to delete — name, id,
+  whether their final message was confirmed, and for an abandoned one its
+  worktree path and any PR it left open;
 - the last commit main's post-landing step ran on.
 
 Anything only this conversation knows is lost at a resume and may be lost at
@@ -191,7 +192,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
-| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then run § 7.3's final-message wait and act on its result as step 3 there does; the worker joins the finished list |
+| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then run § 7.3's final-message wait and act on its result as step 3 there does; the worker joins the finished list; tell the user it is safe to delete, naming any PR it left open |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a

@@ -299,7 +299,8 @@ Triggered by the user saying "hibernate" in this session, or
 
 1. Launch nothing new. A landing in progress finishes. Project-extension
    holds end first, the way the extension ends them.
-2. § Hand-off for every live worker, with `HIBERNATE <item>`. Each reaches
+2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
+   every live worker, with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    A worker recorded "waiting on the user", or `blocked` in `claude agents
    --json`, acts on no message until its question is answered or dismissed:

@@ -301,6 +301,9 @@ Triggered by the user saying "hibernate" in this session, or
    holds end first, the way the extension ends them.
 2. § Hand-off for every live worker, with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
+   A worker recorded "waiting on the user", or `blocked` in `claude agents
+   --json`, acts on no message until its question is answered or dismissed:
+   tell the user which ones.
 3. Once every worker is removed: mark the run state `HIBERNATED`, clear the
    coordinator field, and end with a final message that this coordinator
    session is finished and safe to delete.

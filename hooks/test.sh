@@ -226,4 +226,8 @@ check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
+# The skill loader replaces $ARGUMENTS and $<digit> in a SKILL.md body with the invocation's arguments.
+substituted="$(grep -nE '\$([0-9]|ARGUMENTS)' "$HERE"/../skills/*/SKILL.md)"
+check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

@@ -77,10 +77,14 @@ a compaction. Write it here first.
 
 This session's name — the one workers and every other session message — lives in its own field on the named epic, never in
 the run state, so there is one copy to keep current. Set it at kickoff and on
-resume; clear it at § 8 and whenever the run is stopped. A session outside
-the run finds a live coordinator by listing epics with the field set and
-confirming the name in `ListAgents`; a name no live session carries means no
-coordinator. The tracker skill maps all three operations.
+resume; clear it at § 8, and when the user tells this session to stop or
+abandon the run, before the final message.
+
+A coordinator killed mid-run cannot clear it, so the field may outlive its
+session: a reader never trusts it alone. A session outside the run finds a
+live coordinator by listing epics with the field set and confirming the name
+in `ListAgents`; a name no live session carries means no coordinator. The
+tracker skill maps all three operations.
 
 ## 1. Read the state
 

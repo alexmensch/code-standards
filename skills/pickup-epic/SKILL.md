@@ -326,9 +326,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
    3. Remove the session: § Removing a worker's session, copied into the
       brief, with § Worktree, branches, main's three landing checks as its
       gate. A failed check → stop and return it.
-   4. From the main checkout, § Worktree, branches, main's closing block:
-      delete the local branch, `git fetch --prune`, fast-forward `<main>`,
-      report a remote branch left behind.
+   4. From the main checkout: `git fetch --prune`, `git pull --ff-only` on
+      `<main>`, and `gh repo view --json deleteBranchOnMerge -q
+      .deleteBranchOnMerge` — `false` → report the remote branch left
+      behind. `claude rm` already deleted the local branch.
    5. Return `merged`, `CI_FAILED <checks>`, the check that failed, or the
       deviation `pr-cleanup` stopped on.
 
@@ -343,9 +344,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    the PR goes to the back of the queue. A failed removal check → ask the
    user; the session stays stopped.
 
-   One of the user's own items: skip step 3, and step 4's branch
-   deletion. Landing never stops or removes the user's session, its worktree
-   or its branch.
+   One of the user's own items: skip step 3. Landing never stops or removes
+   the user's session, its worktree or its branch.
 
    A landing cut off resumes at step 4 when the session is gone from
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;

@@ -73,8 +73,9 @@ nowhere else:
 Anything only this conversation knows is lost at a resume and may be lost at
 a compaction. Write it here first.
 
-**The coordinator field.** This session's name — the one workers and every
-other session message — lives in its own field on the named epic, never in
+## The coordinator field
+
+This session's name — the one workers and every other session message — lives in its own field on the named epic, never in
 the run state, so there is one copy to keep current. Set it at kickoff and on
 resume; clear it at § 8 and whenever the run is stopped. A session outside
 the run finds a live coordinator by listing epics with the field set and

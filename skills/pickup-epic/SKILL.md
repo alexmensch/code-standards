@@ -150,7 +150,8 @@ it**: the worker treats notes as written down and does not re-ask.
 ## Lanes
 
 One command, run from the main checkout, prints every file two open lanes
-share — open PRs and worktrees before their PR:
+share — open PRs, worktrees before their PR, and hibernated items' pushed
+branches, listed from the run state:
 
 ```bash
 git fetch -q origin; t=$(mktemp)
@@ -159,6 +160,8 @@ for pr in $(gh pr list --state open --json number -q '.[].number'); do
 for wt in $(git worktree list --porcelain | awk '/^worktree /{print $2}' | tail -n +2); do
   { git -C "$wt" diff --name-only origin/<main>...; git -C "$wt" status --porcelain | awk '{print $2}'; } \
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
+for b in <each hibernated item's branch>; do
+  git diff --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
 awk '{n[$2]++; who[$2]=who[$2]" "$1} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 

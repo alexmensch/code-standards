@@ -89,7 +89,7 @@ The tracker skill maps all three operations.
 
 ## 1. Read the state
 
-- **The run state**, first.
+- **The run state**, first, then **the coordinator field**.
 - **The tree** under the epic, at every depth: status, type, parent and open
   blockers, from the tracker's list view. Parentage comes from the tracker's
   parent field, never from the shape of an ID. Epics are containers and never

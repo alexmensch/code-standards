@@ -190,7 +190,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
-| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then wait and stop as § 7.3's brief does after `LANDED`; the worker joins the finished list |
+| `ABANDONED` | release its claim if still held, send `RELEASED <item>`, then run § 7.3's final-message wait and act on its result as step 3 there does; the worker joins the finished list |
 | Idle notice with no report | ask the user to look at that worker |
 
 Report to the user only what changes what they do next: a question, a
@@ -219,17 +219,42 @@ version files and lockfiles conflict between any two PRs that both bump them.
    1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
       of at most ten minutes each.
    2. § Close the tickets.
-   3. `SendMessage` `LANDED #N` to `pickup-<item>`; poll that id's `status`
-      in `claude agents --json` every 5 s until it has read `busy` and then
-      `idle`, for at most 3 minutes; then `claude stop <id>` — never
-      `claude rm`.
+   3. `SendMessage` `LANDED #N` to `pickup-<item>`, then run the final-message
+      wait below. `confirmed` or `timed out` → `claude stop <id>`; `gone` →
+      nothing to stop; `blocked` → the worker is asking the user something:
+      leave it running and return that. Never `claude rm`.
    4. § Worktree, branches, main, by the "an earlier session created it"
       route.
-   5. Return `merged` with `final message confirmed` or `timed out`,
-      `CI_FAILED <checks>`, or the deviation `pr-cleanup` stopped on.
+   5. Return `merged` with the wait's result, `CI_FAILED <checks>`, or the
+      deviation `pr-cleanup` stopped on.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue.
+
+   **The final-message wait.** A worker's `state` reads `done` once its last
+   turn ended finished, and `working` while it waits after `READY_TO_LAND`.
+   Write this to `${TMPDIR:-/tmp}/final-wait-<id>.sh` and run `bash <path>`
+   in the foreground:
+
+   ```bash
+   ID=<id>; changed=0; end=$((SECONDS+180))
+   while [ "$SECONDS" -lt "$end" ]; do
+     json=$(claude agents --json) || { sleep 5; continue; }
+     s=$(jq -r --arg id "$ID" '.[] | select(.id==$id) | "\(.status) \(.state)"' <<< "$json")
+     case "$s" in
+       "") echo gone; exit ;;
+       *" blocked") echo blocked; exit ;;
+       "idle done") [ "$changed" = 1 ] && { echo confirmed; exit; } ;;
+       *) changed=1 ;;
+     esac
+     sleep 5
+   done
+   echo "timed out"
+   ```
+
+   It prints exactly one line; no output means it was killed, and counts as
+   `timed out`. `idle done` before any other reading is the state from
+   before `LANDED`, so it confirms nothing.
 4. **Update the run state** — the worker joins the finished list — and tell
    the user in one line that `pickup-<item>` is safe to delete (on
    `timed out`: to read its last message first). Then § 1.

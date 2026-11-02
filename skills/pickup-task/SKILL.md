@@ -234,6 +234,12 @@ item from what this leaves behind.
 A launch prompt ending `— resume from handoff`: the item was preflighted and
 claimed at its first launch, so skip § 1–2.
 
+**A named exception to the always-on rule against committing to a branch
+another session created**: a resume launch may commit and push to the
+handoff's branch, and to no other — the coordinator removed the session
+that created it only after `pickup-epic` § Hand-off's check passed. Never
+`main` or `master`.
+
 1. Read the item and its latest handoff.
 2. Enter a worktree as usual. `branch: none` → work on the branch it was
    created on. Otherwise put it on the handoff's branch — the PR, if any,

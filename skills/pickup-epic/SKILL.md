@@ -279,8 +279,11 @@ session. A later worker starts fresh from that record (§ 5).
      && echo "pushed"                               # no output: origin lacks the local head
    ```
 
-   No `pushed`, or no handoff naming the branch, fails it. The branch stays
-   on origin.
+   No `pushed`, or no handoff naming the branch, fails it. A handoff with
+   `branch: none` has `git -C "$wt" rev-list --count origin/<main>..HEAD`
+   printing `0` as its gate instead. The branch stays on origin; for a
+   released item, report it to the user — deleting a remote branch is
+   theirs.
 3. **Run state**: a hibernated or parked item joins the hibernated list, with
    `resume` or `<X> lands` as what relaunches it. A released item does not:
    release its claim now, never earlier — a replan before the old session is

@@ -208,15 +208,15 @@ item from what this leaves behind.
 
 1. **Reach the next commit boundary**: finish the commit-sized chunk in
    progress, or the review or triage step this session is in. Commit
-   normally — never a WIP commit — and push, even a branch with no commits
-   of its own, so origin holds it.
+   normally — never a WIP commit — and push. A branch with no commits of its
+   own is not pushed; its handoff says `branch: none`.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
    The latest one is the item's handoff; a resumed session's own supersedes
    it:
 
    ```
    HANDOFF
-   branch: <branch>
+   branch: <branch> | none
    PR: #<N> | none
    phase: implementing | in review | triaging | awaiting owner answer | ready to land | parked on <X> | released
    done: <what is committed and pushed>
@@ -235,8 +235,9 @@ A launch prompt ending `— resume from handoff`: the item was preflighted and
 claimed at its first launch, so skip § 1–2.
 
 1. Read the item and its latest handoff.
-2. Enter a worktree as usual, then put it on the handoff's branch — the PR,
-   if any, stays on it:
+2. Enter a worktree as usual. `branch: none` → work on the branch it was
+   created on. Otherwise put it on the handoff's branch — the PR, if any,
+   stays on it:
 
    ```bash
    git fetch origin && git switch <branch>

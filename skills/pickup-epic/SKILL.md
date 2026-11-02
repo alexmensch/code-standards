@@ -240,27 +240,29 @@ Stop, check, remove — in that order, so nothing of the worker can still be
 changing the worktree once it is checked. From the main checkout, with the
 worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
-1. `claude stop <id>`.
-2. **Check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`, append the
-   gate's own check — § 7.3's landing checks or § Hand-off's pushed check —
-   and run `bash <path>`:
+1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
+   append the gate's own check — § 7.3's landing checks or § Hand-off's
+   pushed check — and run `bash <path>`:
 
    ```bash
-   id=<id>; wt=<worktree>; end=$((SECONDS+60))
-   while p=$(claude agents --json --all | jq -r --arg id "$id" '.[] | select(.id==$id) | .pid // empty')
-         [ -n "$p" ] && [ "$SECONDS" -lt "$end" ]; do sleep 2; done
-   out=$( { [ -n "$p" ] && echo "session process $p still running"
+   id=<id>; wt=<worktree>
+   pid=$(claude agents --json | jq -r --arg id "$id" '.[] | select(.id==$id) | .pid // empty')
+   claude stop "$id"; end=$((SECONDS+60))
+   while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
+   out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"
             git -C "$wt" status --porcelain
             lsof +D "$wt" 2>/dev/null; } )
    [ -z "$out" ] || { echo "$out"; exit 1; }
    ```
 
+   The pid is read before the stop because `claude agents` reports it null
+   as soon as the stop is accepted, while the process is still exiting.
    Exit 0 and empty output: the session's process has exited, nothing is
    uncommitted, and no background shell, task, subagent or other process has
    its working directory or a file open under the worktree. Any output →
    stop and ask; the session stays stopped and is never removed. `lsof`
    exits 1 whether or not it finds anything, so its output decides.
-3. `claude rm <id>`. It deletes the worktree, git's record of it and the
+2. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 
 ## Hand-off — hibernate, park and release

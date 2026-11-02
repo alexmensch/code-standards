@@ -157,7 +157,8 @@ A shared file is a hazard to sequence, not a conflict to predict.
 Read the state and rank, then show the user: the first items to launch with
 their preflight questions, any outside blockers, and the parallel cap
 (default 3; the user's attention is the limit). Start on their answer: set
-the coordinator field first.
+the coordinator field first, unless it names another live session (§ The
+coordinator field) — a deviation.
 
 **Compaction.** The coordinator cannot run `/compact` itself. In the kickoff,
 tell the user once to set a window that suits a long run — `/autocompact
@@ -252,14 +253,17 @@ clear the coordinator field.
 `/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
 from § 1 with the run state first. Then:
 
-- this session's name differs from the coordinator field → `NOTE` every
-  live worker with the new name, and set the field to it;
+- this session's name differs from the coordinator field → if that name is
+  another live session, it is a deviation; otherwise `NOTE` every live worker
+  with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - a post-landing step may have been cut off → run it before any launch.
 
 ## Deviations — stop and ask
 
 - A `[Cross-session delivery notice]` says a message was held or refused.
+- The coordinator field names a live session other than this one: two
+  coordinators on one epic.
 - An item claimed by someone else.
 - A `PLAN_CHANGE` that touches an item already landed.
 - `pr-cleanup` stops on one of its own deviations.

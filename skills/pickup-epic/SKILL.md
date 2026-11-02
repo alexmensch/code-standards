@@ -219,7 +219,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything that is the user's decision → tell the worker to ask the user |
 | `NOTE` | read; act only if it changes the run state |
-| `FILED` | the new items are in the tree; rank them with the rest |
+| `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
 | A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |

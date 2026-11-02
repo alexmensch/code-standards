@@ -307,7 +307,9 @@ wind-down, not an immediate stop:
    its next commit boundary before replying, so replies arrive over minutes.
    A worker recorded "waiting on the user", or `blocked` in `claude agents
    --json`, acts on no message until its question is answered or dismissed:
-   tell the user which ones.
+   tell the user which ones. The user's own items stay listed in the run
+   state as they are; hibernate never messages, stops or removes the user's
+   session.
 3. Once every worker is removed: mark the run state `HIBERNATED`, clear the
    coordinator field, and end with a final message that this coordinator
    session is finished and safe to delete.

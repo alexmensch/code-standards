@@ -29,7 +29,7 @@ bd project:
 | Record a dependency | `bd dep add <blocked> <blocker>`, then verify ([order](#dependencies--argument-order-is-the-trap)) |
 | Claim · release | `bd update <id> --claim` · `bd update <id> -s open -a ""` |
 | Append a decision or finding | `bd note <id> "text"` |
-| Write · read an item's handoff | `bd note <id> "HANDOFF …"` · `bd show <id>`, the last note starting `HANDOFF` |
+| Write · read an item's handoff | `bd note <id> --stdin` with the multi-line note on stdin · `bd show <id>`, the last note starting `HANDOFF` |
 | File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
 | Close | `bd close <id> -r "Shipped in PR #N"` |
 | Replace · read the epic's run state | `bd update <epic> --set-metadata "run_state=<text>"` · `bd show <epic> --json \| jq -r '.[0].metadata.run_state'` |

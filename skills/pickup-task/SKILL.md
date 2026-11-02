@@ -148,11 +148,11 @@ PR is merged and its tickets closed.
 Every final message of this session ends with one line the owner acts on
 without asking anyone:
 
-- **`Session finished — safe to delete.`** followed by why: PR merged, item
-  closed (or released), nothing left in this session. Only when all three
-  hold.
-- **`Not yet safe to delete —`** followed by what is pending: PR #N open
-  awaiting merge, a question awaiting an answer, a smoke owed.
+- **`Not yet safe to delete —`** followed by what is pending, whenever this
+  session still has any of: its PR open awaiting merge, a question awaiting
+  an answer, a smoke owed, a claim it holds, unpushed commits.
+- **`Session finished — safe to delete.`** otherwise, followed by the
+  outcome: merged · released · refused at § 2 · ended without a PR.
 
 ## Coordinated mode — launched by `pickup-epic`
 

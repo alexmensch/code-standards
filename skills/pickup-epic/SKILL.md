@@ -246,7 +246,9 @@ worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
    ```bash
    id=<id>; wt=<worktree>
-   pid=$(claude agents --json | jq -r --arg id "$id" '.[] | select(.id==$id) | .pid // empty')
+   entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
+   [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
+   pid=$(jq -r '.pid // empty' <<< "$entry")
    claude stop "$id"; end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
    out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"

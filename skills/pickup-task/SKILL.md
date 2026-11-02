@@ -137,7 +137,8 @@ Any finding still unanswered after Asking about a finding first, each in full ·
 · fixed findings, number → commit · anything deferred and where it was filed
 · **manual smoke owed**: the exact steps from the PR body, or `none` and why.
 Merging stays the requester's call, and never before a smoke that is owed.
-Ends with the closing line: not yet deletable while the PR is open.
+Ends with § Closing line: not yet deletable while the PR is open — a line
+that goes stale once #N merges elsewhere.
 
 When the requester lands the PR with `pr-cleanup` in this session, that
 turn's final message ends with the closing line too, now deletable once the

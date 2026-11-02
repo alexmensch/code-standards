@@ -42,7 +42,8 @@ user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a worker's question for the user, close the named epic without
-asking, or remove a session before its checks pass.
+asking, remove a session before its checks pass, or stop or remove the
+user's own session, its worktree or its branch.
 
 ## The plan is just-in-time
 
@@ -65,6 +66,10 @@ that changes it — the tracker skill maps the operation. It holds what exists
 nowhere else:
 
 - items in the run from outside the tree, and why;
+- the user's own items: worked interactively in the user's own session,
+  each with that session's worktree. Brought into the run and claimed, held
+  and given shared resources like any item, never launched; their PRs land
+  through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
@@ -105,8 +110,8 @@ The tracker skill maps all three operations.
 - **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
   is a **live worker**.
 
-An item in progress with no worker, no PR and no place on the hibernated list
-→ ask the user whether it is another session's work or should be released.
+An item in progress with no worker, no PR and no place on the hibernated or
+the user's-own list → ask the user whether it is another session's work or should be released.
 
 ## 2. Rank
 
@@ -282,7 +287,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    owed.
 2. **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
-   `SYNC #N` to its worker; wait for `SYNCED #N`.
+   `SYNC #N` to its worker; wait for `SYNCED #N`. For one of the user's own
+   items, tell the user it is behind instead.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents
@@ -305,6 +311,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue. A failed landing check → ask the
    user; the session stays.
+
+   One of the user's own items: skip steps 3 and 4, and step 5's branch
+   deletion. Landing never stops or removes the user's session, its worktree
+   or its branch.
 
    A landing cut off after step 4 resumes at step 5: the session gone from
    `claude agents --json --all` and its worktree gone means `claude rm` ran.

@@ -214,17 +214,22 @@ version files and lockfiles conflict between any two PRs that both bump them.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents
-   --json`) owns the worktree. Once the tickets are closed and before the
-   worktree step: `SendMessage` `LANDED #N` to `pickup-<item>`; poll that
-   id's `status` in `claude agents --json` every 5 s until it has read
-   `busy` and then `idle`, for at most 3 minutes; then `claude stop <id>` —
-   never `claude rm`. Then take the "an earlier session created it" route;
-   skip the project extension's post-landing step (the coordinator runs it
-   before the next launch); wait for the merge in foreground calls of at
-   most ten minutes each; return `merged` with `final message confirmed` or
-   `timed out`, `CI_FAILED <checks>`, or the deviation `pr-cleanup` stopped
-   on. A failed or cancelled check → `CI_FAILED #N <checks>` to the worker,
-   and the PR goes to the back of the queue.
+   --json`) owns the worktree; skip the project extension's post-landing
+   step (the coordinator runs it before the next launch). In order:
+   1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
+      of at most ten minutes each.
+   2. § Close the tickets.
+   3. `SendMessage` `LANDED #N` to `pickup-<item>`; poll that id's `status`
+      in `claude agents --json` every 5 s until it has read `busy` and then
+      `idle`, for at most 3 minutes; then `claude stop <id>` — never
+      `claude rm`.
+   4. § Worktree, branches, main, by the "an earlier session created it"
+      route.
+   5. Return `merged` with `final message confirmed` or `timed out`,
+      `CI_FAILED <checks>`, or the deviation `pr-cleanup` stopped on.
+
+   A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
+   the PR goes to the back of the queue.
 4. **Update the run state** — the worker joins the finished list — and tell
    the user in one line that `pickup-<item>` is safe to delete (on
    `timed out`: to read its last message first). Then § 1.

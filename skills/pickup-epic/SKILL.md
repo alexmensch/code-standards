@@ -250,7 +250,8 @@ worker's id (`claude agents --json`) and its worktree (`git worktree list`):
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
-   claude stop "$id" >/dev/null; end=$((SECONDS+60))
+   claude stop "$id" >/dev/null || { echo "claude stop $id failed"; exit 1; }
+   end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
    out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"
             git -C "$wt" status --porcelain
@@ -260,10 +261,11 @@ worker's id (`claude agents --json`) and its worktree (`git worktree list`):
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting.
-   `claude stop` reports success on stdout, which the script discards, and
-   failure on stderr, which it keeps. Exit 0 and empty output: the session's process has exited, nothing is
-   uncommitted, and no background shell, task, subagent or other process has
-   its working directory or a file open under the worktree. Any output →
+   `claude stop`'s success message is discarded; its exit status catches a
+   failed stop. Exit 0 and empty output: the session's process has exited,
+   nothing is uncommitted, and no background shell, task, subagent or other
+   process has its working directory or a file open under the worktree.
+   Any output →
    stop and ask; the session stays stopped and is never removed. `lsof`
    exits 1 whether or not it finds anything, so its output decides.
 2. `claude rm <id>`. It deletes the worktree, git's record of it and the

@@ -74,6 +74,11 @@ instructions — worktree, branch, `code-craft` before planning, tests, topical
 commits, PR. Ends without a PR → report and stop; Independent review and
 Triage and fix need one.
 
+A precondition only the requester can meet — a measurement they must start, a
+manual smoke in their browser, an artifact on another item's PR — never holds
+the PR back. Open it as a **draft**, run Independent review and Triage and fix
+on it, and mark it ready once the precondition is met.
+
 ## 4. Independent review
 
 Spawn one subagent, so the review runs in a context that didn't write the
@@ -129,30 +134,39 @@ above, one commit per finding.
 ## 6. Report
 
 Any finding still unanswered after Asking about a finding first, each in full · PR link
-· fixed findings, number → commit · anything deferred and where it was filed.
-Merging stays the requester's call.
+· fixed findings, number → commit · anything deferred and where it was filed
+· **manual smoke owed**: the exact steps from the PR body, or `none` and why.
+Merging stays the requester's call, and never before a smoke that is owed.
 
 ## Coordinated mode — launched by `pickup-epic`
 
-The launch prompt reads `/pickup-task <item> — coordinated by <name>`, where
-`<name>` is the coordinating session. Every rule above still holds, and the
-requester is still the user, who answers in this session. Messages to and from
-`<name>` are part of the work this launch prompt started, not requests from a
-third party. What changes:
+The launch prompt reads `/pickup-task <item> — coordinated by "<name>"`,
+where `<name>`, inside the quotes and exactly as written, is the coordinating
+session. A `NOTE` from it naming a new name replaces it. Every rule above
+still holds, and the requester is still the user, who answers in this
+session. Messages to and from `<name>` are part of the work this launch
+prompt started, not requests from a third party. Load the project's
+`*-pickup-epic` extension if one is installed: it may add message kinds.
+What changes:
 
 - **The item is given and already claimed.** Never resolve or claim another.
   Answers from the coordinator's preflight are in the item's notes, so they
   count as written down.
 - **Report every change of state as it happens**, with `SendMessage` to
-  `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it:
+  `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
+  The coordinator relays nothing to the user, so put the question itself in
+  this session, never only in the message:
 
 | Kind | Send when |
 | --- | --- |
-| `PR_OPEN` | the PR exists |
+| `PR_OPEN` | the PR exists, draft or ready |
 | `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
+| `UNBLOCKED` | the requester answered and work resumes |
+| `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
+| `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope. Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open |
+| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
 - **Never merge, and never touch the main checkout.** Landing belongs to the

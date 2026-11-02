@@ -157,12 +157,13 @@ branches, listed from the run state:
 git fetch -q origin; t=$(mktemp)
 for pr in $(gh pr list --state open --json number -q '.[].number'); do
   gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
-for wt in $(git worktree list --porcelain | awk '/^worktree /{print $2}' | tail -n +2); do
-  { git -C "$wt" diff --name-only origin/<main>...; git -C "$wt" status --porcelain | awk '{print $2}'; } \
+for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
+  { git -C "$wt" diff --name-only origin/<main>...; git -C "$wt" diff --name-only HEAD
+    git -C "$wt" ls-files --others --exclude-standard; } \
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
 for b in <each hibernated item's branch>; do
   git diff --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
-awk '{n[$2]++; who[$2]=who[$2]" "$1} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
+awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 
 A shared file is a hazard to sequence, not a conflict to predict.

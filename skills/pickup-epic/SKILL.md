@@ -1,6 +1,6 @@
 ---
 name: pickup-epic
-description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>", "/pickup-epic <epic> hibernate", "work through epic X", "run epic X in parallel", "hibernate". One item at a time is `pickup-task`.
+description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>" with or without free text, "work through epic X", "run epic X in parallel", and any plain-language request to wind the run down so it can resume later ("hibernate", "I'm stepping away", "pause for the night"). One item at a time is `pickup-task`.
 ---
 
 # Coordinate an epic
@@ -300,10 +300,13 @@ uncached. Hibernating removes every session instead; resume launches fresh
 workers that load only their item, handoff and branch. Never resume old
 workers with `claude --resume`.
 
-Triggered by the user saying "hibernate" in this session, or
-`/pickup-epic <epic> hibernate` here. Only the coordinator hibernates: the
-command anywhere else would make a second coordinator (§ Deviations). A
-wind-down, not an immediate stop:
+Triggered by any request from the user, in plain words, to wind the run
+down so it can resume later — stepping away, pausing for the night,
+"hibernate" — said in this session or written as free text after
+`/pickup-epic <epic>` here. The intent decides; there is no fixed syntax or
+argument order. Only the coordinator hibernates: the request anywhere else
+would make a second coordinator (§ Deviations). A wind-down, not an
+immediate stop:
 
 1. Launch nothing new. Wait for a landing in progress to finish, and for
    each shared-resource grant a project extension made (a GPU grant runs to
@@ -389,7 +392,8 @@ clear the coordinator field.
 ## Resume
 
 `/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
-from § 1 with the run state first. Then:
+from § 1 with the run state first — unless its free text asks to wind the
+run down, which is § Hibernate's trigger. Then:
 
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker

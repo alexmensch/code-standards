@@ -89,7 +89,10 @@ a compaction. Write it here first.
   **merged PRs whose items are still open or whose worker still runs**: a
   landing cut off mid-way — finish it with § 7.3's brief, whose `pr-cleanup`
   takes the already-merged route; the worker still gets `LANDED`.
-- **Workers**: `claude agents --json`, named `pickup-<item>`.
+- **Workers**: `claude agents --json`, named `pickup-<item>`. A **live
+  worker** is one listed there and not on the finished list. Drop from the
+  finished list each one `claude agents --json --all` no longer shows: the
+  owner deleted it.
 
 An item in progress with no worker and no PR → ask the user whether it is
 another session's work or should be released.

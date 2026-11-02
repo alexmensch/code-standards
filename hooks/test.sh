@@ -227,7 +227,8 @@ default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
 # The skill loader replaces $ARGUMENTS and $<digit> in a SKILL.md body with the invocation's arguments.
-substituted="$(grep -nE '\$([0-9]|ARGUMENTS)' "$HERE"/../skills/*/SKILL.md)"
+loader_substitutes='\$([0-9]+([^A-Za-z0-9_]|$)|ARGUMENTS)'
+substituted="$(grep -nE "$loader_substitutes" "$HERE"/../skills/*/SKILL.md)"
 check "no skill body holds text the skill loader substitutes" '[ -z "$substituted" ] || { echo "$substituted"; false; }'
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

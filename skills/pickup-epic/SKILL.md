@@ -351,8 +351,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
    coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
    then run nothing local — gates, builds, tests, worktree or session removal
    — until `RESUME`; a merge already armed on the host may complete; reply
-   with the step it stopped at. A project extension maps its own pauses onto
-   this.
+   with the step it stopped at. A message reaches the subagent only between
+   its tool calls, so `HOLD` takes effect up to one call late — one merge
+   wait of at most ten minutes. That wait polls the host and is not local
+   work. A project extension maps its own pauses onto this.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue. A failed removal check → ask the

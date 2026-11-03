@@ -82,9 +82,10 @@ on it, and mark it ready once the precondition is met.
 ## 4. Independent review
 
 Spawn one subagent, so the review runs in a context that didn't write the
-code, with this prompt:
+code, with this prompt, where `<sha>` is the PR's head (`gh pr view <N>
+--json headRefOid`) at spawn — the last reviewed head:
 
-> Load the `pr-review` skill and review PR <N>. You are the reviewer only:
+> Load the `pr-review` skill and review PR <N> at <sha>. You are the reviewer only:
 > change nothing, commit nothing, post nothing. Report under § Delegated
 > reviews' reporting clause.
 

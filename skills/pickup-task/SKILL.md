@@ -179,7 +179,7 @@ What changes:
 | --- | --- |
 | `PR_OPEN` | the PR exists, draft or ready |
 | `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
-| `UNBLOCKED` | the requester answered and work resumes |
+| `UNBLOCKED` | as part of recording the requester's answer (below) |
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
@@ -187,6 +187,9 @@ What changes:
 | `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
+- **Recording the requester's answer is one step**: write it into the
+  item's notes, then send `UNBLOCKED`, before acting on it. An answer
+  written without the message is not recorded.
 - **Never merge, and never touch the main checkout.** Landing belongs to the
   coordinator, one PR at a time.
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`

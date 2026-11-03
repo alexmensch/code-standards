@@ -353,7 +353,12 @@ version files and lockfiles conflict between any two PRs that both bump them.
    When the report's `SMOKE:` line lists steps, quote them and offer only "smoked,
    land it" and "not yet": never a plain "land it" while a manual smoke is
    owed.
-2. **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
+2. **Pre-merged PRs first.** For each PR M the run state lists as
+   pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
+   = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
+   behind M in the queue.
+
+   **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
    `SYNC #N` to its worker — `SYNC #N base <head>` when a PR pre-merged
    into it has landed since, with the final head of the one that landed
@@ -388,7 +393,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    work. A project extension maps its own pauses onto this.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
-   the PR goes to the back of the queue. A failed removal check → ask the
+   the PR goes to the back of the queue, and every lane holding a pre-merge
+   of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
 
    One of the user's own items: skip step 3. Landing never stops or removes
@@ -410,7 +416,9 @@ the commits the lane merged, so that lane's later `SYNC` names #N's final
 head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file.
 Record each one sent in the run state. At every § 1, compare each unlanded
 approved PR's `headRefOid` with the head recorded for it; a difference →
-send `PREMERGE #N <new head>` again, naming the commits in between. A hibernated lane has no worker: send nothing; it
+send `PREMERGE #N <new head>` again, naming the commits in between. If #N
+leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N` to each
+lane holding it and drop those entries on `UNMERGED #N`. A hibernated lane has no worker: send nothing; it
 syncs on relaunch.
 
 Run the project's post-landing step without a pipe on its output, or with

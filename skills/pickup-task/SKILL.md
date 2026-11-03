@@ -222,6 +222,10 @@ What changes:
   for a conflict no rule settles. A later `PREMERGE #M` with a new head →
   the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
   review scope.
+- **`UNMERGE #M`** → PR #M will not land. At the next commit boundary,
+  `git revert -m 1 <each merge commit of a #M head>` (`-m 1` keeps this
+  branch's side), run the gates, push, and reply `UNMERGED #M`. The revert
+  is sync work too.
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and

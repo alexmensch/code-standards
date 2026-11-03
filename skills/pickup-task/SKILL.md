@@ -214,13 +214,16 @@ What changes:
 
   ```bash
   git fetch origin
+  sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
   if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
-    git merge --ff-only "$(git commit-tree "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>")"
+    c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
+      && git merge --ff-only "$c"
   else echo "conflicts:"; echo "$t"; fi
   ```
 
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
-  merge` would raise the pre-merge's conflicts again.
+  merge` would raise the pre-merge's conflicts again. `commit-tree` fails (a
+  signing error) → `NEEDS_INPUT` with the error; never retry unsigned.
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head. At the next commit boundary, `git fetch origin
   pull/<M>/head` and merge `<sha>` into this branch under the same conflict

@@ -157,8 +157,8 @@ One command, run from the main checkout, over open PRs, worktrees and
 hibernated items' pushed branches, listed from the run state; a worktree or
 branch with an open PR is that PR's lane, its local changes included.
 With `n` empty it prints every file two lanes share; with `n=<N>` it prints
-each other lane that shares a file with PR N, and those files — § Pre-merge's
-recipients. Either prints nothing when nothing is shared.
+each other lane that shares a file with PR N, and those files — the lanes
+§ Pre-merge picks its recipients from. Either prints nothing when nothing is shared.
 
 ```bash
 n=<N, or nothing for every shared file>
@@ -432,10 +432,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other
-worker's lane that shares a file with it — § Lanes' command with `n=<N>`
-lists them — and lands after it —
-later in the landing queue or not yet in it, at any stage from implementing
-to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
+worker's lane that § Lanes' command with `n=<N>` lists and that lands after
+#N — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
 headRefOid`. Its worker merges that head in at its next commit boundary
 while #N's CI and merge wait run, so conflict resolution leaves the critical
 path. #N lands as a squash, which git does not see as the commits the lane

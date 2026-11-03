@@ -340,7 +340,11 @@ Every landing moves the default branch, and the next PR must sync onto it;
 version files and lockfiles conflict between any two PRs that both bump them.
 
 1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
-   then ready when its turn comes. Record it in the run state. When the
+   then ready when its turn comes. First check the review covers the PR
+   head: every commit `git log --first-parent --format=%h <REVIEWED
+   sha>..<the PR's headRefOid>` prints must be listed under the report's `REVIEWED:` line.
+   One unlisted → tell the worker to run `pickup-task` § 4 and § 5 again,
+   and ask nothing yet. Record the approval in the run state. When the
    report's `SMOKE:` line lists steps, quote them and offer only "smoked,
    land it" and "not yet": never a plain "land it" while a manual smoke is
    owed.

@@ -90,6 +90,12 @@ code, with this prompt:
 
 Keep the report verbatim; triage works from it, not from a retelling.
 
+**The review covers the head.** Before § 6, every commit after the last
+reviewed head must be a fix for one of that review's findings, a
+`CI_FAILED` fix, or a sync merge (`SYNC`, `PREMERGE`). Any other commit —
+new work, a resumed session's own commits included — gets § 4 and § 5
+again.
+
 ## 5. Triage and fix
 
 Invoking this skill approves fixing, in the PR, every finding that:
@@ -184,7 +190,7 @@ What changes:
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope. Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` |
+| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
 - **Recording the requester's answer is one step**: write it into the
@@ -229,6 +235,7 @@ item from what this leaves behind.
    branch: <branch> | none
    PR: #<N> | none
    phase: implementing | in review | triaging | awaiting owner answer | ready to land | parked on <X> | released
+   reviewed: <the last reviewed head> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
    question: <a question open to the requester, word for word> | none

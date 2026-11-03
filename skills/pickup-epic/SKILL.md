@@ -41,10 +41,8 @@ close a sub-epic once all its children are closed. Each merge still needs the
 user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
-answer a question a worker put to the user — even one a written rule seems
-to settle; the coordinator answers only what the run state answers (lanes,
-order, who owns what) — close the named epic without
-asking, remove a session before its checks pass, or stop or remove the
+answer a question a worker put to the user (§ 6 `QUESTION`), close the
+named epic without asking, remove a session before its checks pass, or stop or remove the
 user's own session, its worktree or its branch.
 
 ## The plan is just-in-time

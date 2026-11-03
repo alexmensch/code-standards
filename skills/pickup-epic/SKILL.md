@@ -341,10 +341,17 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
    then ready when its turn comes. First check the review covers the PR
-   head: every commit `git log --first-parent --format=%h <REVIEWED
-   sha>..<the PR's headRefOid>` prints must be listed under the report's `REVIEWED:` line.
-   One unlisted → tell the worker to run `pickup-task` § 4 and § 5 again,
-   and ask nothing yet. Record the approval in the run state. When the
+   head, from the main checkout after `git fetch origin pull/<N>/head`:
+
+   ```bash
+   r=<the REVIEWED sha>; h=<the PR's headRefOid>
+   git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
+   git log --first-parent --format=%H "$r..$h"
+   ```
+
+   An ancestor line, or a printed sha that no commit listed under
+   `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
+   § 5 again, and ask nothing yet. Record the approval in the run state. When the
    report's `SMOKE:` line lists steps, quote them and offer only "smoked,
    land it" and "not yet": never a plain "land it" while a manual smoke is
    owed.

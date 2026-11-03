@@ -357,7 +357,12 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    An ancestor line, or a printed sha that no commit listed under
    `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
-   § 5 again, and ask nothing yet. Record the approval in the run state.
+   § 5 again, and ask nothing yet.
+
+   **Recording the approval is one step**: write it into the run state,
+   then run § Pre-merge for that PR before anything else. An approval
+   recorded without its pre-merges is not recorded.
+
    When the report's `SMOKE:` line lists steps, quote them and offer only
    "smoked, land it" and "not yet": never a plain "land it" while a manual
    smoke is owed.

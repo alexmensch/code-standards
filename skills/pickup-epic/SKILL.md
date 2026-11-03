@@ -373,8 +373,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    § 5 again, and ask nothing yet.
 
    **Recording the approval is one step**: write it into the run state,
-   then run § Pre-merge for that PR before anything else. An approval
-   recorded without its pre-merges is not recorded.
+   then run § Pre-merge for that PR before anything else.
 
    When the report's `SMOKE:` line lists steps, quote them and offer only
    "smoked, land it" and "not yet": never a plain "land it" while a manual

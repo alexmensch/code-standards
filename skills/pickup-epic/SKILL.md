@@ -180,11 +180,7 @@ their preflight questions, any outside blockers, and the parallel cap
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
 
-**Compaction.** The coordinator cannot run `/compact` itself. In the kickoff,
-tell the user once to set a window that suits a long run — `/autocompact
-300k` in this session, or `--autocompact 300k` when launching it — since the
-default sits near the model's full context. The run state makes compaction
-safe at any moment. After a compaction summary, re-run § 1 before acting on
+**Compaction.** The run state makes compaction safe at any moment. After a compaction summary, re-run § 1 before acting on
 anything.
 
 ## 5. Launch

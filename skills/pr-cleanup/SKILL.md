@@ -115,7 +115,8 @@ other letter is a signature git cannot verify locally, and GitHub checks it
 on its side. An `N` comes from a plumbing rewrite (`git
 commit-tree` ignores `commit.gpgsign`) or from a `-c commit.gpgsign=false`
 carried over from somewhere that legitimately passes it, such as a test
-suite. Pass no signing flag on a branch that will be merged.
+suite. Never pass a flag that disables signing (`-c commit.gpgsign=false`,
+`--no-gpg-sign`) on a branch that will be merged.
 
 The fix below is a rebase, so it flattens merge commits and replays every
 commit, conflicts and all. A branch carrying a merge from `<main>` is a

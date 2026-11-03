@@ -253,6 +253,7 @@ item from what this leaves behind.
    PR: #<N> | none
    phase: implementing | in review | triaging | awaiting owner answer | ready to land | parked on <X> | released
    reviewed: <the last reviewed head> | none
+   premerged: <each #M and the head merged, from PREMERGE> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
    question: <a question open to the requester, word for word> | none

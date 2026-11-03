@@ -73,7 +73,7 @@ nowhere else:
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
-  the head sent;
+  the head sent — dropped when that item lands, or on `UNMERGED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, or `<X> lands`;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);

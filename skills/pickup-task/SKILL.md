@@ -178,8 +178,8 @@ What changes:
   count as written down.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
-  The coordinator relays nothing to the user, so put the question itself in
-  this session, never only in the message:
+  The coordinator tells the user only that this session needs them, so put
+  the question itself in this session, never only in the message:
 
 | Kind | Send when |
 | --- | --- |

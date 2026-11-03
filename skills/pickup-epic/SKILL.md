@@ -41,7 +41,9 @@ close a sub-epic once all its children are closed. Each merge still needs the
 user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
-answer a worker's question for the user, close the named epic without
+answer a question a worker put to the user — even one a written rule seems
+to settle; the coordinator answers only what the run state answers (lanes,
+order, who owns what) — close the named epic without
 asking, remove a session before its checks pass, or stop or remove the
 user's own session, its worktree or its branch.
 
@@ -220,7 +222,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `PR_OPEN` | lanes now use that PR's diff |
 | `NEEDS_INPUT` | nothing to the user — they read the worker's session. Record "waiting on the user"; hold launches that would overlap it |
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
-| `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything that is the user's decision → tell the worker to ask the user |
+| `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |

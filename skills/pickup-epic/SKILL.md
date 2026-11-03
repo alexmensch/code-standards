@@ -71,7 +71,9 @@ nowhere else:
   and given shared resources like any item, never launched; their PRs land
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
-- landing approvals given and the landing queue;
+- landing approvals given and the landing queue; each approved, unlanded
+  PR's entry lists its pre-merges sent (below), `no shared lanes`, or `no
+  wait ahead` (§ 7 Pre-merge);
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — dropped when that item lands, or on `UNMERGED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
@@ -442,8 +444,11 @@ merged, so that lane's later `SYNC` names #N's final head as its base
 - Skip a lane that already holds the head or shares no file, and skip it
   all when #N has no CI or merge wait ahead. Each approval costs up to
   (cap − 1) gate runs, again on each head move.
-- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
-  sha>` add the merge commit to that lane's `REVIEWED:` list.
+- Record each one sent in the run state — or, when none goes out, `no
+  shared lanes` or `no wait ahead` on #N's approval — and on `PREMERGED #N
+  <head> <merge sha>` add the merge commit to that lane's `REVIEWED:` list.
+- At every § 1, an unlanded approved PR whose entry lists none of those
+  is a missed step: run this procedure for it now.
 - At every § 1, compare each unlanded approved PR's `headRefOid` with the
   head recorded for it; a difference → send `PREMERGE #N <new head>` again,
   naming the commits in between.

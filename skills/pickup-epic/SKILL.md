@@ -355,9 +355,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
    An ancestor line, or a printed sha that no commit listed under
    `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
    § 5 again, and ask nothing yet. Record the approval in the run state.
-   When the report's `SMOKE:` line lists steps, quote them and offer only "smoked,
-   land it" and "not yet": never a plain "land it" while a manual smoke is
-   owed.
+   When the report's `SMOKE:` line lists steps, quote them and offer only
+   "smoked, land it" and "not yet": never a plain "land it" while a manual
+   smoke is owed.
 2. **Pre-merged PRs first.** For each PR M the run state lists as
    pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
    = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
@@ -411,24 +411,28 @@ version files and lockfiles conflict between any two PRs that both bump them.
 4. **Update the run state**, then § 1.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
-its head moves only by sync merges and `CI_FAILED` fixes. Every other worker's lane that shares a file with it (§ Lanes) and lands
-after it — later in the landing queue or not yet in it, at any stage from
-implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr
-view <N> --json headRefOid`. Its worker merges that head in at its next
-commit boundary while #N's CI and merge wait run, so conflict resolution
-leaves the critical path. #N lands as a squash, which git does not see as
-the commits the lane merged, so that lane's later `SYNC` names #N's final
-head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file, and skip it all
-when #N has no CI or merge wait ahead. Each approval costs up to (cap − 1)
-gate runs, again on each head move.
-Record each one sent in the run state, and on `PREMERGED #N <head> <merge
-sha>` add the merge commit to that lane's `REVIEWED:` list. At every § 1, compare each unlanded
-approved PR's `headRefOid` with the head recorded for it; a difference →
-send `PREMERGE #N <new head>` again, naming the commits in between. If #N
-leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N` to each
-lane holding it and drop those entries on `UNMERGED #N`. A hibernated lane has no worker: send nothing; § 5
-sends it on relaunch. For one of the user's own items, tell the user
-instead.
+its head moves only by sync merges and `CI_FAILED` fixes. Every other
+worker's lane that shares a file with it (§ Lanes) and lands after it —
+later in the landing queue or not yet in it, at any stage from implementing
+to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
+headRefOid`. Its worker merges that head in at its next commit boundary
+while #N's CI and merge wait run, so conflict resolution leaves the critical
+path. #N lands as a squash, which git does not see as the commits the lane
+merged, so that lane's later `SYNC` names #N's final head as its base
+(step 2), and the earlier resolution stands.
+
+- Skip a lane that already holds the head or shares no file, and skip it
+  all when #N has no CI or merge wait ahead. Each approval costs up to
+  (cap − 1) gate runs, again on each head move.
+- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
+  sha>` add the merge commit to that lane's `REVIEWED:` list.
+- At every § 1, compare each unlanded approved PR's `headRefOid` with the
+  head recorded for it; a difference → send `PREMERGE #N <new head>` again,
+  naming the commits in between.
+- If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
+  to each lane holding it, and drop those entries on `UNMERGED #N`.
+- A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
+  For one of the user's own items, tell the user instead.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

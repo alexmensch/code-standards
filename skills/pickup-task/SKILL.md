@@ -85,9 +85,9 @@ Spawn one subagent, so the review runs in a context that didn't write the
 code, with this prompt, where `<sha>` is the PR's head (`gh pr view <N>
 --json headRefOid`) at spawn — the last reviewed head:
 
-> Load the `pr-review` skill and review PR <N> at <sha>. You are the reviewer only:
-> change nothing, commit nothing, post nothing. Report under § Delegated
-> reviews' reporting clause.
+> Load the `pr-review` skill and review PR <N> at <sha>. You are the
+> reviewer only: change nothing, commit nothing, post nothing. Report under
+> § Delegated reviews' reporting clause.
 
 While the branch holds a pre-merged head (`PREMERGE`) whose PR has not
 landed, its changes are that PR's and the PR diff shows them as this one's.
@@ -236,8 +236,9 @@ What changes:
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
-  as above without sending `READY_TO_LAND` again. The coordinator lands the PR, then stops and
-  removes this session and its worktree; nothing is sent here first.
+  as above without sending `READY_TO_LAND` again. The coordinator lands the
+  PR, then stops and removes this session and its worktree; nothing is sent
+  here first.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.

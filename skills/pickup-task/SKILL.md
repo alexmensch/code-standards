@@ -89,6 +89,12 @@ code, with this prompt, where `<sha>` is the PR's head (`gh pr view <N>
 > change nothing, commit nothing, post nothing. Report under § Delegated
 > reviews' reporting clause.
 
+While the branch holds a pre-merged head (`PREMERGE`) whose PR has not
+landed, its changes are that PR's and the PR diff shows them as this one's.
+Append: "PR #M's head `<M sha>` is merged in and is not under review; this
+PR's own changes are `git diff <M sha>...<sha>`" — with several, name each
+PR and head, and tell the reviewer to leave their changes alone.
+
 Keep the report verbatim; triage works from it, not from a retelling.
 
 **The review covers the head.** Before § 6, every commit after the last

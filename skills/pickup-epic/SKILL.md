@@ -41,9 +41,9 @@ close a sub-epic once all its children are closed. Each merge still needs the
 user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
-answer a worker's question for the user, close the named epic without
-asking, remove a session before its checks pass, or stop or remove the
-user's own session, its worktree or its branch.
+answer a question a worker put to the user (§ 6 `QUESTION`), close the
+named epic without asking, remove a session before its checks pass, or stop
+or remove the user's own session, its worktree or its branch.
 
 ## The plan is just-in-time
 
@@ -72,6 +72,8 @@ nowhere else:
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
+- pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
+  the head sent — dropped when that item lands, or on `UNMERGED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, or `<X> lands`;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
@@ -166,7 +168,10 @@ for b in <each hibernated item's branch>; do
 awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 
-A shared file is a hazard to sequence, not a conflict to predict.
+A shared file is a hazard to sequence, not a conflict to predict. A lane
+the run state lists as holding an unlanded pre-merge shows that PR's files
+as its own: take its files from `git diff --no-renames --name-only <the
+pre-merged head>...origin/<its branch>` instead.
 
 ## 4. Kickoff
 
@@ -176,12 +181,8 @@ their preflight questions, any outside blockers, and the parallel cap
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
 
-**Compaction.** The coordinator cannot run `/compact` itself. In the kickoff,
-tell the user once to set a window that suits a long run — `/autocompact
-300k` in this session, or `--autocompact 300k` when launching it — since the
-default sits near the model's full context. The run state makes compaction
-safe at any moment. After a compaction summary, re-run § 1 before acting on
-anything.
+**Compaction.** The run state makes compaction safe at any moment. After a
+compaction summary, re-run § 1 before acting on anything.
 
 ## 5. Launch
 
@@ -196,7 +197,9 @@ claude --bg -n pickup-<item> --permission-mode <this session's mode> \
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
-prompt, and check only its lane, from its pushed branch.
+prompt, and check only its lane, from its pushed branch. Then send it
+`PREMERGE` for each approved, unlanded PR it shares a file with (§ 7
+Pre-merge).
 
 `ListAgents` prints this session's name; quote it exactly, since names
 contain spaces. A different permission mode holds every message between the
@@ -216,9 +219,9 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | Event | Coordinator |
 | --- | --- |
 | `PR_OPEN` | lanes now use that PR's diff |
-| `NEEDS_INPUT` | nothing to the user — they read the worker's session. Record "waiting on the user"; hold launches that would overlap it |
+| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it |
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
-| `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything that is the user's decision → tell the worker to ask the user |
+| `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
@@ -340,13 +343,31 @@ Every landing moves the default branch, and the next PR must sync onto it;
 version files and lockfiles conflict between any two PRs that both bump them.
 
 1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
-   then ready when its turn comes. Record it in the run state. When the
-   report's `SMOKE:` line lists steps, quote them and offer only "smoked,
-   land it" and "not yet": never a plain "land it" while a manual smoke is
-   owed.
-2. **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
+   then ready when its turn comes. First check the review covers the PR
+   head, from the main checkout after `git fetch origin pull/<N>/head`:
+
+   ```bash
+   r=<the REVIEWED sha>; h=<the PR's headRefOid>
+   git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
+   git log --first-parent --format=%H "$r..$h"
+   ```
+
+   An ancestor line, or a printed sha that no commit listed under
+   `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
+   § 5 again, and ask nothing yet. Record the approval in the run state.
+   When the report's `SMOKE:` line lists steps, quote them and offer only
+   "smoked, land it" and "not yet": never a plain "land it" while a manual
+   smoke is owed.
+2. **Pre-merged PRs first.** For each PR M the run state lists as
+   pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
+   = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
+   behind M in the queue.
+
+   **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
-   `SYNC #N` to its worker; wait for `SYNCED #N`. For one of the user's own
+   `SYNC #N` to its worker — `SYNC #N base <head>` when a PR pre-merged
+   into it has landed since, with the final head of the one that landed
+   last — and wait for `SYNCED #N`. For one of the user's own
    items, tell the user it is behind instead.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
@@ -377,7 +398,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    work. A project extension maps its own pauses onto this.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
-   the PR goes to the back of the queue. A failed removal check → ask the
+   the PR goes to the back of the queue, and every lane holding a pre-merge
+   of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
 
    One of the user's own items: skip step 3. Landing never stops or removes
@@ -387,6 +409,30 @@ version files and lockfiles conflict between any two PRs that both bump them.
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 3.
 4. **Update the run state**, then § 1.
+
+**Pre-merge.** Once the user approves a PR at step 1, its content is final;
+its head moves only by sync merges and `CI_FAILED` fixes. Every other
+worker's lane that shares a file with it (§ Lanes) and lands after it —
+later in the landing queue or not yet in it, at any stage from implementing
+to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
+headRefOid`. Its worker merges that head in at its next commit boundary
+while #N's CI and merge wait run, so conflict resolution leaves the critical
+path. #N lands as a squash, which git does not see as the commits the lane
+merged, so that lane's later `SYNC` names #N's final head as its base
+(step 2), and the earlier resolution stands.
+
+- Skip a lane that already holds the head or shares no file, and skip it
+  all when #N has no CI or merge wait ahead. Each approval costs up to
+  (cap − 1) gate runs, again on each head move.
+- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
+  sha>` add the merge commit to that lane's `REVIEWED:` list.
+- At every § 1, compare each unlanded approved PR's `headRefOid` with the
+  head recorded for it; a difference → send `PREMERGE #N <new head>` again,
+  naming the commits in between.
+- If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
+  to each lane holding it, and drop those entries on `UNMERGED #N`.
+- A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
+  For one of the user's own items, tell the user instead.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

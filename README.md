@@ -35,7 +35,9 @@ and it names the skill to load for the full pass.
 
 ## Developing
 
-- `bash hooks/test.sh` — the hooks' behavioural tests.
+- `bash hooks/test.sh` — the hooks' behavioural tests, then the skill
+  checks: the bundle's skills are found, no skill body holds text the skill
+  loader substitutes, and every code fence is closed.
 - `bash skills/pr-review/scripts/diff-shape.sh <base>` — run from inside any
   repo to check the bucketing.
 - Skills cross-reference each other and the fragment by section name. A

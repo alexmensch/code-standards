@@ -82,13 +82,26 @@ on it, and mark it ready once the precondition is met.
 ## 4. Independent review
 
 Spawn one subagent, so the review runs in a context that didn't write the
-code, with this prompt:
+code, with this prompt, where `<sha>` is the PR's head (`gh pr view <N>
+--json headRefOid`) at spawn — the last reviewed head:
 
-> Load the `pr-review` skill and review PR <N>. You are the reviewer only:
-> change nothing, commit nothing, post nothing. Report under § Delegated
-> reviews' reporting clause.
+> Load the `pr-review` skill and review PR <N> at <sha>. You are the
+> reviewer only: change nothing, commit nothing, post nothing. Report under
+> § Delegated reviews' reporting clause.
+
+While the branch holds a pre-merged head (`PREMERGE`) whose PR has not
+landed, its changes are that PR's and the PR diff shows them as this one's.
+Append: "PR #M's head `<M sha>` is merged in and is not under review; this
+PR's own changes are `git diff <M sha>...<sha>`" — with several, name each
+PR and head, and tell the reviewer to leave their changes alone.
 
 Keep the report verbatim; triage works from it, not from a retelling.
+
+**The review covers the head.** Before § 6, every commit after the last
+reviewed head must be a fix for one of that review's findings, a
+`CI_FAILED` fix, or a sync merge (`SYNC`, `PREMERGE`). Any other commit —
+new work, a resumed session's own commits included — gets § 4 and § 5
+again.
 
 ## 5. Triage and fix
 
@@ -172,31 +185,60 @@ What changes:
   count as written down.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
-  The coordinator relays nothing to the user, so put the question itself in
-  this session, never only in the message:
+  The coordinator tells the user only that this session needs them, so put
+  the question itself in this session, never only in the message:
 
 | Kind | Send when |
 | --- | --- |
 | `PR_OPEN` | the PR exists, draft or ready |
 | `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
-| `UNBLOCKED` | the requester answered and work resumes |
+| `UNBLOCKED` | as part of recording the requester's answer (below) |
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope. Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` |
+| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
+- **Recording the requester's answer is one step**: write it into the
+  item's notes, then send `UNBLOCKED`, before acting on it. An answer
+  written without the message is not recorded.
 - **Never merge, and never touch the main checkout.** Landing belongs to the
   coordinator, one PR at a time.
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
-  for a conflict no rule settles.
+  for a conflict no rule settles. **`SYNC #N base <sha>`** → build the merge
+  from that base instead, so conflicts already resolved by a pre-merge stay
+  resolved:
+
+  ```bash
+  git fetch origin
+  if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
+    git merge --ff-only "$(git commit-tree "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>")"
+  else echo "conflicts:"; echo "$t"; fi
+  ```
+
+  `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
+  merge` would raise the pre-merge's conflicts again.
+- **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
+  `<sha>` is its final head. At the next commit boundary, `git fetch origin
+  pull/<M>/head` and merge `<sha>` into this branch under the same conflict
+  rules; run the gates under the project extension's shared-resource rules;
+  push. Reply `PREMERGED #M <sha> <merge sha>`, or `NEEDS_INPUT`
+  for a conflict no rule settles. A later `PREMERGE #M` with a new head →
+  the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
+  review scope.
+- **`UNMERGE #M`** → PR #M will not land. At the next commit boundary,
+  `git revert -m 1 <each merge commit of a #M head>` (`-m 1` keeps this
+  branch's side), run the gates, push, and reply `UNMERGED #M`. The revert
+  is sync work too.
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
-- After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and
-  removes this session and its worktree; nothing is sent here first.
+- After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
+  as above without sending `READY_TO_LAND` again. The coordinator lands the
+  PR, then stops and removes this session and its worktree; nothing is sent
+  here first.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.
@@ -219,6 +261,8 @@ item from what this leaves behind.
    branch: <branch> | none
    PR: #<N> | none
    phase: implementing | in review | triaging | awaiting owner answer | ready to land | parked on <X> | released
+   reviewed: <the last reviewed head> | none
+   premerged: <each #M and the head merged, from PREMERGE> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
    question: <a question open to the requester, word for word> | none

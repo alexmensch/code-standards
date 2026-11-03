@@ -418,7 +418,9 @@ view <N> --json headRefOid`. Its worker merges that head in at its next
 commit boundary while #N's CI and merge wait run, so conflict resolution
 leaves the critical path. #N lands as a squash, which git does not see as
 the commits the lane merged, so that lane's later `SYNC` names #N's final
-head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file.
+head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file, and skip it all
+when #N has no CI or merge wait ahead. Each approval costs up to (cap − 1)
+gate runs, again on each head move.
 Record each one sent in the run state, and on `PREMERGED #N <head> <merge
 sha>` add the merge commit to that lane's `REVIEWED:` list. At every § 1, compare each unlanded
 approved PR's `headRefOid` with the head recorded for it; a difference →

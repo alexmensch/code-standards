@@ -421,7 +421,8 @@ approved PR's `headRefOid` with the head recorded for it; a difference →
 send `PREMERGE #N <new head>` again, naming the commits in between. If #N
 leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N` to each
 lane holding it and drop those entries on `UNMERGED #N`. A hibernated lane has no worker: send nothing; § 5
-sends it on relaunch.
+sends it on relaunch. For one of the user's own items, tell the user
+instead.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

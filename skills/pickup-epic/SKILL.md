@@ -355,7 +355,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
    owed.
 2. **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
-   `SYNC #N` to its worker; wait for `SYNCED #N`. For one of the user's own
+   `SYNC #N` to its worker — `SYNC #N base <head>` when a PR pre-merged
+   into it has landed since, with the final head of the one that landed
+   last — and wait for `SYNCED #N`. For one of the user's own
    items, tell the user it is behind instead.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
@@ -403,8 +405,9 @@ after it — later in the landing queue or not yet in it, at any stage from
 implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr
 view <N> --json headRefOid`. Its worker merges that head in at its next
 commit boundary while #N's CI and merge wait run, so conflict resolution
-leaves the critical path and that lane's later `SYNC` is a near-trivial
-merge of main. Skip a lane that already holds the head or shares no file.
+leaves the critical path. #N lands as a squash, which git does not see as
+the commits the lane merged, so that lane's later `SYNC` names #N's final
+head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file.
 Record each one sent in the run state. At every § 1, compare each unlanded
 approved PR's `headRefOid` with the head recorded for it; a difference →
 send `PREMERGE #N <new head>` again, naming the commits in between. A hibernated lane has no worker: send nothing; it

@@ -202,7 +202,19 @@ What changes:
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
-  for a conflict no rule settles.
+  for a conflict no rule settles. **`SYNC #N base <sha>`** → build the merge
+  from that base instead, so conflicts already resolved by a pre-merge stay
+  resolved:
+
+  ```bash
+  git fetch origin
+  if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
+    git merge --ff-only "$(git commit-tree "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>")"
+  else echo "conflicts:"; echo "$t"; fi
+  ```
+
+  `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
+  merge` would raise the pre-merge's conflicts again.
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head. At the next commit boundary, `git fetch origin
   pull/<M>/head` and merge `<sha>` into this branch under the same conflict

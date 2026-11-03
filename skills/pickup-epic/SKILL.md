@@ -153,8 +153,9 @@ it**: the worker treats notes as written down and does not re-ask.
 
 ## Lanes
 
-One command, run from the main checkout, over open PRs, worktrees before
-their PR, and hibernated items' pushed branches, listed from the run state.
+One command, run from the main checkout, over open PRs, worktrees and
+hibernated items' pushed branches, listed from the run state; a worktree or
+branch with an open PR is that PR's lane, its local changes included.
 With `n` empty it prints every file two lanes share; with `n=<N>` it prints
 each other lane that shares a file with PR N, and those files — § Pre-merge's
 recipients. Either prints nothing when nothing is shared.
@@ -163,16 +164,17 @@ recipients. Either prints nothing when nothing is shared.
 n=<N, or nothing for every shared file>
 git fetch -q origin; t=$(mktemp)
 prs=$(gh pr list --state open --json number,headRefName -q '.[] | "\(.number) \(.headRefName)"')
+lane() { awk -v b="${1}" -v d="${2}" 'b!="" && $(2)==b {l="#"$(1)} END {print (l=="" ? d : l)}' <<< "$prs"; }
 for pr in $(cut -d' ' -f1 <<< "$prs"); do
   gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
 for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
-  b=$(git -C "$wt" branch --show-current)
-  [ -n "$b" ] && cut -d' ' -f2 <<< "$prs" | grep -qxF "$b" && continue
+  l=$(lane "$(git -C "$wt" branch --show-current)" "${wt##*/}")
   { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
     git -C "$wt" ls-files --others --exclude-standard; } \
-    | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
+    | sed "s|^|$l |"; done >> "$t"
 for b in <each hibernated item's branch>; do
-  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
+  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$(lane "$b" "$b") |"; done >> "$t"
+sort -u -o "$t" "$t"
 if [ -z "$n" ]; then
   awk '{c[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in c) if (c[f]>1) print f":"who[f]}' "$t"
 else

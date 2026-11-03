@@ -71,11 +71,10 @@ nowhere else:
   and given shared resources like any item, never launched; their PRs land
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
-- landing approvals given and the landing queue; each approved, unlanded
-  PR's entry lists its pre-merges sent (below), `no shared lanes`, or `no
-  wait ahead` (§ 7 Pre-merge);
+- landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
-  the head sent — dropped when that item lands, or on `UNMERGED`;
+  the head sent — or `told the user` for one of the user's own items —
+  dropped when that item lands, or on `UNMERGED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, or `<X> lands`;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
@@ -441,21 +440,22 @@ path. #N lands as a squash, which git does not see as the commits the lane
 merged, so that lane's later `SYNC` names #N's final head as its base
 (step 2), and the earlier resolution stands.
 
-- Skip a lane that already holds the head or shares no file, and skip it
+- Skip a lane whose run-state entry already has the head — sent, or `told
+  the user` — or that shares no file, and skip it
   all when #N has no CI or merge wait ahead. Each approval costs up to
   (cap − 1) gate runs, again on each head move.
-- Record each one sent in the run state — or, when none goes out, `no
-  shared lanes` or `no wait ahead` on #N's approval — and on `PREMERGED #N
-  <head> <merge sha>` add the merge commit to that lane's `REVIEWED:` list.
-- At every § 1, an unlanded approved PR whose entry lists none of those
-  is a missed step: run this procedure for it now.
-- At every § 1, compare each unlanded approved PR's `headRefOid` with the
-  head recorded for it; a difference → send `PREMERGE #N <new head>` again,
-  naming the commits in between.
+- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
+  sha>` add the merge commit to that lane's `REVIEWED:` list.
+- At every § 1, run this procedure again for each unlanded approved PR with
+  a CI or merge wait ahead, at its current `headRefOid`. That catches an
+  approval whose pre-merge was missed, a lane that has started sharing a
+  file since, and a head move — whose `PREMERGE #N <new head>` names the
+  commits in between. It costs one § Lanes run per such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`.
 - A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
-  For one of the user's own items, tell the user instead.
+  For one of the user's own items, tell the user instead, and record `told
+  the user` for that head.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

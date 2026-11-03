@@ -72,6 +72,8 @@ nowhere else:
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
+- pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
+  the head sent;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, or `<X> lands`;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
@@ -387,6 +389,19 @@ version files and lockfiles conflict between any two PRs that both bump them.
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 3.
 4. **Update the run state**, then § 1.
+
+**Pre-merge.** Once the user approves a PR at step 1, its head is final.
+Every other worker's lane that shares a file with it (§ Lanes) and lands
+after it — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr
+view <N> --json headRefOid`. Its worker merges that head in at its next
+commit boundary while #N's CI and merge wait run, so conflict resolution
+leaves the critical path and that lane's later `SYNC` is a near-trivial
+merge of main. Skip a lane that already holds the head or shares no file.
+Record each one sent in the run state. If #N's head moves before it merges —
+a `SYNC`, a `CI_FAILED` fix — send `PREMERGE #N <new head>` again, naming the
+commits that moved it. A hibernated lane has no worker: send nothing; it
+syncs on relaunch.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

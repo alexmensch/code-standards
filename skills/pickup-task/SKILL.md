@@ -193,6 +193,13 @@ What changes:
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
   for a conflict no rule settles.
+- **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
+  `<sha>` is its final head. At the next commit boundary, `git fetch origin
+  pull/<M>/head` and merge `<sha>` into this branch under the same conflict
+  rules; run the gates; push. Reply `PREMERGED #M <sha>`, or `NEEDS_INPUT`
+  for a conflict no rule settles. A later `PREMERGE #M` with a new head →
+  the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
+  review scope.
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and

@@ -73,7 +73,8 @@ nowhere else:
 - holds, each with its reason and what lifts it;
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
-  the head sent — dropped when that item lands, or on `UNMERGED`;
+  the head sent — or `told the user` for one of the user's own items —
+  dropped when that item lands, or on `UNMERGED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, or `<X> lands`;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
@@ -151,21 +152,35 @@ it**: the worker treats notes as written down and does not re-ask.
 
 ## Lanes
 
-One command, run from the main checkout, prints every file two open lanes
-share — open PRs, worktrees before their PR, and hibernated items' pushed
-branches, listed from the run state:
+One command, run from the main checkout, over open PRs, worktrees and
+hibernated items' pushed branches, listed from the run state; a worktree or
+branch with an open PR is that PR's lane, its local changes included.
+With `n` empty it prints every file two lanes share; with `n=<N>` it prints
+each other lane that shares a file with PR N, and those files — the lanes
+§ Pre-merge picks its recipients from. Either prints nothing when nothing is shared.
 
 ```bash
-git fetch -q origin; t=$(mktemp)
-for pr in $(gh pr list --state open --json number -q '.[].number'); do
-  gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
-for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
+n=<N, or nothing for every shared file>
+git fetch -q origin; t=$(mktemp); T=$(printf '\t')
+prs=$(gh pr list --state open --json number,headRefName -q '.[] | "\(.number) \(.headRefName)"')
+lane() { awk -v b="${1}" -v d="${2}" 'b!="" && $(2)==b {l="#"$(1)} END {print (l=="" ? d : l)}' <<< "$prs"; }
+for pr in $(cut -d' ' -f1 <<< "$prs"); do
+  gh pr diff "$pr" --name-only | sed "s|^|#$pr$T|"; done > "$t"
+git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2 | while IFS= read -r wt; do
+  l=$(lane "$(git -C "$wt" branch --show-current)" "${wt##*/}")
   { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
     git -C "$wt" ls-files --others --exclude-standard; } \
-    | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
+    | sed "s|^|$l$T|"; done >> "$t"
 for b in <each hibernated item's branch>; do
-  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
-awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
+  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$(lane "$b" "$b")$T|"; done >> "$t"
+sort -u -o "$t" "$t"
+if [ -z "$n" ]; then
+  awk -F"$T" '{c[$(2)]++; who[$(2)]=who[$(2)]" "$(1)} END {for (f in c) if (c[f]>1) print f":"who[f]}' "$t"
+else
+  awk -F"$T" -v pr="#$n" 'NR==FNR {if ($(1)==pr) mine[$(2)]=1; next}
+    $(1)!=pr && ($(2) in mine) {s[$(1)]=s[$(1)]" "$(2)}
+    END {for (l in s) print l":"s[l]}' "$t" "$t"
+fi
 ```
 
 A shared file is a hazard to sequence, not a conflict to predict. A lane
@@ -225,7 +240,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `NOTE` | read; act only if it changes the run state |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
-| `READY_TO_LAND` | ask the user now (§ 7.1); queue it |
+| `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
 | A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
@@ -354,7 +369,11 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    An ancestor line, or a printed sha that no commit listed under
    `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
-   § 5 again, and ask nothing yet. Record the approval in the run state.
+   § 5 again, and ask nothing yet.
+
+   **Recording the approval is one step**: write it into the run state,
+   then run § Pre-merge for that PR before anything else.
+
    When the report's `SMOKE:` line lists steps, quote them and offer only
    "smoked, land it" and "not yet": never a plain "land it" while a manual
    smoke is owed.
@@ -412,27 +431,31 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other
-worker's lane that shares a file with it (§ Lanes) and lands after it —
-later in the landing queue or not yet in it, at any stage from implementing
-to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
+worker's lane that § Lanes' command with `n=<N>` lists and that lands after
+#N — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
 headRefOid`. Its worker merges that head in at its next commit boundary
 while #N's CI and merge wait run, so conflict resolution leaves the critical
 path. #N lands as a squash, which git does not see as the commits the lane
 merged, so that lane's later `SYNC` names #N's final head as its base
 (step 2), and the earlier resolution stands.
 
-- Skip a lane that already holds the head or shares no file, and skip it
+- Skip a lane whose run-state entry already has the head — sent, or `told
+  the user` — or that shares no file, and skip it
   all when #N has no CI or merge wait ahead. Each approval costs up to
   (cap − 1) gate runs, again on each head move.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list.
-- At every § 1, compare each unlanded approved PR's `headRefOid` with the
-  head recorded for it; a difference → send `PREMERGE #N <new head>` again,
-  naming the commits in between.
+- At every § 1, run this procedure again for each unlanded approved PR with
+  a CI or merge wait ahead, at its current `headRefOid`. That catches an
+  approval whose pre-merge was missed, a lane that has started sharing a
+  file since, and a head move — whose `PREMERGE #N <new head>` names the
+  commits in between. It costs one § Lanes run per such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`.
 - A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
-  For one of the user's own items, tell the user instead.
+  For one of the user's own items, tell the user instead, and record `told
+  the user` for that head.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

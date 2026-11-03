@@ -157,9 +157,12 @@ branches, listed from the run state:
 
 ```bash
 git fetch -q origin; t=$(mktemp)
-for pr in $(gh pr list --state open --json number -q '.[].number'); do
+prs=$(gh pr list --state open --json number,headRefName -q '.[] | "\(.number) \(.headRefName)"')
+for pr in $(cut -d' ' -f1 <<< "$prs"); do
   gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
 for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
+  b=$(git -C "$wt" branch --show-current)
+  [ -n "$b" ] && cut -d' ' -f2 <<< "$prs" | grep -qxF "$b" && continue
   { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
     git -C "$wt" ls-files --others --exclude-standard; } \
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"

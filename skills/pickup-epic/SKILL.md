@@ -42,8 +42,8 @@ user's answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a question a worker put to the user (§ 6 `QUESTION`), close the
-named epic without asking, remove a session before its checks pass, or stop or remove the
-user's own session, its worktree or its branch.
+named epic without asking, remove a session before its checks pass, or stop
+or remove the user's own session, its worktree or its branch.
 
 ## The plan is just-in-time
 
@@ -178,8 +178,8 @@ their preflight questions, any outside blockers, and the parallel cap
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
 
-**Compaction.** The run state makes compaction safe at any moment. After a compaction summary, re-run § 1 before acting on
-anything.
+**Compaction.** The run state makes compaction safe at any moment. After a
+compaction summary, re-run § 1 before acting on anything.
 
 ## 5. Launch
 
@@ -349,8 +349,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    An ancestor line, or a printed sha that no commit listed under
    `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
-   § 5 again, and ask nothing yet. Record the approval in the run state. When the
-   report's `SMOKE:` line lists steps, quote them and offer only "smoked,
+   § 5 again, and ask nothing yet. Record the approval in the run state.
+   When the report's `SMOKE:` line lists steps, quote them and offer only "smoked,
    land it" and "not yet": never a plain "land it" while a manual smoke is
    owed.
 2. **Sync only if behind.** `git fetch origin`, then `git -C <worktree>

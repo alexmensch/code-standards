@@ -220,7 +220,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | Event | Coordinator |
 | --- | --- |
 | `PR_OPEN` | lanes now use that PR's diff |
-| `NEEDS_INPUT` | nothing to the user — they read the worker's session. Record "waiting on the user"; hold launches that would overlap it |
+| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it |
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |

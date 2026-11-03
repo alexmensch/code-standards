@@ -194,7 +194,9 @@ claude --bg -n pickup-<item> --permission-mode <this session's mode> \
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
-prompt, and check only its lane, from its pushed branch.
+prompt, and check only its lane, from its pushed branch. Then send it
+`PREMERGE` for each approved, unlanded PR it shares a file with (§ 7
+Pre-merge).
 
 `ListAgents` prints this session's name; quote it exactly, since names
 contain spaces. A different permission mode holds every message between the
@@ -418,8 +420,8 @@ Record each one sent in the run state. At every § 1, compare each unlanded
 approved PR's `headRefOid` with the head recorded for it; a difference →
 send `PREMERGE #N <new head>` again, naming the commits in between. If #N
 leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N` to each
-lane holding it and drop those entries on `UNMERGED #N`. A hibernated lane has no worker: send nothing; it
-syncs on relaunch.
+lane holding it and drop those entries on `UNMERGED #N`. A hibernated lane has no worker: send nothing; § 5
+sends it on relaunch.
 
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the

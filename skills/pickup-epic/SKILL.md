@@ -416,7 +416,8 @@ commit boundary while #N's CI and merge wait run, so conflict resolution
 leaves the critical path. #N lands as a squash, which git does not see as
 the commits the lane merged, so that lane's later `SYNC` names #N's final
 head as its base (step 2), and the earlier resolution stands. Skip a lane that already holds the head or shares no file.
-Record each one sent in the run state. At every § 1, compare each unlanded
+Record each one sent in the run state, and on `PREMERGED #N <head> <merge
+sha>` add the merge commit to that lane's `REVIEWED:` list. At every § 1, compare each unlanded
 approved PR's `headRefOid` with the head recorded for it; a difference →
 send `PREMERGE #N <new head>` again, naming the commits in between. If #N
 leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N` to each

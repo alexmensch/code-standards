@@ -224,7 +224,7 @@ What changes:
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head. At the next commit boundary, `git fetch origin
   pull/<M>/head` and merge `<sha>` into this branch under the same conflict
-  rules; run the gates; push. Reply `PREMERGED #M <sha>`, or `NEEDS_INPUT`
+  rules; run the gates; push. Reply `PREMERGED #M <sha> <merge sha>`, or `NEEDS_INPUT`
   for a conflict no rule settles. A later `PREMERGE #M` with a new head →
   the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
   review scope.
@@ -234,7 +234,8 @@ What changes:
   is sync work too.
 - **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
-- After `READY_TO_LAND`, wait. The coordinator lands the PR, then stops and
+- After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
+  as above without sending `READY_TO_LAND` again. The coordinator lands the PR, then stops and
   removes this session and its worktree; nothing is sent here first.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim

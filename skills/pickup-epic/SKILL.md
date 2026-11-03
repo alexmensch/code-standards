@@ -151,11 +151,14 @@ it**: the worker treats notes as written down and does not re-ask.
 
 ## Lanes
 
-One command, run from the main checkout, prints every file two open lanes
-share — open PRs, worktrees before their PR, and hibernated items' pushed
-branches, listed from the run state:
+One command, run from the main checkout, over open PRs, worktrees before
+their PR, and hibernated items' pushed branches, listed from the run state.
+With `n` empty it prints every file two lanes share; with `n=<N>` it prints
+each other lane that shares a file with PR N, and those files — § Pre-merge's
+recipients. Either prints nothing when nothing is shared.
 
 ```bash
+n=<N, or nothing for every shared file>
 git fetch -q origin; t=$(mktemp)
 prs=$(gh pr list --state open --json number,headRefName -q '.[] | "\(.number) \(.headRefName)"')
 for pr in $(cut -d' ' -f1 <<< "$prs"); do
@@ -168,7 +171,13 @@ for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +
     | sort -u | sed "s|^|${wt##*/} |"; done >> "$t"
 for b in <each hibernated item's branch>; do
   git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$b |"; done >> "$t"
-awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
+if [ -z "$n" ]; then
+  awk '{c[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in c) if (c[f]>1) print f":"who[f]}' "$t"
+else
+  awk -v pr="#$n" 'NR==FNR {if ($(NF-1)==pr) mine[$NF]=1; next}
+    $(NF-1)!=pr && ($NF in mine) {s[$(NF-1)]=s[$(NF-1)]" "$NF}
+    END {for (l in s) print l":"s[l]}' "$t" "$t"
+fi
 ```
 
 A shared file is a hazard to sequence, not a conflict to predict. A lane
@@ -420,7 +429,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other
-worker's lane that shares a file with it (§ Lanes) and lands after it —
+worker's lane that shares a file with it — § Lanes' command with `n=<N>`
+lists them — and lands after it —
 later in the landing queue or not yet in it, at any stage from implementing
 to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
 headRefOid`. Its worker merges that head in at its next commit boundary

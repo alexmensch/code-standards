@@ -162,24 +162,24 @@ recipients. Either prints nothing when nothing is shared.
 
 ```bash
 n=<N, or nothing for every shared file>
-git fetch -q origin; t=$(mktemp)
+git fetch -q origin; t=$(mktemp); T=$(printf '\t')
 prs=$(gh pr list --state open --json number,headRefName -q '.[] | "\(.number) \(.headRefName)"')
 lane() { awk -v b="${1}" -v d="${2}" 'b!="" && $(2)==b {l="#"$(1)} END {print (l=="" ? d : l)}' <<< "$prs"; }
 for pr in $(cut -d' ' -f1 <<< "$prs"); do
-  gh pr diff "$pr" --name-only | sed "s|^|#$pr |"; done > "$t"
-for wt in $(git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2); do
+  gh pr diff "$pr" --name-only | sed "s|^|#$pr$T|"; done > "$t"
+git worktree list --porcelain | sed -n 's/^worktree //p' | tail -n +2 | while IFS= read -r wt; do
   l=$(lane "$(git -C "$wt" branch --show-current)" "${wt##*/}")
   { git -C "$wt" diff --no-renames --name-only origin/<main>...; git -C "$wt" diff --no-renames --name-only HEAD
     git -C "$wt" ls-files --others --exclude-standard; } \
-    | sed "s|^|$l |"; done >> "$t"
+    | sed "s|^|$l$T|"; done >> "$t"
 for b in <each hibernated item's branch>; do
-  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$(lane "$b" "$b") |"; done >> "$t"
+  git diff --no-renames --name-only "origin/<main>...origin/$b" | sed "s|^|$(lane "$b" "$b")$T|"; done >> "$t"
 sort -u -o "$t" "$t"
 if [ -z "$n" ]; then
-  awk '{c[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in c) if (c[f]>1) print f":"who[f]}' "$t"
+  awk -F"$T" '{c[$(2)]++; who[$(2)]=who[$(2)]" "$(1)} END {for (f in c) if (c[f]>1) print f":"who[f]}' "$t"
 else
-  awk -v pr="#$n" 'NR==FNR {if ($(NF-1)==pr) mine[$NF]=1; next}
-    $(NF-1)!=pr && ($NF in mine) {s[$(NF-1)]=s[$(NF-1)]" "$NF}
+  awk -F"$T" -v pr="#$n" 'NR==FNR {if ($(1)==pr) mine[$(2)]=1; next}
+    $(1)!=pr && ($(2) in mine) {s[$(1)]=s[$(1)]" "$(2)}
     END {for (l in s) print l":"s[l]}' "$t" "$t"
 fi
 ```

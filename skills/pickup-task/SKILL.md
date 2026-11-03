@@ -214,8 +214,9 @@ What changes:
 
   ```bash
   git fetch origin
+  sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
   if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
-    git merge --ff-only "$(git commit-tree "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>")"
+    git merge --ff-only "$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>")"
   else echo "conflicts:"; echo "$t"; fi
   ```
 

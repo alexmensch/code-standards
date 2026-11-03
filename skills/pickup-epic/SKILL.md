@@ -168,7 +168,10 @@ for b in <each hibernated item's branch>; do
 awk '{n[$NF]++; who[$NF]=who[$NF]" "$(NF-1)} END {for (f in n) if (n[f]>1) print f":"who[f]}' "$t"
 ```
 
-A shared file is a hazard to sequence, not a conflict to predict.
+A shared file is a hazard to sequence, not a conflict to predict. A lane
+the run state lists as holding an unlanded pre-merge shows that PR's files
+as its own: take its files from `git diff --no-renames --name-only <the
+pre-merged head>...origin/<its branch>` instead.
 
 ## 4. Kickoff
 

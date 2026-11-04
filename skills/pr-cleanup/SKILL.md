@@ -217,13 +217,23 @@ while true; do
     2>/dev/null | tr '\n' ' ' || true)
   if [ -n "$fails" ]; then echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; break; fi
   if [ "$auto" != "true" ]; then echo "PR $PR auto-merge NOT ARMED"; break; fi
+  pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
+  if [ "$pending" = 0 ] \
+    && req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
+         -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') \
+    && got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)'); then
+    missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
+    if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; break; fi
+  fi
   sleep 30
 done
 ```
 
 `cancel` is a terminal bucket and is **not** `fail` — a cancelled required
 check blocks the merge for good while auto-merge stays armed, so a
-`fail`-only filter polls a PR that will never move. `Monitor` with
+`fail`-only filter polls a PR that will never move. Nor does one whose
+required check never reports, once nothing is pending: the orphaned context
+in [Deviations](#deviations--stop-and-ask). `Monitor` with
 `persistent: true`. Only `MERGED` continues to
 [Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).
@@ -310,14 +320,9 @@ wait.
 **Blocked with no failing check.** Two known causes, in the order to check
 them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge)),
 then an orphaned required-status context — a renamed CI job strands its old
-name as a required check forever. Compare required against reported:
-
-```bash
-gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
-  -q '.[] | select(.type=="required_status_checks")
-      | .parameters.required_status_checks[].context' | sort
-gh pr view <N> --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)' | sort
-```
+name as a required check forever. The watch's `required check never
+reported` exit names those; outside a watch, run its `req`, `got` and
+`missing` lines with `PR=<N>`.
 
 Report the cause; changing branch rules is the user's call, never yours.
 

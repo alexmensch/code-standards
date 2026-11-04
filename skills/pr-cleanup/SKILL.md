@@ -21,7 +21,8 @@ them.
 
 For **the PR named at invocation**, and nothing else:
 
-- **Merge it.** Squash only.
+- **Merge it.** Squash only — unless the caller armed it ([Ground
+  truth](#ground-truth-first)).
 - **Merge `origin/<main>` into its branch and push**
   ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in
@@ -63,6 +64,12 @@ can fire between two of your own commands. If `MERGED`, the work left is
 [Close the tickets](#close-the-tickets) and
 [Worktree, branches, main](#worktree-branches-main) — never
 [Merge](#merge--never-sit-on-ci).
+
+**Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
+caller holds the approval and ran the pre-arm checks, so the same route
+applies once the PR is merged. Never re-arm and never merge; wait with
+[The watch](#the-watch--only-for-the---auto-case), and on a failed or
+cancelled check run `gh pr merge <N> --disable-auto` and report it.
 
 Collect the tickets: their IDs appear in the PR title, body and commit
 subjects, in the pattern the project's tracker uses. Gather all three and

@@ -117,7 +117,7 @@ then the commits:
 ```bash
 gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="required_signatures") | .type'
 # empty → signing not required; skip to Merge
-git -C <wt> log --format='%h %G? %s' origin/<main>..HEAD
+git log --format='%h %G? %s' origin/<main>..<headRefOid>
 ```
 
 Only `N` (no signature) and `B` (bad signature) need the re-sign below; any

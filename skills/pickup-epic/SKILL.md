@@ -1,6 +1,6 @@
 ---
 name: pickup-epic
-description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates the whole run into durable state and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>" with or without free text, "work through epic X", "run epic X in parallel", and any plain-language request to wind the run down so it can resume later ("hibernate", "I'm stepping away", "pause for the night"). One item at a time is `pickup-task`.
+description: Work through an already-planned epic — or an epic of epics — with several `pickup-task` sessions in parallel, driven from one coordinating session. Keeps a just-in-time queue over the epic's dependency graph, preflights each item right before it starts, keeps sessions off each other's files, lands one PR at a time with the user's approval for each, and replans on every report from a worker; hibernates idle workers before their prompt cache expires, and the whole run into durable state, and resumes it with fresh sessions. Claude Code only. Use for "/pickup-epic <epic>" with or without free text, "work through epic X", "run epic X in parallel", and any plain-language request to wind the run down so it can resume later ("hibernate", "I'm stepping away", "pause for the night"). One item at a time is `pickup-task`.
 ---
 
 # Coordinate an epic
@@ -75,8 +75,11 @@ nowhere else:
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, or on `UNMERGED`;
+- workers sent `HIBERNATE`, until each replies `HIBERNATED`;
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
-  what relaunches it: `resume`, or `<X> lands`;
+  what relaunches it: `resume`, `<X> lands`, or for one hibernated idle
+  (§ Watchers) the event it waited on. An idle-hibernated item keeps its
+  slot under the cap;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
@@ -194,10 +197,12 @@ Read the state and rank, then show the user: the first items to launch with
 their preflight questions, any outside blockers, and the parallel cap
 (default 5; the user's attention is the limit). Start on their answer: set
 the coordinator field first, unless it names another live session (§ The
-coordinator field) — a deviation.
+coordinator field) — a deviation. Start the idle watcher with the first
+launch (§ Watchers).
 
 **Compaction.** The run state makes compaction safe at any moment. After a
-compaction summary, re-run § 1 before acting on anything.
+compaction summary, re-run § 1 before acting on anything, and restart the
+watchers (§ Watchers).
 
 ## 5. Launch
 
@@ -234,8 +239,8 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | Event | Coordinator |
 | --- | --- |
 | `PR_OPEN` | lanes now use that PR's diff |
-| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it |
-| `UNBLOCKED` | clear that worker's "waiting on the user" |
+| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it; start the reminder timer if it is not running (§ Watchers) |
+| `UNBLOCKED` | clear that worker's "waiting on the user"; none left → stop the reminder timer |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
@@ -245,12 +250,88 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
+| The idle watcher or the reminder timer exits | § Watchers |
 
 Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation. Never restate a worker's report.
 
-Then fill free slots up to the cap: first hibernated items whose `<X> lands`
-has happened, then rank, preflight, launch.
+Then fill free slots up to the cap — live workers and idle-hibernated items
+each hold one: first hibernated items whose relaunch event has happened,
+then rank, preflight, launch.
+
+## Watchers — idle workers and open questions
+
+Two background shells, each started with `run_in_background` so its exit
+re-invokes this session. At most one of each runs: each script starts with
+these two lines, `<watcher>` being `idle` or `remind`, so starting one stops
+the one before:
+
+```bash
+p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid
+[ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null; echo $$ > "$p"
+```
+
+Stop one by killing the pid in its file; that exit is no event. Restart the
+idle watcher after acting on its exit, and both after a compaction and at
+§ Resume.
+
+**Idle watcher.** A worker's prompt cache expires after an hour with no
+model call, and resuming it after that reloads its whole transcript
+uncached; a fresh worker from a handoff costs less. Idle time is the age of
+the worker's transcript, which every model call writes — the user typing in
+the worker's session included; `claude agents --json` carries no idle
+timestamp. Exits when any worker not busy reaches 55 minutes:
+
+```bash
+skip=' <each item excluded, space-separated> '
+while sleep 60; do
+  out=$(claude agents --json | jq -r '.[] | select((.name | startswith("pickup-")) and .status != "busy") | "\(.name) \(.sessionId)"' |
+    while read -r name sid; do
+      case "$skip" in *" ${name#pickup-} "*) continue ;; esac
+      f=$(find ~/.claude/projects -name "$sid.jsonl" -print -quit)
+      [ -n "$f" ] || { echo "$name: no transcript"; continue; }
+      age=$(( $(date +%s) - $(date -r "$f" +%s) ))
+      [ "$age" -ge 3300 ] && echo "$name idle ${age}s"
+    done)
+  [ -z "$out" ] || { echo "$out"; rm -f "$p"; exit 0; }
+done
+```
+
+Excluded: the item of a landing in progress — the landing removes its
+session — each worker with a `SYNC` or `PREMERGE` unanswered, and each sent
+`HIBERNATE`. Restart the watcher when that set changes. For each worker it
+prints idle, § Hand-off with `HIBERNATE <item>`, and record what relaunches
+it:
+
+| Handoff phase | Relaunched by |
+| --- | --- |
+| `ready to land` | its landing turn (§ 7.2) |
+| `awaiting owner answer` | the user saying, in this session, that they will answer it |
+| `parked on <X>` | `<X> lands` |
+| anything else | `resume`: the user's word, or § Resume |
+
+A worker recorded "waiting on the user" still gets `HIBERNATE`, but acts on
+no message until its question is answered or dismissed: tell the user now,
+in this session, to answer or dismiss `pickup-<item>`'s question so it can
+hibernate. That is the first line of every reminder until it replies
+`HIBERNATED`. `no transcript` printed → ask the user to look at that
+worker, and exclude it.
+
+**Reminder timer.** While any worker's `NEEDS_INPUT` has no later
+`UNBLOCKED` — a hibernated one whose question was dismissed included — remind
+the user every 15 minutes, naming each such worker, never its question:
+
+```bash
+exec sleep 900
+```
+
+On its exit, remove the pid file and remind. Start it again only if the user
+has written in this session since the reminder before; otherwise start it at
+their next message. Stop it when none remain.
+
+Once idle hand-offs leave no live worker, with the landing queue empty, no
+landing in progress and no shared-resource grant running, § Hibernate runs
+from its step 3 unasked.
 
 ## Removing a worker's session
 
@@ -333,7 +414,8 @@ Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,
 "hibernate" — said in this session or written as free text after
 `/pickup-epic <epic>` here. The intent decides; there is no fixed syntax or
-argument order. Only the coordinator hibernates: the request anywhere else
+argument order. It also runs unasked once idle hand-offs leave no live
+worker (§ Watchers). Only the coordinator hibernates: the request anywhere else
 would make a second coordinator (§ Deviations). A wind-down, not an
 immediate stop:
 
@@ -348,8 +430,8 @@ immediate stop:
    tell the user which ones. The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
-3. Once every worker is removed: mark the run state `HIBERNATED`, clear the
-   coordinator field, and end with a final message that this coordinator
+3. Once every worker is removed: stop both watchers, mark the run state
+   `HIBERNATED`, clear the coordinator field, and end with a final message that this coordinator
    session is finished and safe to delete.
 
 ## 7. Land — one at a time
@@ -388,6 +470,11 @@ version files and lockfiles conflict between any two PRs that both bump them.
    into it has landed since, with the final head of the one that landed
    last — and wait for `SYNCED #N`. For one of the user's own
    items, tell the user it is behind instead.
+
+   A hibernated item has no worktree: count with `git rev-list --count
+   origin/<branch>..origin/<main>`. Zero → step 3 with no session to
+   remove. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it
+   relaunches it too.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents
@@ -467,7 +554,7 @@ When every item under the epic is closed: close each sub-epic whose children
 are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
 why (held, outside blocker, abandoned) · items filed during the run. Then
-clear the coordinator field.
+stop both watchers and clear the coordinator field.
 
 ## Resume
 
@@ -479,9 +566,10 @@ run down, which is § Hibernate's trigger. Then:
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
+- start the watchers (§ Watchers);
 - a post-landing step may have been cut off → run it before any launch;
 - the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
-  each item hibernated with `resume`, and each parked one whose `<X> lands`
+  each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, up to the cap.
 
 ## Deviations — stop and ask

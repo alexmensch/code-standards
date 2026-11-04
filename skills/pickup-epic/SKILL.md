@@ -65,7 +65,8 @@ One record on the named epic, **replaced** (not appended) after every event
 that changes it — the tracker skill maps the operation. It holds what exists
 nowhere else:
 
-- items in the run from outside the tree, and why;
+- items in the run from outside the tree, and why — a plan item (§ 5) with
+  its slug, plan file and repo;
 - the user's own items: worked interactively in the user's own session,
   each with that session's worktree. Brought into the run and claimed, held
   and given shared resources like any item, never launched; their PRs land
@@ -208,12 +209,25 @@ watchers (§ Watchers).
 
 Run the project's post-landing step first if main has moved since it last
 ran (run state), and wait for it to exit 0: new worktrees are seeded from the
-main checkout. Then claim the item and, from the main checkout's root:
+main checkout. Then claim the item — a plan item has no claim — and, from
+the main checkout's root:
 
 ```bash
 claude --bg -n pickup-<item> --permission-mode <this session's mode> \
   "/pickup-task <item> — coordinated by \"<this session's name>\""
 ```
+
+Every session this skill launches runs this command — never a freeform
+prompt, which gets none of `pickup-task`'s review, triage, messages or
+landing flow. Work with no tracker item, such as a change in another repo,
+is a **plan item**: write the brief, shovel-ready by `pickup-task` § 2, to
+`<main checkout>/.claude/pickup-epic/<slug>.md`, untracked, and record the
+slug and path in the run state. Launch it with the file's absolute path in
+place of the second `<item>`; the slug stands for the item everywhere else,
+and the worker appends its notes and handoff to the file. A plan item in
+another repo runs every git and `gh` step — launch, lanes, review check,
+landing — from that repo's main checkout, and the project's post-landing
+step does not apply to it.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that

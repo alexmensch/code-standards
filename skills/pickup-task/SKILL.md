@@ -182,7 +182,11 @@ What changes:
 
 - **The item is given and already claimed.** Never resolve or claim another.
   Answers from the coordinator's preflight are in the item's notes, so they
-  count as written down.
+  count as written down. A plan file given in its place is a plan item: the
+  `<slug>` in this session's name `pickup-<slug>` stands for the item in
+  every message, and whatever this skill writes onto the item — notes, the
+  handoff — is appended to the plan file; its latest `HANDOFF` block is the
+  handoff.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   The coordinator tells the user only that this session needs them, so put

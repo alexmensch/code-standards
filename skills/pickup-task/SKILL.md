@@ -227,7 +227,9 @@ What changes:
   merge` would raise the pre-merge's conflicts again. `commit-tree` fails (a
   signing error) → `NEEDS_INPUT` with the error; never retry unsigned.
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
-  `<sha>` is its final head. At the next commit boundary, `git fetch origin
+  `<sha>` is its final head; an item still blocked in the tracker by #M's
+  item treats that blocker as landed. Before the first edit when none is
+  made yet, otherwise at the next commit boundary, `git fetch origin
   pull/<M>/head` and merge `<sha>` into this branch under the same conflict
   rules; run the gates under the project extension's shared-resource rules;
   push. Reply `PREMERGED #M <sha> <merge sha>`, or `NEEDS_INPUT`

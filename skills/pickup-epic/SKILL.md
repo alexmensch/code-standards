@@ -83,7 +83,7 @@ nowhere else:
   dropped when that item lands, or on `UNMERGED`;
 - workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
-  what relaunches it: `resume`, `<X> lands`, or for one hibernated idle the
+  what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or for one hibernated idle the
   event § Watchers names. Idle ones are marked `idle` and keep their slot
   under the cap;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
@@ -115,7 +115,10 @@ The tracker skill maps all three operations.
 - **The tree** under the epic, at every depth: status, type, parent and open
   blockers, from the tracker's list view. Parentage comes from the tracker's
   parent field, never from the shape of an ID. Epics are containers and never
-  launch. Read an item in full only at its preflight (§ 3).
+  launch. Read an item in full only at its preflight (§ 3). **A blocker whose
+  PR the user has approved (§ 7.1) and that has not landed counts as
+  satisfied** everywhere this skill ranks, fills or relaunches: its content
+  is final, and § Pre-merge carries it into the dependent's branch.
 - **Open PRs** naming an item in the tree or the run:
   `gh pr list --state open --json number,title,headRefName,body`. Also
   **merged PRs whose items are still open or whose worker still runs**: a
@@ -129,7 +132,7 @@ the user's-own list → ask the user whether it is another session's work or sho
 
 ## 2. Rank
 
-Among items with no open blocker:
+Among items with no open blocker, an approved, unlanded one excepted (§ 1):
 
 1. **Unblocks the most** — open items waiting on it, directly or through
    others. Priority alone often ties across a whole epic.
@@ -237,9 +240,11 @@ step does not apply to it.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
-prompt, and check only its lane, from its pushed branch. Then send it
-`PREMERGE` for each approved, unlanded PR it shares a file with (§ 7
-Pre-merge).
+prompt, and check only its lane, from its pushed branch.
+
+Right after any launch, send the worker `PREMERGE` for each approved,
+unlanded PR it waits on or shares a file with (§ 7 Pre-merge), so it starts
+on the approved content.
 
 `ListAgents` prints this session's name; quote it exactly, since names
 contain spaces. A different permission mode holds every message between the
@@ -266,7 +271,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
-| A report that the item now waits on another item, X, to land | park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
+| A report that the item now waits on another item, X, to land | X's PR approved and unlanded → § Pre-merge sends it X's head instead. Otherwise park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
@@ -553,7 +558,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
-   of it goes back behind it. A failed removal check → ask the
+   of it goes back behind it. The fix moves its head: § Pre-merge sends
+   `PREMERGE #N <new head>` to each of those lanes. A failed removal check → ask the
    user; the session stays stopped.
 
    One of the user's own items, or a hibernated item: skip sub-step 3. Landing
@@ -567,19 +573,20 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other
-worker's lane that § Lanes' command with `n=<N>` lists and that lands after
-#N — later in the landing queue or not yet in it, at any stage from
-implementing to approved — gets `PREMERGE #N <head>`, the head from `gh pr view <N> --json
-headRefOid`. Its worker merges that head in at its next commit boundary
+worker's lane that lands after #N — later in the landing queue or not yet in
+it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
+the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
+`n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges that head in at its next commit boundary
 while #N's CI and merge wait run, so conflict resolution leaves the critical
 path. #N lands as a squash, which git does not see as the commits the lane
 merged, so that lane's later `SYNC` names #N's final head as its base
 (step 2), and the earlier resolution stands.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or that shares no file, and skip it
-  all when #N has no CI or merge wait ahead. Each approval costs up to
-  (cap − 1) gate runs, again on each head move.
+  the user` — or that neither shares a file nor waits on #N's item. Skip
+  the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
+  waiting on #N's item gets it until #N has merged. Each approval costs up
+  to (cap − 1) gate runs, again on each head move.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list.
 - At every § 1, run this procedure again for each unlanded approved PR with

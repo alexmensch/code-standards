@@ -67,7 +67,8 @@ that changes it — the tracker skill maps the operation. It holds what exists
 nowhere else:
 
 - items in the run from outside the tree, and why;
-- items whose work is in another repo, each with that repo's main checkout;
+- items whose work is in another repo, each with that repo's main checkout,
+  until it lands;
 - the user's own items: worked interactively in the user's own session,
   each with that session's worktree. Brought into the run and claimed, held
   and given shared resources like any item, never launched; their PRs land
@@ -98,7 +99,8 @@ This session's name — the one workers and every other session message — live
 the run state, so there is one copy to keep current. Set it at kickoff and on
 resume. **Ending the run** — at § 8, at § Hibernate, and when the user tells
 this session to stop or abandon the run — is one step before the final
-message: stop both watchers (§ Watchers), then clear the field.
+message: stop both watchers and delete the idle watcher's watch file
+(§ Watchers), then clear the field.
 
 A coordinator killed mid-run cannot clear it, so the field may outlive its
 session: a reader never trusts it alone. A session outside the run finds a
@@ -278,17 +280,26 @@ launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, an open decision, a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
 outside it that would unblock it, for the user to bring in. Every slot held
-by an idle-hibernated item waiting on the user → name each and what it
-waits on. That report is the fill step's result: an event that ends with a
-slot free or held that way, no launch and no report has skipped the step —
+by an idle-hibernated item → name each and what relaunches it. That report
+is the fill step's result: an event that ends with a slot free or held that
+way, no launch and no report has skipped the step —
 unless the report would repeat the last one word for word.
 
 ## Watchers — idle workers and open questions
 
 Two background shells, each started with `run_in_background` so its exit
-re-invokes this session. Each writes its pid to its file on start and exits
-silently once the file holds another pid or none: starting one retires the
-one before, and removing the file stops it. Only an exit that prints is an
+re-invokes this session. Each script opens with these lines, `<watcher>`
+being `idle` or `remind`:
+
+```bash
+p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid; echo $$ > "$p"
+mine() { [ "$(cat "$p" 2>/dev/null)" = "$$" ]; }
+trap 'mine && rm -f "$p"' EXIT
+```
+
+A watcher exits silently within a minute once its file holds another pid or
+none, so starting one retires the one before and removing the file stops
+it; every exit frees a file still its own. Only an exit that prints is an
 event. `watcher:` printed → tell the user; the watcher cannot see.
 
 At every § 1, match each to its condition — the idle watcher runs while this
@@ -305,14 +316,13 @@ user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
 run-state write: one line per live worker of this run, `<item>`, or `<item>
 waiting` while it waits on the user. Left out: the item landing now, a
-worker with a message from this session not yet replied to, one sent
-`HIBERNATE`, one already reported with no transcript.
+worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `CI_FAILED`, one
+sent `HIBERNATE`, one already reported with no transcript.
 
 ```bash
-p=${TMPDIR:-/tmp}/pickup-epic-<epic>-idle.pid; w=${p%.pid}.watch
-limit=3300; echo $$ > "$p"; missing=' '
+w=${p%.pid}.watch; limit=3300; missing=' '
 while sleep 60; do
-  [ "$(cat "$p" 2>/dev/null)" = "$$" ] || exit 0
+  mine || exit 0
   [ -f "$w" ] || { echo "watcher: $w missing"; exit 1; }
   a=$(claude agents --json) || { echo "watcher: claude agents failed"; exit 1; }
   rows=$(jq -r '.[] | select(.status == "idle") | "\(.name // "") \(.sessionId)"' <<< "$a") \
@@ -324,7 +334,7 @@ while sleep 60; do
     case "$mark" in
       waiting) out="$out$name dismissed"$'\n' ;;
       watch)
-        f=$(find ~/.claude/projects -name "$sid.jsonl" -print -quit)
+        f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit)
         if [ -z "$f" ]; then
           case "$was" in *" $name "*) out="$out$name no transcript"$'\n' ;; *) missing="$missing$name " ;; esac
         else
@@ -333,13 +343,13 @@ while sleep 60; do
         fi ;;
     esac
   done <<< "$rows"
-  [ -z "$out" ] || { printf %s "$out"; rm -f "$p"; exit 0; }
+  [ -z "$out" ] || { printf %s "$out"; exit 0; }
 done
 ```
 
-A worker waiting on the user is never sent `HIBERNATE`: it reads no message
-until its question is settled, and once answered it works on with the
-answer. Per line printed:
+The idle watcher never hands off a worker waiting on the user: it reads no
+message until its question is settled, and once answered it works on with
+the answer. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `dismissed` — the user dismissed its question, so its turn ended → the
@@ -359,8 +369,7 @@ waiting on the user — a hibernated one whose question was dismissed included
 — never its question:
 
 ```bash
-p=${TMPDIR:-/tmp}/pickup-epic-<epic>-remind.pid; echo $$ > "$p"; sleep 900
-[ "$(cat "$p" 2>/dev/null)" = "$$" ] && { rm -f "$p"; echo remind; }
+for i in $(seq 15); do sleep 60; mine || exit 0; done; echo remind
 ```
 
 Once the fill step launches nothing and idle hand-offs have left no live
@@ -509,8 +518,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    items, tell the user it is behind instead.
 
    A hibernated item has no worktree: count with `git rev-list --count
-   origin/<branch>..origin/<main>`. Zero → step 3 with no session to
-   remove. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it:
+   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it:
    relaunch it, then `CI_FAILED`.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
@@ -545,8 +553,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
 
-   One of the user's own items: skip step 3. Landing never stops or removes
-   the user's session, its worktree or its branch.
+   One of the user's own items, or a hibernated item: skip sub-step 3. Landing
+   never stops or removes the user's session, its worktree or its branch.
 
    A landing cut off resumes at step 4 when the session is gone from
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;

@@ -596,7 +596,9 @@ merged, so that lane's later `SYNC` names #N's final head as its base
   file since, and a head move — whose `PREMERGE #N <new head>` names the
   commits in between. It costs one § Lanes run per such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
-  to each lane holding it, and drop those entries on `UNMERGED #N`.
+  to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
+  whose item waits on #N's item then waits on an unapproved blocker: § Hand-off
+  with `HIBERNATE <item> — parked on <#N's item>`.
 - A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
   For one of the user's own items, tell the user instead, and record `told
   the user` for that head.

@@ -150,7 +150,8 @@ Read the item in full, with its notes and parent chain, then all four:
   recording it.
 - **Lane** — the files it will touch, from its text and the code it names,
   against every running worker's actual changes (§ Lanes). Overlap → hold it
-  until that worker lands, or ask whether to bundle it into that PR.
+  until that worker lands, or ask whether to bundle it into that PR. Overlap
+  with an approved, unlanded PR holds nothing: § 5 pre-merges it.
 - **Outside blocker** — it waits on an item outside the tree → say so once,
   and ask whether to bring that item in.
 

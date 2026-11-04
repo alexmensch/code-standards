@@ -389,7 +389,9 @@ shared-resource grant running, § Hibernate runs from its step 3 unasked.
 
 Stop, check, remove — in that order, so nothing of the worker can still be
 changing the worktree once it is checked. From the main checkout, with the
-worker's id (`claude agents --json`) and its worktree (`git worktree list`):
+worker's id — the 8-character short id `claude agents --json` prints, never
+the full session UUID, which matches no entry — and its worktree (`git
+worktree list`):
 
 1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
    append the gate's own check — § 7.3's landing checks or § Hand-off's

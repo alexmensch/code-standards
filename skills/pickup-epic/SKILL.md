@@ -83,9 +83,9 @@ nowhere else:
   dropped when that item lands, or on `UNMERGED`;
 - workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
-  what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or for one hibernated idle the
-  event § Watchers names. Idle ones are marked `idle` and keep their slot
-  under the cap;
+  what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
+  for one hibernated idle the event § Watchers names. Idle ones are marked
+  `idle` and keep their slot under the cap;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
@@ -578,9 +578,9 @@ its head moves only by sync merges and `CI_FAILED` fixes. Every other
 worker's lane that lands after #N — later in the landing queue or not yet in
 it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
 the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
-`n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges that head in at its next commit boundary
-while #N's CI and merge wait run, so conflict resolution leaves the critical
-path. #N lands as a squash, which git does not see as the commits the lane
+`n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges
+that head in at its next commit boundary while #N's CI and merge wait run,
+so conflict resolution leaves the critical path. #N lands as a squash, which git does not see as the commits the lane
 merged, so that lane's later `SYNC` names #N's final head as its base
 (step 2), and the earlier resolution stands.
 
@@ -593,14 +593,14 @@ merged, so that lane's later `SYNC` names #N's final head as its base
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list.
 - At every § 1, run this procedure again for each unlanded approved PR, at
-  its current `headRefOid`; the skip rule above picks the lanes. That catches an
-  approval whose pre-merge was missed, a lane that has started sharing a
-  file since, and a head move — whose `PREMERGE #N <new head>` names the
+  its current `headRefOid`; the skip rule above picks the lanes. That
+  catches an approval whose pre-merge was missed, a lane that has started
+  sharing a file since, and a head move — whose `PREMERGE #N <new head>` names the
   commits in between. It costs one § Lanes run per such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
-  whose item waits on #N's item then waits on an unapproved blocker: § Hand-off
-  with `HIBERNATE <item> — parked on <#N's item>`.
+  whose item waits on #N's item then waits on an unapproved blocker:
+  § Hand-off with `HIBERNATE <item> — parked on <#N's item>`.
 - A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
   For one of the user's own items, tell the user instead, and record `told
   the user` for that head.

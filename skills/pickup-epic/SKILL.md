@@ -412,7 +412,10 @@ session. A later worker starts fresh from that record (§ 5).
 
 1. **Trigger**: `HIBERNATE <item>` (§ Hibernate), `HIBERNATE <item> — parked
    on <X>`, or `RELEASED <item>`. The worker runs
-   `pickup-task` § Hand off and replies `HIBERNATED <item>`.
+   `pickup-task` § Hand off and replies `HIBERNATED <item>`. From the
+   message until its session is removed, the worker counts as hibernated
+   for everything else this session would send it: § 7.2 waits for the
+   removal and takes the hibernated path, and § Pre-merge sends it nothing.
 2. **Remove** the session (§ Removing a worker's session). Its gate, with
    the branch the item's latest handoff names:
 
@@ -457,7 +460,7 @@ immediate stop:
    each shared-resource grant a project extension made (a GPU grant runs to
    its end) — never cut one short.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
-   every live worker, with `HIBERNATE <item>`. Each reaches
+   every live worker not already sent it, with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    A worker recorded "waiting on the user", or `blocked` in `claude agents
    --json`, acts on no message until its question is answered or dismissed:
@@ -507,8 +510,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    A hibernated item has no worktree: count with `git rev-list --count
    origin/<branch>..origin/<main>`. Zero → step 3 with no session to
-   remove. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it
-   relaunches it too.
+   remove. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it:
+   relaunch it, then `CI_FAILED`.
 3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
    context. Its brief: run `pr-cleanup` for #N from the main checkout; the
    user approved this merge; worker `pickup-<item>` (id from `claude agents

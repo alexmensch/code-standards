@@ -122,7 +122,7 @@ The tracker skill maps all three operations.
 - **Open PRs** naming an item in the tree or the run:
   `gh pr list --state open --json number,title,headRefName,body`. Also
   **merged PRs whose items are still open or whose worker still runs**: a
-  landing cut off mid-way — finish it with § 7.3's brief, whose `pr-cleanup`
+  landing cut off mid-way — finish it with § 7.4's brief, whose `pr-cleanup`
   takes the already-merged route.
 - **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
   is a **live worker**.
@@ -389,10 +389,12 @@ shared-resource grant running, § Hibernate runs from its step 3 unasked.
 
 Stop, check, remove — in that order, so nothing of the worker can still be
 changing the worktree once it is checked. From the main checkout, with the
-worker's id (`claude agents --json`) and its worktree (`git worktree list`):
+worker's id — the 8-character short id `claude agents --json` prints, never
+the full session UUID, which matches no entry — and its worktree (`git
+worktree list`):
 
 1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
-   append the gate's own check — § 7.3's landing checks or § Hand-off's
+   append the gate's own check — § 7.4's landing checks or § Hand-off's
    pushed check — and run `bash <path>`. Every appended check prints
    nothing when it passes and something when it fails:
 
@@ -496,9 +498,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
    then ready when its turn comes. First check the review covers the PR
-   head, from the main checkout after `git fetch origin pull/<N>/head`:
+   head, from the main checkout:
 
    ```bash
+   git fetch -q origin pull/<N>/head
    r=<the REVIEWED sha>; h=<the PR's headRefOid>
    git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
    git log --first-parent --format=%H "$r..$h"
@@ -523,20 +526,39 @@ version files and lockfiles conflict between any two PRs that both bump them.
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
    `SYNC #N` to its worker — `SYNC #N base <head>` when a PR pre-merged
    into it has landed since, with the final head of the one that landed
-   last — and wait for `SYNCED #N`. For one of the user's own
-   items, tell the user it is behind instead.
+   last — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
+   sync merge, to the lane's `REVIEWED:` list. For one of the user's own
+   items, tell the user it is behind instead, and add the sync merge once
+   they report it pushed.
 
    A hibernated item has no worktree: count with `git rev-list --count
    origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it:
    relaunch it, then `CI_FAILED`.
-3. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
-   context. Its brief: run `pr-cleanup` for #N from the main checkout; the
-   user approved this merge; worker `pickup-<item>` (id from `claude agents
-   --json`) owns the worktree — for one of the user's own items, the user's
-   session does; skip the project extension's post-landing
-   step (the coordinator runs it after the landing, step 4). In order:
-   1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
-      of at most ten minutes each.
+3. **Arm the merge here, never in the subagent** — this session holds the
+   user's approval and the review check. From the main checkout, re-run
+   step 1's check with `h` the PR's current `headRefOid`; it fails → as in
+   step 1. Then `pr-cleanup` § The signature trap's check and § Merge's
+   stack check and `mergeStateStatus` table, with this one command in place
+   of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the
+   table says, except `BEHIND` / `DIRTY` → back to step 2:
+
+   ```bash
+   gh pr merge <N> --squash --auto --match-head-commit <h>
+   ```
+
+   GitHub merges once the required checks pass, at once if they already
+   have; never wait on CI here. Any `pr-cleanup` deviation, the re-sign
+   included (it would write the worker's branch), or a refused command →
+   ask the user.
+4. **Land through a subagent**, so the merge wait and the cleanup stay out
+   of this context. Its brief: run `pr-cleanup` for #N from the main checkout;
+   auto-merge is armed at `<h>`; worker `pickup-<item>` (its short id from
+   `claude agents --json`) owns the worktree — for one of the user's own
+   items, the user's session does; never run `gh pr merge` except to
+   disarm; skip the project extension's post-landing step (the coordinator
+   runs it after the landing, step 5). In order:
+   1. `pr-cleanup`'s route for a caller-armed merge, waiting in foreground
+      calls of at most ten minutes each.
    2. § Close the tickets.
    3. Remove the session: § Removing a worker's session, copied into the
       brief, with § Worktree, branches, main's three landing checks as its
@@ -557,7 +579,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    wait of at most ten minutes. That wait polls the host and is not local
    work. A project extension maps its own pauses onto this.
 
-   A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
+   A failed or cancelled check (the subagent has disarmed the merge) →
+   `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
    of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
@@ -565,10 +588,11 @@ version files and lockfiles conflict between any two PRs that both bump them.
    One of the user's own items, or a hibernated item: skip sub-step 3. Landing
    never stops or removes the user's session, its worktree or its branch.
 
-   A landing cut off resumes at step 4 when the session is gone from
+   A landing cut off resumes at step 5 when the session is gone from
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
-   otherwise at step 3.
-4. **Update the run state**, start the project's post-landing step on the
+   otherwise at step 4 when the PR is merged or its `autoMergeRequest` is
+   set; otherwise at step 3.
+5. **Update the run state**, start the project's post-landing step on the
    new main with `run_in_background`, so its exit re-invokes this session,
    then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
    deviation.

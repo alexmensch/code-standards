@@ -21,7 +21,9 @@ them.
 
 For **the PR named at invocation**, and nothing else:
 
-- **Merge it.** Squash only.
+- **Merge it**, squash only — or, when the caller armed it, never merge:
+  wait for it, and disarm with `--disable-auto` on a failed or cancelled
+  check ([Ground truth](#ground-truth-first)).
 - **Merge `origin/<main>` into its branch and push**
   ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in
@@ -63,6 +65,14 @@ can fire between two of your own commands. If `MERGED`, the work left is
 [Close the tickets](#close-the-tickets) and
 [Worktree, branches, main](#worktree-branches-main) — never
 [Merge](#merge--never-sit-on-ci).
+
+**Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
+caller holds the approval and ran the pre-arm checks. Go straight to
+[The watch](#the-watch--only-for-the---auto-case), skipping Bring main in,
+The signature trap and Merge — the first two would move the armed head —
+and once
+`MERGED`, take the route above. Never re-arm and never merge; on a failed or
+cancelled check run `gh pr merge <N> --disable-auto` and report it.
 
 Collect the tickets: their IDs appear in the PR title, body and commit
 subjects, in the pattern the project's tracker uses. Gather all three and
@@ -107,7 +117,7 @@ then the commits:
 ```bash
 gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="required_signatures") | .type'
 # empty → signing not required; skip to Merge
-git -C <wt> log --format='%h %G? %s' origin/<main>..HEAD
+git log --format='%h %G? %s' origin/<main>..<headRefOid>
 ```
 
 Only `N` (no signature) and `B` (bad signature) need the re-sign below; any
@@ -207,13 +217,23 @@ while true; do
     2>/dev/null | tr '\n' ' ' || true)
   if [ -n "$fails" ]; then echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; break; fi
   if [ "$auto" != "true" ]; then echo "PR $PR auto-merge NOT ARMED"; break; fi
+  pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
+  if [ "$pending" = 0 ] \
+    && req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
+         -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') \
+    && got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)'); then
+    missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
+    if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; break; fi
+  fi
   sleep 30
 done
 ```
 
 `cancel` is a terminal bucket and is **not** `fail` — a cancelled required
 check blocks the merge for good while auto-merge stays armed, so a
-`fail`-only filter polls a PR that will never move. `Monitor` with
+`fail`-only filter polls a PR that will never move. Nor does one whose
+required check never reports, once nothing is pending: the orphaned context
+in [Deviations](#deviations--stop-and-ask). `Monitor` with
 `persistent: true`. Only `MERGED` continues to
 [Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).
@@ -300,14 +320,9 @@ wait.
 **Blocked with no failing check.** Two known causes, in the order to check
 them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge)),
 then an orphaned required-status context — a renamed CI job strands its old
-name as a required check forever. Compare required against reported:
-
-```bash
-gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
-  -q '.[] | select(.type=="required_status_checks")
-      | .parameters.required_status_checks[].context' | sort
-gh pr view <N> --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)' | sort
-```
+name as a required check forever. The watch's `required check never
+reported` exit names those; outside a watch, run its `req`, `got` and
+`missing` lines with `PR=<N>`.
 
 Report the cause; changing branch rules is the user's call, never yours.
 

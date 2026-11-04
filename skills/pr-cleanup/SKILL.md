@@ -21,8 +21,9 @@ them.
 
 For **the PR named at invocation**, and nothing else:
 
-- **Merge it.** Squash only — unless the caller armed it ([Ground
-  truth](#ground-truth-first)).
+- **Merge it**, squash only — or, when the caller armed it, never merge:
+  wait for it, and disarm with `--disable-auto` on a failed or cancelled
+  check ([Ground truth](#ground-truth-first)).
 - **Merge `origin/<main>` into its branch and push**
   ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in

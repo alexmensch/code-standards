@@ -205,6 +205,9 @@ What changes:
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
   written without the message is not recorded.
+- **A wait on another item is recorded before it is reported**: record the
+  dependency in the tracker, then send the message saying this item now
+  waits on it. The coordinator picks pre-merge recipients from the tracker.
 - **Never merge, and never touch the main checkout.** Landing belongs to the
   coordinator, one PR at a time.
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`

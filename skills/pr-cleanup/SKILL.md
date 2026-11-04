@@ -67,9 +67,11 @@ can fire between two of your own commands. If `MERGED`, the work left is
 [Merge](#merge--never-sit-on-ci).
 
 **Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
-caller holds the approval and ran the pre-arm checks, so the same route
-applies once the PR is merged. Never re-arm and never merge; wait with
-[The watch](#the-watch--only-for-the---auto-case), and on a failed or
+caller holds the approval and ran the pre-arm checks. Go straight to
+[The watch](#the-watch--only-for-the---auto-case), skipping Bring main in,
+The signature trap and Merge — the first two would move the armed head —
+and once
+`MERGED`, take the route above. Never re-arm and never merge; on a failed or
 cancelled check run `gh pr merge <N> --disable-auto` and report it.
 
 Collect the tickets: their IDs appear in the PR title, body and commit

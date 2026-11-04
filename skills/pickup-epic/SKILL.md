@@ -279,9 +279,11 @@ hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, an open decision, a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
-outside it that would unblock it, for the user to bring in. That report is
-the fill step's result: an event that ends with a free slot, no launch and
-no report has skipped the step.
+outside it that would unblock it, for the user to bring in. Every slot held
+by an idle-hibernated item waiting on the user → name each and what it
+waits on. That report is the fill step's result: an event that ends with a
+slot free or held that way, no launch and no report has skipped the step —
+unless the report would repeat the last one word for word.
 
 ## Watchers — idle workers and open questions
 

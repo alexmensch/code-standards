@@ -132,7 +132,7 @@ the user's-own list → ask the user whether it is another session's work or sho
 
 ## 2. Rank
 
-Among items with no open blocker, an approved, unlanded one excepted (§ 1):
+Among items with no open blocker (§ 1 says which count as satisfied):
 
 1. **Unblocks the most** — open items waiting on it, directly or through
    others. Priority alone often ties across a whole epic.

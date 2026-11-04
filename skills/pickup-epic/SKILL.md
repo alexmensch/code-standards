@@ -559,8 +559,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    A failed or cancelled check → `CI_FAILED #N <checks>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
-   of it goes back behind it. The fix moves its head: § Pre-merge sends
-   `PREMERGE #N <new head>` to each of those lanes. A failed removal check → ask the
+   of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
 
    One of the user's own items, or a hibernated item: skip sub-step 3. Landing

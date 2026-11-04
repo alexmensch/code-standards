@@ -498,9 +498,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
    then ready when its turn comes. First check the review covers the PR
-   head, from the main checkout after `git fetch origin pull/<N>/head`:
+   head, from the main checkout:
 
    ```bash
+   git fetch -q origin pull/<N>/head
    r=<the REVIEWED sha>; h=<the PR's headRefOid>
    git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
    git log --first-parent --format=%H "$r..$h"

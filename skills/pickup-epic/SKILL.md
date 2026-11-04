@@ -569,7 +569,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 3.
 4. **Update the run state**, start the project's post-landing step on the
-   new main, then § 1. Launches wait only while it runs (§ 5).
+   new main with `run_in_background`, so its exit re-invokes this session,
+   then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
+   deviation.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other

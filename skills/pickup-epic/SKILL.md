@@ -539,7 +539,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    step 1. Then `pr-cleanup` § The signature trap's check and § Merge's
    stack check and `mergeStateStatus` table, with this one command in place
    of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the
-   table says:
+   table says, except `BEHIND` / `DIRTY` → back to step 2:
 
    ```bash
    gh pr merge <N> --squash --auto --match-head-commit <h>

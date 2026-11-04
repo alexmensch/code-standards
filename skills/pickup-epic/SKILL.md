@@ -72,15 +72,18 @@ nowhere else:
   and given shared resources like any item, never launched; their PRs land
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
+- workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
+- questions this session put to the user and not yet answered — a landing
+  approval, a preflight, a `PLAN_CHANGE` — asked again at § Resume;
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, or on `UNMERGED`;
-- workers sent `HIBERNATE`, until each replies `HIBERNATED`;
+- workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
-  what relaunches it: `resume`, `<X> lands`, or for one hibernated idle
-  (§ Watchers) the event it waited on. An idle-hibernated item keeps its
-  slot under the cap;
+  what relaunches it: `resume`, `<X> lands`, or for one hibernated idle the
+  event § Watchers names. Idle ones are marked `idle` and keep their slot
+  under the cap;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
@@ -92,8 +95,9 @@ a compaction. Write it here first.
 
 This session's name — the one workers and every other session message — lives in its own field on the named epic, never in
 the run state, so there is one copy to keep current. Set it at kickoff and on
-resume; clear it at § 8, at § Hibernate, and when the user tells this
-session to stop or abandon the run, before the final message.
+resume. **Ending the run** — at § 8, at § Hibernate, and when the user tells
+this session to stop or abandon the run — is one step before the final
+message: stop both watchers (§ Watchers), then clear the field.
 
 A coordinator killed mid-run cannot clear it, so the field may outlive its
 session: a reader never trusts it alone. A session outside the run finds a
@@ -418,8 +422,8 @@ session. A later worker starts fresh from that record (§ 5).
 
    The branch stays on origin; for a released item, report it to the user —
    deleting a remote branch is theirs.
-3. **Run state**: a hibernated or parked item joins the hibernated list, with
-   `resume` or `<X> lands` as what relaunches it. A released item does not:
+3. **Run state**: a hibernated or parked item joins the hibernated list,
+   with what relaunches it (§ The run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.
 
@@ -451,9 +455,9 @@ immediate stop:
    tell the user which ones. The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
-3. Once every worker is removed: stop both watchers, mark the run state
-   `HIBERNATED`, clear the coordinator field, and end with a final message that this coordinator
-   session is finished and safe to delete.
+3. Once every worker is removed: mark the run state `HIBERNATED`, end the
+   run (§ The coordinator field), and say in the final message that this
+   coordinator session is finished and safe to delete.
 
 ## 7. Land — one at a time
 
@@ -575,7 +579,7 @@ When every item under the epic is closed: close each sub-epic whose children
 are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
 why (held, outside blocker, abandoned) · items filed during the run. Then
-stop both watchers and clear the coordinator field.
+end the run (§ The coordinator field).
 
 ## Resume
 
@@ -588,6 +592,8 @@ run down, which is § Hibernate's trigger. Then:
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - start the watchers (§ Watchers);
+- ask again each question the run state lists as put to the user and
+  unanswered;
 - a post-landing step may have been cut off → run it before any launch;
 - the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event

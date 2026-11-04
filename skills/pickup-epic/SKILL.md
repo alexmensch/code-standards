@@ -253,11 +253,18 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | The idle watcher or the reminder timer exits | § Watchers |
 
 Report to the user only what changes what they do next: a question, a
-landing to approve, a hold, a deviation. Never restate a worker's report.
+landing to approve, a hold, a deviation, a free slot left empty. Never
+restate a worker's report.
 
-Then fill free slots up to the cap — live workers and idle-hibernated items
-each hold one: first hibernated items whose relaunch event has happened,
-then rank, preflight, launch.
+**Then fill free slots — never silently.** A slot is free while live workers
+and idle-hibernated items number fewer than the cap. Fill it: first
+hibernated items whose relaunch event has happened, then rank, preflight,
+launch. A slot still free with nothing launching → tell the user each
+candidate and why it cannot start: blocked by X, an open decision, a lane
+hold, parked on X. Nothing in the tree launchable → also propose the items
+outside it that would unblock it, for the user to bring in. That report is
+the fill step's result: an event that ends with a free slot, no launch and
+no report has skipped the step.
 
 ## Watchers — idle workers and open questions
 

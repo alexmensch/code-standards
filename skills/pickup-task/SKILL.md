@@ -182,7 +182,9 @@ What changes:
 
 - **The item is given and already claimed.** Never resolve or claim another.
   Answers from the coordinator's preflight are in the item's notes, so they
-  count as written down.
+  count as written down. A launch prompt carrying ` — tracker in <path>`:
+  the item lives in the tracker of the checkout at `<path>`, and every
+  tracker operation runs against that one.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   The coordinator tells the user only that this session needs them, so put

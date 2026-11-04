@@ -33,6 +33,7 @@ bd project:
 | File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
 | Close | `bd close <id> -r "Shipped in PR #N"` |
 | Replace · read the epic's run state | `bd update <epic> --set-metadata "run_state=<text>"` · `bd show <epic> --json \| jq -r '.[0].metadata.run_state'` |
+| Run any of these against another checkout's tracker | `bd -C <path> …` |
 | Set · clear · find the coordinator field | `bd update <epic> --set-metadata "coordinator=<name>"` · `bd update <epic> --unset-metadata coordinator` · `bd list --has-metadata-key coordinator --json --limit 0 \| jq -r '.[] \| "\(.id)\t\(.metadata.coordinator)"'` — epic and name per line |
 
 `bd ready --parent` without `--exclude-type epic` returns the sub-epics too,

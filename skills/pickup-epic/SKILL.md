@@ -590,8 +590,8 @@ merged, so that lane's later `SYNC` names #N's final head as its base
   to (cap − 1) gate runs, again on each head move.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list.
-- At every § 1, run this procedure again for each unlanded approved PR with
-  a CI or merge wait ahead, at its current `headRefOid`. That catches an
+- At every § 1, run this procedure again for each unlanded approved PR, at
+  its current `headRefOid`; the skip rule above picks the lanes. That catches an
   approval whose pre-merge was missed, a lane that has started sharing a
   file since, and a head move — whose `PREMERGE #N <new head>` names the
   commits in between. It costs one § Lanes run per such PR per § 1.

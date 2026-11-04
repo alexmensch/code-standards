@@ -213,9 +213,12 @@ watchers (§ Watchers).
 
 ## 5. Launch
 
-Run the project's post-landing step first if main has moved since it last
-ran (run state), and wait for it to exit 0: new worktrees are seeded from the
-main checkout. Then claim the item and, from the main checkout's root:
+New worktrees are seeded from the main checkout, so a launch waits only
+while the project's post-landing step is running and rewriting what they are
+seeded from — never on a landing in progress, and never for main to catch up
+with an approved PR. A main checkout one landing behind seeds a worktree
+whose seeding detects the stale artifacts; a project extension whose seeding
+cannot narrows this. Claim the item and, from the main checkout's root:
 
 ```bash
 claude --bg -n pickup-<item> --permission-mode <this session's mode> \
@@ -525,7 +528,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    user approved this merge; worker `pickup-<item>` (id from `claude agents
    --json`) owns the worktree — for one of the user's own items, the user's
    session does; skip the project extension's post-landing
-   step (the coordinator runs it before the next launch). In order:
+   step (the coordinator runs it after the landing, step 4). In order:
    1. `pr-cleanup` up to § Merge, waiting for the merge in foreground calls
       of at most ten minutes each.
    2. § Close the tickets.
@@ -559,7 +562,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    A landing cut off resumes at step 4 when the session is gone from
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 3.
-4. **Update the run state**, then § 1.
+4. **Update the run state**, start the project's post-landing step on the
+   new main, then § 1. Launches wait only while it runs (§ 5).
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by sync merges and `CI_FAILED` fixes. Every other

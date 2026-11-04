@@ -588,7 +588,8 @@ merged, so that lane's later `SYNC` names #N's final head as its base
   the user` — or that neither shares a file nor waits on #N's item. Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
   waiting on #N's item gets it until #N has merged. Each approval costs up
-  to (cap − 1) gate runs, again on each head move.
+  to (cap − 1) gate runs, again on each head move, plus, per lane launched
+  on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list.
 - At every § 1, run this procedure again for each unlanded approved PR, at

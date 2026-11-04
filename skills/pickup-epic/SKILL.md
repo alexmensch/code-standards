@@ -202,8 +202,7 @@ Read the state and rank, then show the user: the first items to launch with
 their preflight questions, any outside blockers, and the parallel cap
 (default 5; the user's attention is the limit). Start on their answer: set
 the coordinator field first, unless it names another live session (§ The
-coordinator field) — a deviation. Start the idle watcher with the first
-launch (§ Watchers).
+coordinator field) — a deviation.
 
 **Compaction.** The run state makes compaction safe at any moment. After a
 compaction summary, re-run § 1 before acting on anything, and restart the
@@ -257,8 +256,8 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | Event | Coordinator |
 | --- | --- |
 | `PR_OPEN` | lanes now use that PR's diff |
-| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it; start the reminder timer if it is not running (§ Watchers) |
-| `UNBLOCKED` | clear that worker's "waiting on the user"; none left → stop the reminder timer |
+| `NEEDS_INPUT` | tell the user only that `pickup-<item>` needs them — never a summary of its question, which they read in the worker's session. Add context only when it is cross-worker: lanes, order, another worker's state. Record "waiting on the user"; hold launches that would overlap it |
+| `UNBLOCKED` | clear that worker's "waiting on the user" |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
@@ -268,7 +267,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
-| The idle watcher or the reminder timer exits | § Watchers |
+| A watcher exits printing | § Watchers |
 
 Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation, a free slot left empty. Never
@@ -287,76 +286,86 @@ no report has skipped the step.
 ## Watchers — idle workers and open questions
 
 Two background shells, each started with `run_in_background` so its exit
-re-invokes this session. At most one of each runs: each script starts with
-these two lines, `<watcher>` being `idle` or `remind`, so starting one stops
-the one before:
+re-invokes this session. Each writes its pid to its file on start and exits
+silently once the file holds another pid or none: starting one retires the
+one before, and removing the file stops it. Only an exit that prints is an
+event. `watcher:` printed → tell the user; the watcher cannot see.
+
+At every § 1, match each to its condition — the idle watcher runs while this
+run has a live worker; the reminder timer while the run state lists a worker
+waiting on the user and the user has written in this session since the last
+reminder. Should run with no pid file → start it; should not → remove the
+file. After a compaction and at § Resume, start each that should run even
+with a pid file: a shell that died leaves one behind.
+
+**Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
+prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
+the age of the worker's transcript, which every model call writes — the
+user typing in the worker's session included; `claude agents --json`
+carries no idle timestamp. It reads a file this session rewrites with every
+run-state write: one line per live worker of this run, `<item>`, or `<item>
+waiting` while it waits on the user. Left out: the item landing now, a
+worker with a message from this session not yet replied to, one sent
+`HIBERNATE`, one already reported with no transcript.
 
 ```bash
-p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid
-[ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null; echo $$ > "$p"
-```
-
-Stop one by killing the pid in its file; that exit is no event. Restart the
-idle watcher after acting on its exit, and both after a compaction and at
-§ Resume.
-
-**Idle watcher.** A worker's prompt cache expires after an hour with no
-model call, and resuming it after that reloads its whole transcript
-uncached; a fresh worker from a handoff costs less. Idle time is the age of
-the worker's transcript, which every model call writes — the user typing in
-the worker's session included; `claude agents --json` carries no idle
-timestamp. Exits when any worker not busy reaches 55 minutes:
-
-```bash
-skip=' <each item excluded, space-separated> '
+p=${TMPDIR:-/tmp}/pickup-epic-<epic>-idle.pid; w=${p%.pid}.watch
+limit=3300; echo $$ > "$p"; missing=' '
 while sleep 60; do
-  out=$(claude agents --json | jq -r '.[] | select((.name | startswith("pickup-")) and .status != "busy") | "\(.name) \(.sessionId)"' |
-    while read -r name sid; do
-      case "$skip" in *" ${name#pickup-} "*) continue ;; esac
-      f=$(find ~/.claude/projects -name "$sid.jsonl" -print -quit)
-      [ -n "$f" ] || { echo "$name: no transcript"; continue; }
-      age=$(( $(date +%s) - $(date -r "$f" +%s) ))
-      [ "$age" -ge 3300 ] && echo "$name idle ${age}s"
-    done)
-  [ -z "$out" ] || { echo "$out"; rm -f "$p"; exit 0; }
+  [ "$(cat "$p" 2>/dev/null)" = "$$" ] || exit 0
+  [ -f "$w" ] || { echo "watcher: $w missing"; exit 1; }
+  a=$(claude agents --json) || { echo "watcher: claude agents failed"; exit 1; }
+  rows=$(jq -r '.[] | select(.status == "idle") | "\(.name // "") \(.sessionId)"' <<< "$a") \
+    || { echo "watcher: jq failed"; exit 1; }
+  out=''; was=$missing; missing=' '
+  while read -r name sid; do
+    case "$name" in pickup-*) ;; *) continue ;; esac
+    mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
+    case "$mark" in
+      waiting) out="$out$name dismissed"$'\n' ;;
+      watch)
+        f=$(find ~/.claude/projects -name "$sid.jsonl" -print -quit)
+        if [ -z "$f" ]; then
+          case "$was" in *" $name "*) out="$out$name no transcript"$'\n' ;; *) missing="$missing$name " ;; esac
+        else
+          age=$(( $(date +%s) - $(date -r "$f" +%s) ))
+          [ "$age" -lt "$limit" ] || out="$out$name idle ${age}s"$'\n'
+        fi ;;
+    esac
+  done <<< "$rows"
+  [ -z "$out" ] || { printf %s "$out"; rm -f "$p"; exit 0; }
 done
 ```
 
-Excluded: the item of a landing in progress — the landing removes its
-session — each worker with a `SYNC` or `PREMERGE` unanswered, and each sent
-`HIBERNATE`. Restart the watcher when that set changes. For each worker it
-prints idle, § Hand-off with `HIBERNATE <item>`, and record what relaunches
-it:
+A worker waiting on the user is never sent `HIBERNATE`: it reads no message
+until its question is settled, and once answered it works on with the
+answer. Per line printed:
+
+- `idle` → § Hand-off with `HIBERNATE <item>`.
+- `dismissed` — the user dismissed its question, so its turn ended → the
+  same, now. No event if it has sent `UNBLOCKED` since.
+- `no transcript` (two passes running) → ask the user to look at that worker.
+
+An idle hand-off records what relaunches the item:
 
 | Handoff phase | Relaunched by |
 | --- | --- |
-| `ready to land` | its landing turn (§ 7.2) |
+| `ready to land` | its landing turn — § 7.2 relaunches it only to sync or fix CI |
 | `awaiting owner answer` | the user saying, in this session, that they will answer it |
-| `parked on <X>` | `<X> lands` |
 | anything else | `resume`: the user's word, or § Resume |
 
-A worker recorded "waiting on the user" still gets `HIBERNATE`, but acts on
-no message until its question is answered or dismissed: tell the user now,
-in this session, to answer or dismiss `pickup-<item>`'s question so it can
-hibernate. That is the first line of every reminder until it replies
-`HIBERNATED`. `no transcript` printed → ask the user to look at that
-worker, and exclude it.
-
-**Reminder timer.** While any worker's `NEEDS_INPUT` has no later
-`UNBLOCKED` — a hibernated one whose question was dismissed included — remind
-the user every 15 minutes, naming each such worker, never its question:
+**Reminder timer.** Reminds the user every 15 minutes, naming each worker
+waiting on the user — a hibernated one whose question was dismissed included
+— never its question:
 
 ```bash
-exec sleep 900
+p=${TMPDIR:-/tmp}/pickup-epic-<epic>-remind.pid; echo $$ > "$p"; sleep 900
+[ "$(cat "$p" 2>/dev/null)" = "$$" ] && { rm -f "$p"; echo remind; }
 ```
 
-On its exit, remove the pid file and remind. Start it again only if the user
-has written in this session since the reminder before; otherwise start it at
-their next message. Stop it when none remain.
-
-Once idle hand-offs leave no live worker, with the landing queue empty, no
-landing in progress and no shared-resource grant running, § Hibernate runs
-from its step 3 unasked.
+Once the fill step launches nothing and idle hand-offs have left no live
+worker, with the landing queue empty, no landing in progress and no
+shared-resource grant running, § Hibernate runs from its step 3 unasked.
 
 ## Removing a worker's session
 

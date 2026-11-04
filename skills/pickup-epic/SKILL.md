@@ -550,8 +550,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    have; never wait on CI here. Any `pr-cleanup` deviation, the re-sign
    included (it would write the worker's branch), or a refused command →
    ask the user.
-4. **Land through a subagent**, so `pr-cleanup`'s detail stays out of this
-   context. Its brief: run `pr-cleanup` for #N from the main checkout;
+4. **Land through a subagent**, so the merge wait and the cleanup stay out
+   of this context. Its brief: run `pr-cleanup` for #N from the main checkout;
    auto-merge is armed at `<h>`; worker `pickup-<item>` (its short id from
    `claude agents --json`) owns the worktree — for one of the user's own
    items, the user's session does; never run `gh pr merge` except to

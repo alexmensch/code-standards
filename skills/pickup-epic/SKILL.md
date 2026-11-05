@@ -491,16 +491,17 @@ immediate stop.
 unasked start. The user has stepped away, and a question waiting on them
 holds the run open short of step 3. A decision this skill would otherwise
 ask, of any kind § The run state lists, goes into the run state as held
-back, and § Resume asks it. A
-landing that meets a deviation stops at a safe point and is recorded, not
-asked: its merge disarmed (`gh pr merge <N> --disable-auto`), its worker's
+back, and § Resume asks it. An approved PR whose landing needs the user — a
+deviation, or a question open or held back on its item — stops at a safe
+point and is recorded, not asked: its merge disarmed (`gh pr merge <N> --disable-auto`), its worker's
 session kept, its step in the run state.
 
 1. Launch nothing new. Finish landing every PR already approved, in queue
    order (§ 7) — the landing in progress first — and wait for each
    shared-resource grant a project extension made (a GPU grant runs to its
    end); never cut one short. A landing stopped at a safe point leaves the
-   rest of the queue to land, except lanes waiting behind it (§ 7.2).
+   rest of the queue to land, except lanes waiting behind it (§ 7.2). Step 1
+   is done when every approved PR has landed or stopped that way.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
    every live worker not already sent it, with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.

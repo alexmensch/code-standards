@@ -157,7 +157,7 @@ above, one commit per finding.
 ## 6. Report
 
 Any finding still unanswered after Asking about a finding first, each in full · PR link
-· fixed findings, number → commit · anything deferred and where it was filed
+· fixed findings, number → commit, or → the item a tracker write changed · anything deferred and where it was filed
 · **manual smoke owed** (§ 3 says what is one): the exact steps from the PR
 body, or `none` and why.
 Merging stays the requester's call, and never before a smoke that is owed.

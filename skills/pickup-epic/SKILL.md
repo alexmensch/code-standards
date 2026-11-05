@@ -439,8 +439,7 @@ session. A later worker starts fresh from that record (§ 5).
 
 1. **Trigger**: `HIBERNATE <item>` (§ Hibernate), `HIBERNATE <item> — parked
    on <X>`, or `RELEASED <item>`. The worker runs
-   `pickup-task` § Hand off, putting no new question to the user — one it
-   would ask goes into its handoff — and replies `HIBERNATED <item>`. From the
+   `pickup-task` § Hand off and replies `HIBERNATED <item>`. From the
    message until its session is removed, the worker counts as hibernated
    for everything else this session would send it: § 7.2 waits for the
    removal and takes the hibernated path, and § Pre-merge sends it nothing.

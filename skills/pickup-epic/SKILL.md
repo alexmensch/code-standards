@@ -490,8 +490,8 @@ immediate stop.
 **No question to the user once it starts** — from the request, or from the
 unasked start. The user has stepped away, and a question waiting on them
 holds the run open short of step 3. A decision this skill would otherwise
-ask — a landing approval at `READY_TO_LAND`, a deviation, a `PLAN_CHANGE`, a
-preflight — goes into the run state as held back, and § Resume asks it. A
+ask, of any kind § The run state lists, goes into the run state as held
+back, and § Resume asks it. A
 landing that meets a deviation stops at a safe point and is recorded, not
 asked: its merge disarmed (`gh pr merge <N> --disable-auto`), its worker's
 session kept, its step in the run state.

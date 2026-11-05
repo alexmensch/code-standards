@@ -544,7 +544,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
 3. **Arm the merge here, never in the subagent** — this session holds the
    user's approval and the review check. From the main checkout, re-run
    step 1's check with `h` the PR's current `headRefOid`; it fails → as in
-   step 1. Then `pr-cleanup` § The signature trap's check and § Merge's
+   step 1. Then `pr-cleanup` § Review threads' check — a line → arm
+   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check. Then
+   its § The signature trap's check and § Merge's
    stack check and `mergeStateStatus` table, with this one command in place
    of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the
    table says, except `BEHIND` / `DIRTY` → back to step 2:
@@ -574,7 +576,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
       `<main>`, and `gh repo view --json deleteBranchOnMerge -q
       .deleteBranchOnMerge` — `false` → report the remote branch left
       behind. `claude rm` already deleted the local branch.
-   5. Return `merged`, `LANDING_FIX <checks>`, the check that failed, or the
+   5. Return `merged`, `LANDING_FIX <failed checks | unresolved threads>`,
+      the check that failed, or the
       deviation `pr-cleanup` stopped on.
 
    **Hold.** The brief also gives the subagent its reply to the
@@ -586,8 +589,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    wait of at most ten minutes. That wait polls the host and is not local
    work. A project extension maps its own pauses onto this.
 
-   A failed or cancelled check (the subagent has disarmed the merge) →
-   `LANDING_FIX #N <checks>` to the worker, and
+   A failed or cancelled check, or an unresolved review thread (the subagent
+   has disarmed the merge) → `LANDING_FIX #N <them>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
    of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.

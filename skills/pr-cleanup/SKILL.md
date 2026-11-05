@@ -264,9 +264,12 @@ done
 check blocks the merge for good while auto-merge stays armed, so a
 `fail`-only filter polls a PR that will never move. Nor does one whose
 required check never reports, once nothing is pending: the orphaned context
-in [Deviations](#deviations--stop-and-ask). Nor does one a thread opened
-after the arm — a late code-scanning alert — stops, unless the branch rules
-require conversation resolution. `Monitor` with
+in [Deviations](#deviations--stop-and-ask).
+
+Auto-merge does not wait for a thread: one posted after the arm — a late
+code-scanning alert — merges with the PR unless the branch rules require
+conversation resolution, and the watch stops it only when it posts before
+the merge. `Monitor` with
 `persistent: true`. Only `MERGED` continues to
 [Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).

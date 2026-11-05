@@ -147,6 +147,20 @@ gh api graphql -F id=<thread id> -f query='
   mutation($id: ID!) { resolveReviewThread(input: {threadId: $id}) { thread { isResolved } } }'
 ```
 
+An alert's thread is not the alert: resolving it leaves the alert open on
+the Security tab, where a `code_scanning` branch rule can still block the
+merge. On a false-positive or won't-fix answer, dismiss the alert before
+resolving its thread, `<n>` from the thread's link to
+`security/code-scanning/<n>`:
+
+```bash
+gh api -X PATCH 'repos/{owner}/{repo}/code-scanning/alerts/<n>' -f state=dismissed \
+  -f dismissed_reason='false positive' -f dismissed_comment='<the requester’s reason>'
+```
+
+`dismissed_reason` is `false positive`, `won't fix` or `used in tests`, as
+the answer says.
+
 Then run the check again — a fix can draw a new alert. While it prints a
 line, the PR is not ready to land.
 

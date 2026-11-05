@@ -121,7 +121,9 @@ Invoking this skill approves fixing, in the PR, every finding that:
 
 That approval stands in for `pr-review` § Disposition's approval gate, for
 these findings only. Fix one finding per commit, run the project's gates,
-push.
+push. A fix that is a tracker write — a bug-class link or description from
+`code-craft` § Bug classes — is made with the tracker's skill instead of a
+commit, and listed in § 6 with the item it wrote.
 
 A reviewer's options list is input, not a verdict: re-rank it under that
 test before routing the finding.

@@ -295,7 +295,9 @@ if none does, leaving the defect — the one place that may be offered.
 Top candidates that tie and differ in neither: take the smaller diff,
 propose it alone, and say it was a tie-break.
 
-Findings get fixed **in the PR**, as topical commits on that branch. Do not
+Findings get fixed **in the PR**, as topical commits on that branch — or,
+for a bug-class link or description (`code-craft` § Bug classes), as a
+tracker write once approved. Do not
 propose filing tickets as the default disposition — that defers work the PR is
 already open for, and "I will file a ticket for that" reads as agreement while
 shipping nothing.

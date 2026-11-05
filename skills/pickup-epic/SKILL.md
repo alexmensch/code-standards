@@ -544,8 +544,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
 3. **Arm the merge here, never in the subagent** — this session holds the
    user's approval and the review check. From the main checkout, re-run
    step 1's check with `h` the PR's current `headRefOid`; it fails → as in
-   step 1. Then `pr-cleanup` § Review threads' check — a line → arm
-   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check. Then
+   step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
+   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
+   branch rule not `true` → ask the user, as for any deviation. Then
    its § The signature trap's check and § Merge's
    stack check and `mergeStateStatus` table, with this one command in place
    of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the

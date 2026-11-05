@@ -113,6 +113,20 @@ One line per unresolved thread — id, author, file, link — and nothing when
 none is open. Any line, or a non-zero exit → [deviation](#deviations--stop-and-ask).
 Triaging and resolving a thread is the PR owner's work, never this skill's.
 
+These checks cannot see a thread posted after the arm: auto-merge fires once
+the required checks pass, before a late alert or between two watch passes.
+Only the host closes that gap, by refusing the merge while a thread is open:
+
+```bash
+gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
+  -q '.[] | select(.type=="pull_request") | .parameters.required_review_thread_resolution'
+```
+
+Anything but `true` — `false`, or nothing when no rule requires pull
+requests — → [deviation](#deviations--stop-and-ask): name the race, and that
+turning the rule on, with code scanning's analysis a required check so its
+threads exist before the merge, is the user's call.
+
 ## Bring main in — always check, even when nothing suggests it
 
 `<wt>` is the worktree holding `headRefName` (Ground truth's
@@ -268,8 +282,8 @@ in [Deviations](#deviations--stop-and-ask).
 
 Auto-merge does not wait for a thread: one posted after the arm — a late
 code-scanning alert — merges with the PR unless the branch rules require
-conversation resolution, and the watch stops it only when it posts before
-the merge. `Monitor` with
+conversation resolution, which § Review threads requires; the watch stops it
+only when it posts before the merge. `Monitor` with
 `persistent: true`. Only `MERGED` continues to
 [Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).
@@ -353,8 +367,10 @@ a branch that is not this PR's `headRefName`.
 Do not improvise past any of these. Say what you found, what you would do, and
 wait.
 
-**Blocked with no failing check.** Three known causes, in the order to check
-them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge));
+**Blocked with no failing check.** Four known causes, in the order to check
+them: an unresolved review thread, posted after the arm
+([Review threads](#review-threads--check-before-arming-the-merge));
+unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge));
 an open code-scanning alert at or above a `code_scanning` rule's threshold
 (`gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] |
 select(.type=="code_scanning") | .parameters'`; the alert links from its

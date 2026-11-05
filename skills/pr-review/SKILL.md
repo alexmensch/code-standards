@@ -205,11 +205,12 @@ design — and check the diff against each. A diff that breaks one is a
 finding: a goal saying "a check that keeps two copies in step is the
 defect", and a diff adding such a check.
 
-**History**, when the diff breaks a goal or the ticket is a bug. Over the
-files the diff changes, the last 60 days — a file's whole history can run
-to tens of thousands of tokens:
+**History**, when the diff breaks a goal or the ticket is a bug. For each
+file the diff changes, its last 20 commits — a file's whole history can run
+to tens of thousands of tokens, and a count, unlike a date window, does not
+go blind when the repo goes quiet:
 
-    git log --since=60.days --format='%h %ad %s' --date=short -- <files>
+    git log -n 20 --format='%h %ad %s' --date=short -- <file>
 
 For each commit whose subject touches the behaviour this diff changes, read
 the ticket its subject names, and that ticket's caused-by links. Classify

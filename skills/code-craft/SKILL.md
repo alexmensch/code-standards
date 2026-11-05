@@ -108,10 +108,24 @@ naming. Naming last, because it is the cheapest fix.
 
 ## Bug classes
 
-Second instance of the same shape → stop and name the shape. Third → the
-fix is a mechanism (a type, a test, a single owner), not a fourth patch.
-Enumerate the known instances and every other place the shape can occur,
-then run Design pass Q2 and Q3 on the class as a whole.
+**Record each class as links between tickets, never as labels**, which
+never retire, drift in name between sessions and carry no reasoning. The
+next session finds it through the tracker, not through memory. The tracker
+skill maps each link.
+
+- **Second instance of the same shape** — stop and name the shape: the new
+  ticket names it in its description and links the first as related.
+- **Third instance** — the fix is a mechanism (a type, a test, a single
+  owner), not a fourth patch. Enumerate the known instances and every other
+  place the shape can occur, run Design pass Q2 and Q3 on the class as a
+  whole, then propose the mechanism ticket to the owner as a plan change:
+  what the shape is and why it recurs. Once approved, file it and link every
+  instance to it as caused-by.
+- **Finding it** — commit subjects carry ticket IDs (always-on rules § PR
+  descriptions); a ticket's caused-by link leads in one hop to the
+  mechanism and its reasoning.
+- **A closed mechanism** means the class is fixed. A new fix whose files lead
+  back to one is a regression, and is reported as one.
 
 ## What to skip from the books
 

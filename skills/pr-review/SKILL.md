@@ -26,6 +26,8 @@ its sections narrow this skill's; it never replaces them.
    time).
 7. **Plan drift** — § below, whenever the PR closes or advances a ticket with
    a parent or a written plan.
+8. **Epic goals and recurrence** — § below, whenever the ticket has a parent
+   epic or is a bug.
 
 (2) and (3) are the two that block a merge.
 
@@ -191,6 +193,31 @@ they disagree after a review, the doc is right and the plan is what gets
 corrected. Report the drift found and fixed alongside the code findings — it
 is review output, not bookkeeping.
 
+## Epic goals and recurrence
+
+Plan drift asks whether the plan still matches the code; this asks the
+reverse. Load the tracker's skill if one is installed — it maps every
+tracker read and link below.
+
+**Goals.** When the ticket has a parent epic, read the epic's goals — the
+outcome its description states and any working-method rules in it or its
+design — and check the diff against each. A diff that breaks one is a
+finding: a goal saying "a check that keeps two copies in step is the
+defect", and a diff adding such a check.
+
+**History**, when the diff breaks a goal or the ticket is a bug. For each
+file the diff changes, its last 20 commits — a file's whole history can run
+to tens of thousands of tokens, and a count, unlike a date window, does not
+go blind when the repo goes quiet:
+
+    git log -n 20 --format='%h %ad %s' --date=short origin/<base> -- <file>
+
+For each commit whose subject touches the behaviour this diff changes, read
+the ticket its subject names, and that ticket's caused-by links. Classify
+what they show by `code-craft` § Bug classes; the case it names is the
+finding. Nothing of the same shape → say `history: no earlier instance` in the
+review, and nothing more.
+
 ## Delegated reviews — the findings list is lossless
 
 When the review fans out to subagents, the user approves from the list, so
@@ -258,7 +285,8 @@ A finding is a **decision** for the user only when:
   codebase; or
 - the fix the rules pick carries a cost or risk the user bears outside the
   codebase — for example money, bandwidth, an external service, or
-  rewriting history others have pulled.
+  rewriting history others have pulled; or
+- it proposes a mechanism ticket (`code-craft` § Bug classes).
 
 A tie's options are the tied candidates. A cost decision asks whether to
 accept that cost; its alternative is the best candidate that avoids it, or,
@@ -267,7 +295,9 @@ if none does, leaving the defect — the one place that may be offered.
 Top candidates that tie and differ in neither: take the smaller diff,
 propose it alone, and say it was a tie-break.
 
-Findings get fixed **in the PR**, as topical commits on that branch. Do not
+Findings get fixed **in the PR**, as topical commits on that branch — or,
+for a bug-class link or description (`code-craft` § Bug classes), as a
+tracker write once approved. Do not
 propose filing tickets as the default disposition — that defers work the PR is
 already open for, and "I will file a ticket for that" reads as agreement while
 shipping nothing.

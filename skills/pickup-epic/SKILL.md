@@ -29,13 +29,14 @@ on the critical path.
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, preflight answers, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, preflight answers, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
 ## What invoking this authorises — and only this
 
 For items in the tree under the named epic, and items the user brings into
 the run: file an item under the named epic for such work that has none
-(§ 5), claim them, write the user's preflight answers into them, launch
+(§ 5), claim them, write the user's preflight answers into them and the
+goals they give into an epic (§ 3), launch
 workers, stop and remove a worker's session (§ Removing a worker's session),
 send the coordinator's message kinds,
 close a sub-epic once all its children are closed. Each merge still needs the
@@ -80,7 +81,8 @@ nowhere else:
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
-  dropped when that item lands, or on `UNMERGED`;
+  dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
+  of `PREMERGED`;
 - workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
@@ -142,7 +144,7 @@ Among items with no open blocker (§ 1 says which count as satisfied):
 
 ## 3. Preflight — per item, at launch time
 
-Read the item in full, with its notes and parent chain, then all four:
+Read the item in full, with its notes and parent chain, then all five:
 
 - **Readiness** — `pickup-task` § 2's four criteria.
 - **Unrecorded dependency** — it builds on something an open item delivers
@@ -154,6 +156,10 @@ Read the item in full, with its notes and parent chain, then all four:
   with an approved, unlanded PR holds nothing: § 5 pre-merges it.
 - **Outside blocker** — it waits on an item outside the tree → say so once,
   and ask whether to bring that item in.
+- **Epic goals** — its parent epic's description states no outcome →
+  ask the user for one, once per epic, and write the answer into that
+  epic's description: `pr-review` checks every diff against it. A one-line
+  outcome, as a holding container has, is enough.
 
 Ask only decisions the item **leaves open in writing**. Never recommend an
 option you have not checked against the code it touches. A proposed
@@ -516,7 +522,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    When the report's `SMOKE:` line lists steps, quote them and offer only
    "smoked, land it" and "not yet": never a plain "land it" while a manual
-   smoke is owed.
+   smoke is owed. A post-merge check filed as an item (`pickup-task` § 3) is
+   not owed before the merge: offer "land it", and name that item.
 2. **Pre-merged PRs first.** For each PR M the run state lists as
    pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
    = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
@@ -615,7 +622,10 @@ merged, so that lane's later `SYNC` names #N's final head as its base
   to (cap − 1) gate runs, again on each head move, plus, per lane launched
   on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
-  sha>` add the merge commit to that lane's `REVIEWED:` list.
+  sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
+  <new head> (PREMERGE #N)` in its place means #N had landed before the
+  worker acted, and it synced instead: add the reply's new head to that
+  lane's `REVIEWED:` list and drop the pre-merge entry.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started

@@ -79,6 +79,14 @@ manual smoke in their browser, an artifact on another item's PR — never holds
 the PR back. Open it as a **draft**, run Independent review and Triage and fix
 on it, and mark it ready once the precondition is met.
 
+A smoke is a check the requester runs on the branch before merging. A check
+that can only run after the merge, after time passes or after another event
+— CI on the default branch, a cache a later run saves, a deploy — is not
+one: before § 6, file it as a follow-up item under this item's parent, if
+any, blocked by this item (the tracker's dependency record), saying what to
+check, the event it waits on and what passing looks like. It is reported as
+smoke `none (post-merge check filed as <id>)`.
+
 ## 4. Independent review
 
 Spawn one subagent, so the review runs in a context that didn't write the
@@ -113,7 +121,9 @@ Invoking this skill approves fixing, in the PR, every finding that:
 
 That approval stands in for `pr-review` § Disposition's approval gate, for
 these findings only. Fix one finding per commit, run the project's gates,
-push.
+push. A fix that is a tracker write — a bug-class link or description from
+`code-craft` § Bug classes — is made with the tracker's skill instead of a
+commit, and listed in § 6 with the item it wrote.
 
 A reviewer's options list is input, not a verdict: re-rank it under that
 test before routing the finding.
@@ -147,8 +157,9 @@ above, one commit per finding.
 ## 6. Report
 
 Any finding still unanswered after Asking about a finding first, each in full · PR link
-· fixed findings, number → commit · anything deferred and where it was filed
-· **manual smoke owed**: the exact steps from the PR body, or `none` and why.
+· fixed findings, number → commit, or → the item a tracker write changed · anything deferred and where it was filed
+· **manual smoke owed** (§ 3 says what is one): the exact steps from the PR
+body, or `none` and why.
 Merging stays the requester's call, and never before a smoke that is owed.
 Uncoordinated, it ends with § Closing line: not yet deletable while the PR is
 open — a line that goes stale once #N merges elsewhere.
@@ -198,8 +209,8 @@ What changes:
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
-| `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope. Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `CI`, or `sync` |
+| `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope, or a review proposes a mechanism ticket (`code-craft` § Bug classes). Write the finding into each affected item first |
+| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
 - **Recording the requester's answer is one step**: write it into the
@@ -214,13 +225,15 @@ What changes:
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
   for a conflict no rule settles. **`SYNC #N base <sha>`** → build the merge
-  from that base instead, so conflicts already resolved by a pre-merge stay
-  resolved:
+  from the newest commit of `<sha>`'s history this branch holds, so
+  conflicts already resolved by a pre-merge stay resolved. Never `<sha>`
+  itself: on a branch that does not hold it, that base reads the branch as
+  undoing the landed PR, and the merge reverts it without a conflict:
 
   ```bash
   git fetch origin
   sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
-  if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
+  if t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD <sha>)" HEAD origin/<main>); then
     c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
       && git merge --ff-only "$c"
   else echo "conflicts:"; echo "$t"; fi
@@ -233,10 +246,15 @@ What changes:
   `<sha>` is its final head; an item still blocked in the tracker by #M's
   item treats that blocker as landed. Before the first edit when none is
   made yet, otherwise at the next commit boundary, `git fetch origin
-  pull/<M>/head` and merge `<sha>` into this branch under the same conflict
-  rules; run the gates under the project extension's shared-resource rules;
-  push. Reply `PREMERGED #M <sha> <merge sha>`, or `NEEDS_INPUT`
-  for a conflict no rule settles. A later `PREMERGE #M` with a new head →
+  pull/<M>/head`, then check `gh pr view <M> --json state -q .state` — the
+  message may be acted on late, after a question to the owner. `MERGED` →
+  run `SYNC #N base <sha>` instead, since merging a landed PR's head still
+  leaves the branch behind main by its squash, and reply `SYNCED #N <new
+  head> (PREMERGE #M)` (no PR yet: the item in place of `#N`). Otherwise merge `<sha>`
+  into this branch under the same conflict rules; run the gates under the
+  project extension's shared-resource rules; push. Reply `PREMERGED #M
+  <sha> <merge sha>`. Either way, `NEEDS_INPUT` for a conflict no rule
+  settles. A later `PREMERGE #M` with a new head →
   the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
   review scope.
 - **`UNMERGE #M`** → PR #M will not land. At the next commit boundary,

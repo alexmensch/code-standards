@@ -6,7 +6,8 @@ description: >
   appending notes, updating fields, and storing memories. Use whenever a session
   runs or plans to run `bd`, or the user mentions beads, bd, a bead, or an issue
   ID like `foo-a3f8`. Read this instead of reaching for `bd --help`. Also the
-  tracker reference `pickup-task` and `pickup-epic` load in a bd project.
+  tracker reference `pickup-task`, `pickup-epic` and `pr-review` load in a bd
+  project.
 ---
 
 Syntax reference for `bd`. Verified against **bd 1.2.2**.
@@ -17,8 +18,8 @@ none of that is repeated here.
 
 ## Tracker operations — what the pickup skills name, in bd
 
-`pickup-task` and `pickup-epic` name tracker operations, never commands. In a
-bd project:
+`pickup-task`, `pickup-epic`, `pr-review` and `code-craft` name tracker
+operations, never commands. In a bd project:
 
 | Operation | bd |
 | --- | --- |
@@ -29,6 +30,8 @@ bd project:
 | Record a dependency | `bd dep add <blocked> <blocker>`, then verify ([order](#dependencies--argument-order-is-the-trap)) |
 | Claim · release | `bd update <id> --claim` · `bd update <id> -s open -a ""` |
 | Append a decision or finding | `bd note <id> "text"` |
+| Replace an item's description | `bd update <id> --body-file <path>` ([never an inline substitution](#long-or-multi-line-field-values)), then `bd show <id>` to re-read it |
+| Link a bug-class instance (`code-craft` § Bug classes): to the first as related · to the mechanism as caused-by · find its mechanism | `bd dep add <new> <first> -t related` · `bd dep add <instance> <mechanism> -t caused-by` · `bd dep list <id> -t caused-by` |
 | Write · read an item's handoff | `bd note <id> --stdin` with the multi-line note on stdin · `bd show <id>`, the last note starting `HANDOFF` |
 | File new work under an epic | `bd create "Title" --parent <epic> -p <n> -d "…"` |
 | Close | `bd close <id> -r "Shipped in PR #N"` |

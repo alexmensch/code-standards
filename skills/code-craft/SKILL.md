@@ -108,9 +108,10 @@ naming. Naming last, because it is the cheapest fix.
 
 ## Bug classes
 
-**Record each class as links between tickets, never as labels** — the next
-session finds it through the tracker, not through memory. The tracker skill
-maps each link.
+**Record each class as links between tickets, never as labels**, which
+never retire, drift in name between sessions and carry no reasoning. The
+next session finds it through the tracker, not through memory. The tracker
+skill maps each link.
 
 - **Second instance of the same shape** — stop and name the shape: the new
   ticket names it in its description and links the first as related.
@@ -125,9 +126,6 @@ maps each link.
   link leads in one hop to the mechanism and its reasoning.
 - **A closed mechanism** means the class is fixed. A new fix whose files lead
   back to one is a regression, and is reported as one.
-
-A label never retires, drifts in name between sessions, and carries no
-reasoning, so a class is never a label.
 
 ## What to skip from the books
 

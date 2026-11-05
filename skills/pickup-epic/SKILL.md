@@ -493,8 +493,9 @@ holds the run open short of step 3. A decision this skill would otherwise
 ask, of any kind § The run state lists, goes into the run state as held
 back, and § Resume asks it. An approved PR whose landing needs the user — a
 deviation, or a question open or held back on its item — stops at a safe
-point and is recorded, not asked: its merge disarmed (`gh pr merge <N> --disable-auto`), its worker's
-session kept, its step in the run state.
+point and is recorded, not asked: its merge disarmed (`gh pr merge <N>
+--disable-auto`), its worker's session kept, and the run state listing it
+as stopped at its step, no longer the landing in progress.
 
 1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
    fix it is part of its landing. Finish landing every PR already approved,
@@ -504,15 +505,16 @@ session kept, its step in the run state.
    rest of the queue to land, except lanes waiting behind it (§ 7.2). Step 1
    is done when every approved PR has landed or stopped that way.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
-   every live worker not already sent it, with `HIBERNATE <item>`. Each reaches
+   every live worker not already sent it and not kept at a stopped landing,
+   with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    A worker recorded "waiting on the user", or `blocked` in `claude agents
    --json`, acts on no message until its question is answered or dismissed:
    tell the user which ones. The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
-3. Once every worker is removed, or kept with its question held back: mark
-   the run state `HIBERNATED`, end the
+3. Once every worker is removed, or kept at a stopped landing: mark the
+   run state `HIBERNATED`, end the
    run (§ The coordinator field), and say in the final message that this
    coordinator session is finished and safe to delete.
 

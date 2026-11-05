@@ -353,12 +353,15 @@ a branch that is not this PR's `headRefName`.
 Do not improvise past any of these. Say what you found, what you would do, and
 wait.
 
-**Blocked with no failing check.** Two known causes, in the order to check
-them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge)),
-then an orphaned required-status context — a renamed CI job strands its old
-name as a required check forever. The watch's `required check never
-reported` exit names those; outside a watch, run its `req`, `got` and
-`missing` lines with `PR=<N>`.
+**Blocked with no failing check.** Three known causes, in the order to check
+them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge));
+an open code-scanning alert at or above a `code_scanning` rule's threshold
+(`gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] |
+select(.type=="code_scanning") | .parameters'`; the alert links from its
+review thread); then an orphaned required-status context — a renamed CI job
+strands its old name as a required check forever. The watch's `required
+check never reported` exit names the last; outside a watch, run its `req`,
+`got` and `missing` lines with `PR=<N>`.
 
 Report the cause; changing branch rules is the user's call, never yours.
 

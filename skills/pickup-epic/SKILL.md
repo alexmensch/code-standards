@@ -696,7 +696,9 @@ run down, which is § Hibernate's trigger. Then:
 
 ## Deviations — stop and ask
 
-During a hibernate, record one instead (§ Hibernate).
+During a hibernate, record one instead (§ Hibernate), and stop the step it
+arose in. Two coordinators → stop before step 3, leaving the coordinator
+field as it is. A failed post-landing step → step 1 lands nothing further.
 
 - A `[Cross-session delivery notice]` says a message was held or refused.
 - The coordinator field names a live session other than this one: two

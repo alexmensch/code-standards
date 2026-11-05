@@ -243,11 +243,16 @@ What changes:
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head; an item still blocked in the tracker by #M's
   item treats that blocker as landed. Before the first edit when none is
-  made yet, otherwise at the next commit boundary, `git fetch origin
-  pull/<M>/head` and merge `<sha>` into this branch under the same conflict
-  rules; run the gates under the project extension's shared-resource rules;
-  push. Reply `PREMERGED #M <sha> <merge sha>`, or `NEEDS_INPUT`
-  for a conflict no rule settles. A later `PREMERGE #M` with a new head →
+  made yet, otherwise at the next commit boundary, first check `gh pr view
+  <M> --json state -q .state` — the message may be acted on late, after a
+  question to the owner. `MERGED` → run `SYNC #N base <sha>` instead, since
+  merging a landed PR's head still leaves the branch behind main by its
+  squash, and reply `SYNCED #N <new head>` (no PR yet: the item in place of
+  `#N`). Otherwise `git fetch origin pull/<M>/head` and merge `<sha>` into
+  this branch under the same conflict rules; run the gates under the
+  project extension's shared-resource rules; push. Reply `PREMERGED #M
+  <sha> <merge sha>`. Either way, `NEEDS_INPUT` for a conflict no rule
+  settles. A later `PREMERGE #M` with a new head →
   the same, from it. Like `SYNC`'s, the merge commit is sync work, not new
   review scope.
 - **`UNMERGE #M`** → PR #M will not land. At the next commit boundary,

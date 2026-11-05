@@ -76,8 +76,9 @@ nowhere else:
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
-- questions this session put to the user and not yet answered — a landing
-  approval, a preflight, a `PLAN_CHANGE` — asked again at § Resume;
+- questions this session put to the user, or held back during a hibernate
+  (§ Hibernate), and not yet answered — a landing approval, a preflight, a
+  `PLAN_CHANGE`, a deviation — asked at § Resume;
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
@@ -464,6 +465,10 @@ session. A later worker starts fresh from that record (§ 5).
    with what relaunches it (§ The run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.
+   A handoff whose `question:` is not `none` also lists the item as waiting
+   on the user, and the user is told that `pickup-<item>`'s handoff holds a
+   question — in a whole-run hibernate, in § Hibernate's final message — never
+   the question itself.
 
 ## Hibernate
 
@@ -480,20 +485,36 @@ down so it can resume later — stepping away, pausing for the night,
 argument order. It also runs unasked once idle hand-offs leave no live
 worker (§ Watchers). Only the coordinator hibernates: the request anywhere else
 would make a second coordinator (§ Deviations). A wind-down, not an
-immediate stop:
+immediate stop.
 
-1. Launch nothing new. Wait for a landing in progress to finish, and for
-   each shared-resource grant a project extension made (a GPU grant runs to
-   its end) — never cut one short.
+**No question to the user once it starts** — from the request, or from the
+unasked start. The user has stepped away, and a question waiting on them
+holds the run open short of step 3. A decision this skill would otherwise
+ask, of any kind § The run state lists, goes into the run state as held
+back, and § Resume asks it. An approved PR whose landing needs the user — a
+deviation, or a question open or held back on its item — stops at a safe
+point and is recorded, not asked: its merge disarmed (`gh pr merge <N>
+--disable-auto`), its worker's session kept, and the run state listing it
+as stopped at its step, no longer the landing in progress.
+
+1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
+   fix it is part of its landing. Finish landing every PR already approved,
+   in queue order (§ 7) — the landing in progress first — and wait for each
+   shared-resource grant a project extension made (a GPU grant runs to its
+   end); never cut one short. A landing stopped at a safe point leaves the
+   rest of the queue to land, except lanes waiting behind it (§ 7.2). Step 1
+   is done when every approved PR has landed or stopped that way.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
-   every live worker not already sent it, with `HIBERNATE <item>`. Each reaches
+   every live worker not already sent it and not kept at a stopped landing,
+   with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    A worker recorded "waiting on the user", or `blocked` in `claude agents
    --json`, acts on no message until its question is answered or dismissed:
    tell the user which ones. The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
-3. Once every worker is removed: mark the run state `HIBERNATED`, end the
+3. Once every worker is removed, or kept at a stopped landing: mark the
+   run state `HIBERNATED`, end the
    run (§ The coordinator field), and say in the final message that this
    coordinator session is finished and safe to delete.
 
@@ -666,14 +687,18 @@ run down, which is § Hibernate's trigger. Then:
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - start the watchers (§ Watchers);
-- ask again each question the run state lists as put to the user and
-  unanswered;
+- ask each question the run state lists as unanswered, put to the user or
+  held back;
 - a post-landing step may have been cut off → run it before any launch;
 - the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, up to the cap.
 
 ## Deviations — stop and ask
+
+During a hibernate, record one instead (§ Hibernate), and stop the step it
+arose in. Two coordinators → stop before step 3, leaving the coordinator
+field as it is. A failed post-landing step → step 1 lands nothing further.
 
 - A `[Cross-session delivery notice]` says a message was held or refused.
 - The coordinator field names a live session other than this one: two

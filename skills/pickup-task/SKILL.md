@@ -106,8 +106,9 @@ PR and head, and tell the reviewer to leave their changes alone.
 Keep the report verbatim; triage works from it, not from a retelling.
 
 **The review covers the head.** Before § 6, every commit after the last
-reviewed head must be a fix for one of that review's findings, a
-`CI_FAILED` fix, or a sync merge (`SYNC`, `PREMERGE`). Any other commit —
+reviewed head must be a fix for one of that review's findings or a review
+thread's (§ 5), a `LANDING_FIX` fix, or a sync merge (`SYNC`, `PREMERGE`).
+Any other commit —
 new work, a resumed session's own commits included — gets § 4 and § 5
 again.
 
@@ -133,6 +134,36 @@ that fails `code-craft`, disagreement with the ticket, or a case for
 deferring. Unsure whether that test makes it a decision → it goes to the
 requester.
 
+### Review threads on the PR
+
+Before § 6 — so before every `READY_TO_LAND` — run `pr-cleanup` § Review
+threads' check. Each line is a finding, triaged as above: a person's
+comment and a bot's alert alike. Dismissing an alert as a false positive is
+a decision, so it goes to the requester. Once a thread's fix is pushed, or
+the requester's answer settles it, resolve it:
+
+```bash
+gh api graphql -F id=<thread id> -f query='
+  mutation($id: ID!) { resolveReviewThread(input: {threadId: $id}) { thread { isResolved } } }'
+```
+
+An alert's thread is not the alert: resolving it leaves the alert open on
+the Security tab, where a `code_scanning` branch rule can still block the
+merge. On a false-positive or won't-fix answer, dismiss the alert before
+resolving its thread, `<n>` from the thread's link to
+`security/code-scanning/<n>`:
+
+```bash
+gh api -X PATCH 'repos/{owner}/{repo}/code-scanning/alerts/<n>' -f state=dismissed \
+  -f dismissed_reason='false positive' -f dismissed_comment='<the requester’s reason>'
+```
+
+`dismissed_reason` is `false positive`, `won't fix` or `used in tests`, as
+the answer says.
+
+Then run the check again — a fix can draw a new alert. While it prints a
+line, the PR is not ready to land.
+
 ### Asking about a finding
 
 Ask each such finding **in the chat, with the harness's question tool** — one
@@ -157,7 +188,7 @@ above, one commit per finding.
 ## 6. Report
 
 Any finding still unanswered after Asking about a finding first, each in full · PR link
-· fixed findings, number → commit, or → the item a tracker write changed · anything deferred and where it was filed
+· fixed findings, number or thread link → commit, or → the item a tracker write changed · anything deferred and where it was filed
 · **manual smoke owed** (§ 3 says what is one): the exact steps from the PR
 body, or `none` and why.
 Merging stays the requester's call, and never before a smoke that is owed.
@@ -210,7 +241,7 @@ What changes:
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope, or a review proposes a mechanism ticket (`code-craft` § Bug classes). Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `CI`, or `sync` |
+| `READY_TO_LAND` | § 6 is reached with no question open, no unresolved review thread (§ 5) and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `thread <link>`, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 
 - **Recording the requester's answer is one step**: write it into the
@@ -261,8 +292,9 @@ What changes:
   `git revert -m 1 <each merge commit of a #M head>` (`-m 1` keeps this
   branch's side), run the gates, push, and reply `UNMERGED #M`. The revert
   is sync work too.
-- **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
-  reply `READY_TO_LAND`.
+- **`LANDING_FIX #N <failed checks | unresolved threads>`** → the landing
+  found them. Fix a failed check in the PR as a review finding; triage the
+  threads under § 5's Review threads. Push, and reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
   as above without sending `READY_TO_LAND` again. The coordinator lands the
   PR, then stops and removes this session and its worktree; nothing is sent

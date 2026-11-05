@@ -23,7 +23,7 @@ For **the PR named at invocation**, and nothing else:
 
 - **Merge it**, squash only — or, when the caller armed it, never merge:
   wait for it, and disarm with `--disable-auto` on a failed or cancelled
-  check ([Ground truth](#ground-truth-first)).
+  check or an unresolved review thread ([Ground truth](#ground-truth-first)).
 - **Merge `origin/<main>` into its branch and push**
   ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in
@@ -67,12 +67,13 @@ can fire between two of your own commands. If `MERGED`, the work left is
 [Merge](#merge--never-sit-on-ci).
 
 **Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
-caller holds the approval and ran the pre-arm checks. Go straight to
-[The watch](#the-watch--only-for-the---auto-case), skipping Bring main in,
-The signature trap and Merge — the first two would move the armed head —
-and once
-`MERGED`, take the route above. Never re-arm and never merge; on a failed or
-cancelled check run `gh pr merge <N> --disable-auto` and report it.
+caller holds the approval and ran the pre-arm checks. Run
+[Review threads](#review-threads--check-before-arming-the-merge), then go
+straight to [The watch](#the-watch--only-for-the---auto-case), skipping
+Bring main in, The signature trap and Merge — the first two would move the
+armed head — and once `MERGED`, take the route above. Never re-arm and
+never merge; on a failed or cancelled check or an unresolved review thread,
+run `gh pr merge <N> --disable-auto` and report it.
 
 Collect the tickets: their IDs appear in the PR title, body and commit
 subjects, in the pattern the project's tracker uses. Gather all three and
@@ -84,6 +85,47 @@ gh pr view <N> --json title,body,commits -q '.title, .body, (.commits[].messageH
 
 Read each ticket rather than trusting the ID: a PR sometimes *mentions* a
 ticket it does not close.
+
+## Review threads — check before arming the merge
+
+An unresolved review thread blocks the landing, whoever opened it: a person,
+or a bot such as code scanning (CodeQL posts as `github-advanced-security`).
+Green checks say nothing here — the code-scanning check passes while it
+posts alerts, and it posts after its analysis, often after the review. The
+code-scanning alerts endpoint filtered to the PR's merge ref has returned an
+empty list while an alert's thread stood unresolved, so the thread is the
+signal. An outdated thread counts: its lines moved, its point is unanswered.
+
+Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
+run `bash <that path>`; the watch runs the same file:
+
+```bash
+gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
+  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
+    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
+      pageInfo { hasNextPage endCursor } nodes { id isResolved
+        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
+  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
+      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
+```
+
+One line per unresolved thread — id, author, file, link — and nothing when
+none is open. Any line, or a non-zero exit → [deviation](#deviations--stop-and-ask).
+Triaging and resolving a thread is the PR owner's work, never this skill's.
+
+These checks cannot see a thread posted after the arm: auto-merge fires once
+the required checks pass, before a late alert or between two watch passes.
+Only the host closes that gap, by refusing the merge while a thread is open:
+
+```bash
+gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
+  -q '.[] | select(.type=="pull_request") | .parameters.required_review_thread_resolution'
+```
+
+Anything but `true` — `false`, or nothing when no rule requires pull
+requests — → [deviation](#deviations--stop-and-ask): name the race, and that
+turning the rule on, with code scanning's analysis a required check so its
+threads exist before the merge, is the user's call.
 
 ## Bring main in — always check, even when nothing suggests it
 
@@ -202,7 +244,8 @@ guards reject inline, and the PR number in the filename stops two concurrent
 landings sharing one watcher.
 
 ```bash
-PR=<N>
+PR=<N>; th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
+[ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }
 while true; do
   info=$(gh pr view $PR --json state,mergedAt,autoMergeRequest \
     -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)"' 2>/dev/null || true)
@@ -216,6 +259,8 @@ while true; do
     -q '.[] | select(.bucket=="fail" or .bucket=="cancel") | .name' \
     2>/dev/null | tr '\n' ' ' || true)
   if [ -n "$fails" ]; then echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; break; fi
+  threads=$(bash "$th" 2>/dev/null || true)
+  if [ -n "$threads" ]; then echo "PR $PR UNRESOLVED REVIEW THREADS:"; echo "$threads"; break; fi
   if [ "$auto" != "true" ]; then echo "PR $PR auto-merge NOT ARMED"; break; fi
   pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
   if [ "$pending" = 0 ] \
@@ -233,7 +278,12 @@ done
 check blocks the merge for good while auto-merge stays armed, so a
 `fail`-only filter polls a PR that will never move. Nor does one whose
 required check never reports, once nothing is pending: the orphaned context
-in [Deviations](#deviations--stop-and-ask). `Monitor` with
+in [Deviations](#deviations--stop-and-ask).
+
+Auto-merge does not wait for a thread: one posted after the arm — a late
+code-scanning alert — merges with the PR unless the branch rules require
+conversation resolution, which § Review threads requires; the watch stops it
+only when it posts before the merge. `Monitor` with
 `persistent: true`. Only `MERGED` continues to
 [Close the tickets](#close-the-tickets); every other exit is a
 [deviation](#deviations--stop-and-ask).
@@ -317,18 +367,24 @@ a branch that is not this PR's `headRefName`.
 Do not improvise past any of these. Say what you found, what you would do, and
 wait.
 
-**Blocked with no failing check.** Two known causes, in the order to check
-them: unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge)),
-then an orphaned required-status context — a renamed CI job strands its old
-name as a required check forever. The watch's `required check never
-reported` exit names those; outside a watch, run its `req`, `got` and
-`missing` lines with `PR=<N>`.
+**Blocked with no failing check.** Four known causes, in the order to check
+them: an unresolved review thread, posted after the arm
+([Review threads](#review-threads--check-before-arming-the-merge));
+unsigned commits ([The signature trap](#the-signature-trap--check-before-arming-the-merge));
+an open code-scanning alert at or above a `code_scanning` rule's threshold
+(`gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] |
+select(.type=="code_scanning") | .parameters'`; the alert links from its
+review thread); then an orphaned required-status context — a renamed CI job
+strands its old name as a required check forever. The watch's `required
+check never reported` exit names the last; outside a watch, run its `req`,
+`got` and `missing` lines with `PR=<N>`.
 
 Report the cause; changing branch rules is the user's call, never yours.
 
 **Anything else off the path:**
 
-- PR is a draft, has requested changes, or unresolved review threads.
+- PR is a draft, has requested changes, or has unresolved review threads
+  ([Review threads](#review-threads--check-before-arming-the-merge)).
 - A check failed or was cancelled, or the monitor exited `CLOSED` / not-armed.
 - `mergeStateStatus` is `UNSTABLE` — something is failing even though GitHub
   would let the merge through.

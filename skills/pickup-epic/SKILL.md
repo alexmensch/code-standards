@@ -331,7 +331,7 @@ user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
 run-state write: one line per live worker of this run, `<item>`, or `<item>
 waiting` while it waits on the user. Left out: the item landing now, a
-worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `CI_FAILED`, one
+worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 
 ```bash
@@ -539,12 +539,15 @@ version files and lockfiles conflict between any two PRs that both bump them.
    they report it pushed.
 
    A hibernated item has no worktree: count with `git rev-list --count
-   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it (§ 5), then `SYNC`. A `CI_FAILED` for it:
-   relaunch it, then `CI_FAILED`.
+   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it (§ 5), then `SYNC`. A `LANDING_FIX` for it:
+   relaunch it, then `LANDING_FIX`.
 3. **Arm the merge here, never in the subagent** — this session holds the
    user's approval and the review check. From the main checkout, re-run
    step 1's check with `h` the PR's current `headRefOid`; it fails → as in
-   step 1. Then `pr-cleanup` § The signature trap's check and § Merge's
+   step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
+   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
+   branch rule not `true` → ask the user, as for any deviation. Then
+   its § The signature trap's check and § Merge's
    stack check and `mergeStateStatus` table, with this one command in place
    of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the
    table says, except `BEHIND` / `DIRTY` → back to step 2:
@@ -574,7 +577,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
       `<main>`, and `gh repo view --json deleteBranchOnMerge -q
       .deleteBranchOnMerge` — `false` → report the remote branch left
       behind. `claude rm` already deleted the local branch.
-   5. Return `merged`, `CI_FAILED <checks>`, the check that failed, or the
+   5. Return `merged`, `LANDING_FIX <failed checks | unresolved threads>`,
+      the check that failed, or the
       deviation `pr-cleanup` stopped on.
 
    **Hold.** The brief also gives the subagent its reply to the
@@ -586,8 +590,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    wait of at most ten minutes. That wait polls the host and is not local
    work. A project extension maps its own pauses onto this.
 
-   A failed or cancelled check (the subagent has disarmed the merge) →
-   `CI_FAILED #N <checks>` to the worker, and
+   A failed or cancelled check, or an unresolved review thread (the subagent
+   has disarmed the merge) → `LANDING_FIX #N <them>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
    of it goes back behind it. A failed removal check → ask the
    user; the session stays stopped.
@@ -605,7 +609,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    deviation.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
-its head moves only by sync merges and `CI_FAILED` fixes. Every other
+its head moves only by sync merges and `LANDING_FIX` fixes. Every other
 worker's lane that lands after #N — later in the landing queue or not yet in
 it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
 the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with

@@ -113,6 +113,24 @@ fix is a mechanism (a type, a test, a single owner), not a fourth patch.
 Enumerate the known instances and every other place the shape can occur,
 then run Design pass Q2 and Q3 on the class as a whole.
 
+**Record the shape as links between tickets, never as labels** — the next
+session finds it through the tracker, not through memory. The tracker skill
+maps each link.
+
+- **Second instance** — the new ticket names the shape in its description and
+  links the first as related.
+- **Third instance** — file the mechanism ticket: the type, single owner or
+  test that closes the class. Its description says what the shape is and why
+  it recurs. Link every instance to it as caused-by. It goes to the owner as
+  a plan change, never as another fix.
+- **Finding it** — commit subjects carry ticket IDs; a ticket's caused-by
+  link leads in one hop to the mechanism and its reasoning.
+- **A closed mechanism** means the class is fixed. A new fix whose files lead
+  back to one is a regression, and is reported as one.
+
+A label never retires, drifts in name between sessions, and carries no
+reasoning, so a class is never a label.
+
 ## What to skip from the books
 
 - **Length is not the test.** Clean Code's four-line functions produce

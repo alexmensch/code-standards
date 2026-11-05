@@ -496,8 +496,9 @@ deviation, or a question open or held back on its item — stops at a safe
 point and is recorded, not asked: its merge disarmed (`gh pr merge <N> --disable-auto`), its worker's
 session kept, its step in the run state.
 
-1. Launch nothing new. Finish landing every PR already approved, in queue
-   order (§ 7) — the landing in progress first — and wait for each
+1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
+   fix it is part of its landing. Finish landing every PR already approved,
+   in queue order (§ 7) — the landing in progress first — and wait for each
    shared-resource grant a project extension made (a GPU grant runs to its
    end); never cut one short. A landing stopped at a safe point leaves the
    rest of the queue to land, except lanes waiting behind it (§ 7.2). Step 1

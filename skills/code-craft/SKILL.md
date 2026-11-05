@@ -119,10 +119,10 @@ maps each link.
 
 - **Second instance** — the new ticket names the shape in its description and
   links the first as related.
-- **Third instance** — file the mechanism ticket: the type, single owner or
-  test that closes the class. Its description says what the shape is and why
-  it recurs. Link every instance to it as caused-by. It goes to the owner as
-  a plan change, never as another fix.
+- **Third instance** — propose the mechanism ticket to the owner as a plan
+  change, never as another fix: the type, single owner or test that closes
+  the class, what the shape is and why it recurs. Once approved, file it and
+  link every instance to it as caused-by.
 - **Finding it** — commit subjects carry ticket IDs; a ticket's caused-by
   link leads in one hop to the mechanism and its reasoning.
 - **A closed mechanism** means the class is fixed. A new fix whose files lead

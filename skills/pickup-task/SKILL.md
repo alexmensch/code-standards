@@ -336,8 +336,8 @@ asked stays as it is.
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 
-   A question this session is blocked on, or held back, goes in `question:`
-   word for word; it is asked on resume.
+   A question this session is blocked on goes in `question:` word for word
+   too.
 3. **Reply `HIBERNATED <item>`** and end the turn.
 
 ### Resuming from a handoff

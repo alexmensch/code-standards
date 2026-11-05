@@ -122,8 +122,8 @@ skill maps each link.
   what the shape is and why it recurs. Once approved, file it and link every
   instance to it as caused-by.
 - **Finding it** — commit subjects carry ticket IDs (always-on rules § PR
-  descriptions); a ticket's caused-by
-  link leads in one hop to the mechanism and its reasoning.
+  descriptions); a ticket's caused-by link leads in one hop to the
+  mechanism and its reasoning.
 - **A closed mechanism** means the class is fixed. A new fix whose files lead
   back to one is a regression, and is reported as one.
 

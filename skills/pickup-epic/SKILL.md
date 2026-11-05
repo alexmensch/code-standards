@@ -81,7 +81,8 @@ nowhere else:
 - landing approvals given and the landing queue;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
-  dropped when that item lands, or on `UNMERGED`;
+  dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
+  of `PREMERGED`;
 - workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or

@@ -82,7 +82,7 @@ on it, and mark it ready once the precondition is met.
 A smoke is a check the requester runs on the branch before merging. A check
 that can only run after the merge, after time passes or after another event
 — CI on the default branch, a cache a later run saves, a deploy — is not
-one: before § 6, file it as a follow-up item under the same epic, blocked
+one: before § 6, file it as a follow-up item under this item's parent, if any, blocked
 by this item (the tracker's dependency record), saying what to check, the
 event it waits on and what passing looks like. It is
 reported as smoke `none (post-merge check filed as <id>)`.

@@ -308,11 +308,11 @@ What changes:
 The coordinator is about to remove this session; a fresh one may resume the
 item from what this leaves behind.
 
-**No new question to the requester from the message on.** The requester has
-usually stepped away, and a question waiting on them holds the session short
-of the reply. A decision this session would otherwise ask goes into the
-handoff's `question:` instead, held back, and is asked on resume. One already
-asked stays as it is.
+**No new question to the requester from `HIBERNATE` or `RELEASED` on.** The
+requester has usually stepped away, and a question waiting on them holds the
+session short of the reply. A decision this session would otherwise ask goes
+into the handoff's `question:` instead, held back, and is asked on resume.
+One already asked stays as it is.
 
 1. **Reach the next commit boundary** without asking: finish the
    commit-sized chunk in progress, or the review or triage step this session

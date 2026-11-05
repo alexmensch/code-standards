@@ -465,6 +465,10 @@ session. A later worker starts fresh from that record (§ 5).
    with what relaunches it (§ The run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.
+   A handoff whose `question:` is not `none` also lists the item as waiting
+   on the user, and the user is told that `pickup-<item>`'s handoff holds a
+   question — in a whole-run hibernate, in § Hibernate's final message — never
+   the question itself.
 
 ## Hibernate
 

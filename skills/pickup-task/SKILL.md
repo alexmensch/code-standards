@@ -312,6 +312,7 @@ item from what this leaves behind.
 requester has usually stepped away, and a question waiting on them holds the
 session short of the reply. A decision this session would otherwise ask goes
 into the handoff's `question:` instead, held back, and is asked on resume.
+One that `next` depends on sets `phase: awaiting owner answer`.
 On `RELEASED` it goes into the item's notes too: a released item relaunches
 fresh, and preflight reads notes, not handoffs. One already asked stays as
 it is.

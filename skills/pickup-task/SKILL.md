@@ -308,8 +308,15 @@ What changes:
 The coordinator is about to remove this session; a fresh one may resume the
 item from what this leaves behind.
 
-1. **Reach the next commit boundary**: finish the commit-sized chunk in
-   progress, or the review or triage step this session is in. Commit
+**No new question to the requester from the message on.** The requester has
+usually stepped away, and a question waiting on them holds the session short
+of the reply. A decision this session would otherwise ask goes into the
+handoff's `question:` instead, held back, and is asked on resume. One already
+asked stays as it is.
+
+1. **Reach the next commit boundary** without asking: finish the
+   commit-sized chunk in progress, or the review or triage step this session
+   is in — the part that does not depend on a held-back question. Commit
    normally — never a WIP commit — and push. A branch with no commits of its
    own is not pushed; its handoff says `branch: none`.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
@@ -325,12 +332,12 @@ item from what this leaves behind.
    premerged: <each #M and the head merged, from PREMERGE> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
-   question: <a question open to the requester, word for word> | none
+   question: <each question open to the requester or held back, word for word> | none
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 
-   A question this session is blocked on goes in `question:` word for word;
-   it is asked again on resume.
+   A question this session is blocked on, or held back, goes in `question:`
+   word for word; it is asked on resume.
 3. **Reply `HIBERNATED <item>`** and end the turn.
 
 ### Resuming from a handoff
@@ -358,5 +365,5 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → `NEEDS_INPUT`, then ask it again with the question tool.
+3. A `question:` → `NEEDS_INPUT`, then ask each with the question tool.
 4. Continue from `next`, in the stage `phase` names.

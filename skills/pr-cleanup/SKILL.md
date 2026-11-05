@@ -159,14 +159,13 @@ Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
 run `bash <that path>`; the watch runs the same file:
 
 ```bash
-gh api graphql -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
-  query($owner: String!, $name: String!, $n: Int!) { repository(owner: $owner, name: $name) {
-    pullRequest(number: $n) { reviewThreads(first: 100) { totalCount nodes { id isResolved
-      comments(first: 1) { nodes { author { login } path url } } } } } } }' \
-  -q '.data.repository.pullRequest.reviewThreads
-      | if .totalCount > (.nodes | length) then "over 100 review threads: read them on the PR"
-        else .nodes[] | select(.isResolved | not) | .comments.nodes[0] as $c
-             | "\(.id) \($c.author.login) \($c.path) \($c.url)" end'
+gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
+  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
+    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
+      pageInfo { hasNextPage endCursor } nodes { id isResolved
+        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
+  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
+      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
 ```
 
 One line per unresolved thread — id, author, file, link — and nothing when

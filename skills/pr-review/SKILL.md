@@ -26,6 +26,8 @@ its sections narrow this skill's; it never replaces them.
    time).
 7. **Plan drift** — § below, whenever the PR closes or advances a ticket with
    a parent or a written plan.
+8. **Epic goals and recurrence** — § below, whenever the ticket has a parent
+   epic or is a bug.
 
 (2) and (3) are the two that block a merge.
 
@@ -191,6 +193,40 @@ they disagree after a review, the doc is right and the plan is what gets
 corrected. Report the drift found and fixed alongside the code findings — it
 is review output, not bookkeeping.
 
+## Epic goals and recurrence
+
+Plan drift asks whether the plan still matches the code; this asks the
+reverse. Load the tracker's skill if one is installed — it maps every
+tracker read and link below.
+
+**Goals.** When the ticket has a parent epic, read the epic's goals — the
+outcome its description states and any working-method rules in it or its
+design — and check the diff against each. A diff that breaks one is a
+finding: a goal saying "a check that keeps two copies in step is the
+defect", and a diff adding such a check. A holding container whose goal is
+one line ("open bugs across the product") is checked the same way and rarely
+yields one.
+
+**History**, when the diff breaks a goal or the ticket is a bug. Over the
+files the diff changes:
+
+    git log --format='%h %ad %s' --date=short -- <files>
+
+For each commit whose subject touches the behaviour this diff changes, read
+the ticket its subject names, and that ticket's caused-by links. Then, by
+`code-craft` § Bug classes:
+
+- **An earlier ticket of the same shape, unlinked** — second instance. The
+  finding: name the shape in this ticket and link the earlier one as
+  related.
+- **Two or more earlier** — third instance. The finding: the mechanism
+  ticket that closes the class, proposed with every instance it links.
+- **A caused-by link to a closed mechanism** — a regression of a fixed
+  class. Report it as one, naming the mechanism ticket.
+
+Nothing of the same shape → say `history: no earlier instance` in the
+review, and nothing more.
+
 ## Delegated reviews — the findings list is lossless
 
 When the review fans out to subagents, the user approves from the list, so
@@ -258,7 +294,10 @@ A finding is a **decision** for the user only when:
   codebase; or
 - the fix the rules pick carries a cost or risk the user bears outside the
   codebase — for example money, bandwidth, an external service, or
-  rewriting history others have pulled.
+  rewriting history others have pulled; or
+- it proposes a mechanism ticket (§ Epic goals and recurrence): new scope
+  beyond the ticket, put to the owner as a plan change, never landed in this
+  PR as another patch.
 
 A tie's options are the tied candidates. A cost decision asks whether to
 accept that cost; its alternative is the best candidate that avoids it, or,

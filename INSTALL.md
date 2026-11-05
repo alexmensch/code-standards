@@ -69,7 +69,8 @@ copies, never in this repository:
 
 - the skill's folder name and its frontmatter `name:`
 - references in the other skills (`pr-review` loads `code-craft` and points at
-  `code-craft/references/…`; `pickup-task` names both; `pickup-epic` names
+  `code-craft/references/…`; `pickup-task` names both and
+  `pr-cleanup`; `pickup-epic` names
   `pickup-task`, `pr-cleanup` and `pr-review`; both pickup skills and `beads`
   name each other, and `beads` names `pr-review` and `code-craft`)
 - the rules block's § Code structure trigger and its mentions of both skills

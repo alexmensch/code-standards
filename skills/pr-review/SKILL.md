@@ -210,7 +210,7 @@ file the diff changes, its last 20 commits — a file's whole history can run
 to tens of thousands of tokens, and a count, unlike a date window, does not
 go blind when the repo goes quiet:
 
-    git log -n 20 --format='%h %ad %s' --date=short -- <file>
+    git log -n 20 --format='%h %ad %s' --date=short origin/<base> -- <file>
 
 For each commit whose subject touches the behaviour this diff changes, read
 the ticket its subject names, and that ticket's caused-by links. Classify

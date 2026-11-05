@@ -521,7 +521,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    When the report's `SMOKE:` line lists steps, quote them and offer only
    "smoked, land it" and "not yet": never a plain "land it" while a manual
-   smoke is owed.
+   smoke is owed. A post-merge check filed as an item (`pickup-task` § 3) is
+   not owed before the merge: offer "land it", and name that item.
 2. **Pre-merged PRs first.** For each PR M the run state lists as
    pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
    = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits

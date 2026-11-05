@@ -188,6 +188,10 @@ Err toward more commits, not fewer.
 
 Applies to PR bodies and PR / issue comments.
 
+**A PR title — the squash commit's subject — ends with its ticket IDs in
+parentheses**, `(foo-a3f8)`, whenever it has any: `code-craft` § Bug classes
+finds a class's earlier instances through them.
+
 **Terseness means cutting filler, never facts.** Cut: repeated framing (say
 each thing once, in the most upstream place), hedging, connective prose,
 multi-sentence build-up, restating the obvious. KEEP every factual detail a

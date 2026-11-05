@@ -29,13 +29,14 @@ on the critical path.
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, preflight answers, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, preflight answers, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
 ## What invoking this authorises — and only this
 
 For items in the tree under the named epic, and items the user brings into
 the run: file an item under the named epic for such work that has none
-(§ 5), claim them, write the user's preflight answers into them, launch
+(§ 5), claim them, write the user's preflight answers into them and the
+goals they give into an epic (§ 3), launch
 workers, stop and remove a worker's session (§ Removing a worker's session),
 send the coordinator's message kinds,
 close a sub-epic once all its children are closed. Each merge still needs the
@@ -142,7 +143,7 @@ Among items with no open blocker (§ 1 says which count as satisfied):
 
 ## 3. Preflight — per item, at launch time
 
-Read the item in full, with its notes and parent chain, then all four:
+Read the item in full, with its notes and parent chain, then all five:
 
 - **Readiness** — `pickup-task` § 2's four criteria.
 - **Unrecorded dependency** — it builds on something an open item delivers
@@ -154,6 +155,10 @@ Read the item in full, with its notes and parent chain, then all four:
   with an approved, unlanded PR holds nothing: § 5 pre-merges it.
 - **Outside blocker** — it waits on an item outside the tree → say so once,
   and ask whether to bring that item in.
+- **Epic goals** — its parent epic's description states no outcome →
+  ask the user for one, once per epic, and write the answer into that
+  epic's description: `pr-review` checks every diff against it. A one-line
+  outcome, as a holding container has, is enough.
 
 Ask only decisions the item **leaves open in writing**. Never recommend an
 option you have not checked against the code it touches. A proposed

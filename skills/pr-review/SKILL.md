@@ -213,18 +213,9 @@ files the diff changes:
     git log --format='%h %ad %s' --date=short -- <files>
 
 For each commit whose subject touches the behaviour this diff changes, read
-the ticket its subject names, and that ticket's caused-by links. Then, by
-`code-craft` § Bug classes:
-
-- **An earlier ticket of the same shape, unlinked** — second instance. The
-  finding: name the shape in this ticket and link the earlier one as
-  related.
-- **Two or more earlier** — third instance. The finding: the mechanism
-  ticket that closes the class, proposed with every instance it links.
-- **A caused-by link to a closed mechanism** — a regression of a fixed
-  class. Report it as one, naming the mechanism ticket.
-
-Nothing of the same shape → say `history: no earlier instance` in the
+the ticket its subject names, and that ticket's caused-by links. Classify
+what they show by `code-craft` § Bug classes; the case it names is the
+finding. Nothing of the same shape → say `history: no earlier instance` in the
 review, and nothing more.
 
 ## Delegated reviews — the findings list is lossless
@@ -295,9 +286,7 @@ A finding is a **decision** for the user only when:
 - the fix the rules pick carries a cost or risk the user bears outside the
   codebase — for example money, bandwidth, an external service, or
   rewriting history others have pulled; or
-- it proposes a mechanism ticket (§ Epic goals and recurrence): new scope
-  beyond the ticket, put to the owner as a plan change, never landed in this
-  PR as another patch.
+- it proposes a mechanism ticket (`code-craft` § Bug classes).
 
 A tie's options are the tied candidates. A cost decision asks whether to
 accept that cost; its alternative is the best candidate that avoids it, or,

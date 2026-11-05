@@ -86,6 +86,33 @@ gh pr view <N> --json title,body,commits -q '.title, .body, (.commits[].messageH
 Read each ticket rather than trusting the ID: a PR sometimes *mentions* a
 ticket it does not close.
 
+## Review threads — check before arming the merge
+
+An unresolved review thread blocks the landing, whoever opened it: a person,
+or a bot such as code scanning (CodeQL posts as `github-advanced-security`).
+Green checks say nothing here — the code-scanning check passes while it
+posts alerts, and it posts after its analysis, often after the review. The
+code-scanning alerts endpoint filtered to the PR's merge ref has returned an
+empty list while an alert's thread stood unresolved, so the thread is the
+signal. An outdated thread counts: its lines moved, its point is unanswered.
+
+Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
+run `bash <that path>`; the watch runs the same file:
+
+```bash
+gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
+  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
+    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
+      pageInfo { hasNextPage endCursor } nodes { id isResolved
+        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
+  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
+      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
+```
+
+One line per unresolved thread — id, author, file, link — and nothing when
+none is open. Any line, or a non-zero exit → [deviation](#deviations--stop-and-ask).
+Triaging and resolving a thread is the PR owner's work, never this skill's.
+
 ## Bring main in — always check, even when nothing suggests it
 
 `<wt>` is the worktree holding `headRefName` (Ground truth's
@@ -117,7 +144,7 @@ then the commits:
 
 ```bash
 gh api 'repos/{owner}/{repo}/rules/branches/<main>' -q '.[] | select(.type=="required_signatures") | .type'
-# empty → signing not required; skip to Review threads
+# empty → signing not required; skip to Merge
 git log --format='%h %G? %s' origin/<main>..<headRefOid>
 ```
 
@@ -144,33 +171,6 @@ git -C <wt> push --force-with-lease origin <headRefName>
 
 Do this **before** arming auto-merge: re-signing rewrites every SHA, so every
 check re-runs.
-
-## Review threads — check before arming the merge
-
-An unresolved review thread blocks the landing, whoever opened it: a person,
-or a bot such as code scanning (CodeQL posts as `github-advanced-security`).
-Green checks say nothing here — the code-scanning check passes while it
-posts alerts, and it posts after its analysis, often after the review. The
-code-scanning alerts endpoint filtered to the PR's merge ref has returned an
-empty list while an alert's thread stood unresolved, so the thread is the
-signal. An outdated thread counts: its lines moved, its point is unanswered.
-
-Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
-run `bash <that path>`; the watch runs the same file:
-
-```bash
-gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
-  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
-    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
-      pageInfo { hasNextPage endCursor } nodes { id isResolved
-        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
-  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
-      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
-```
-
-One line per unresolved thread — id, author, file, link — and nothing when
-none is open. Any line, or a non-zero exit → [deviation](#deviations--stop-and-ask).
-Triaging and resolving a thread is the PR owner's work, never this skill's.
 
 ## Merge — never sit on CI
 

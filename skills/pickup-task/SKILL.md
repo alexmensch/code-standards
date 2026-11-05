@@ -107,7 +107,7 @@ Keep the report verbatim; triage works from it, not from a retelling.
 
 **The review covers the head.** Before § 6, every commit after the last
 reviewed head must be a fix for one of that review's findings, a
-`CI_FAILED` fix, or a sync merge (`SYNC`, `PREMERGE`). Any other commit —
+`LANDING_FIX` fix, or a sync merge (`SYNC`, `PREMERGE`). Any other commit —
 new work, a resumed session's own commits included — gets § 4 and § 5
 again.
 
@@ -261,7 +261,7 @@ What changes:
   `git revert -m 1 <each merge commit of a #M head>` (`-m 1` keeps this
   branch's side), run the gates, push, and reply `UNMERGED #M`. The revert
   is sync work too.
-- **`CI_FAILED #N <checks>`** → fix it in the PR as a review finding, push,
+- **`LANDING_FIX #N <checks>`** → fix it in the PR as a review finding, push,
   reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
   as above without sending `READY_TO_LAND` again. The coordinator lands the

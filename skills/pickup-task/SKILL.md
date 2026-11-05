@@ -225,13 +225,15 @@ What changes:
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
   for a conflict no rule settles. **`SYNC #N base <sha>`** → build the merge
-  from that base instead, so conflicts already resolved by a pre-merge stay
-  resolved:
+  from the newest commit of `<sha>`'s history this branch holds, so
+  conflicts already resolved by a pre-merge stay resolved. Never `<sha>`
+  itself: on a branch that does not hold it, that base reads the branch as
+  undoing the landed PR, and the merge reverts it without a conflict:
 
   ```bash
   git fetch origin
   sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
-  if t=$(git merge-tree --write-tree --merge-base=<sha> HEAD origin/<main>); then
+  if t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD <sha>)" HEAD origin/<main>); then
     c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
       && git merge --ff-only "$c"
   else echo "conflicts:"; echo "$t"; fi
@@ -243,13 +245,13 @@ What changes:
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head; an item still blocked in the tracker by #M's
   item treats that blocker as landed. Before the first edit when none is
-  made yet, otherwise at the next commit boundary, first check `gh pr view
-  <M> --json state -q .state` — the message may be acted on late, after a
-  question to the owner. `MERGED` → run `SYNC #N base <sha>` instead, since
-  merging a landed PR's head still leaves the branch behind main by its
-  squash, and reply `SYNCED #N <new head>` (no PR yet: the item in place of
-  `#N`). Otherwise `git fetch origin pull/<M>/head` and merge `<sha>` into
-  this branch under the same conflict rules; run the gates under the
+  made yet, otherwise at the next commit boundary, `git fetch origin
+  pull/<M>/head`, then check `gh pr view <M> --json state -q .state` — the
+  message may be acted on late, after a question to the owner. `MERGED` →
+  run `SYNC #N base <sha>` instead, since merging a landed PR's head still
+  leaves the branch behind main by its squash, and reply `SYNCED #N <new
+  head>` (no PR yet: the item in place of `#N`). Otherwise merge `<sha>`
+  into this branch under the same conflict rules; run the gates under the
   project extension's shared-resource rules; push. Reply `PREMERGED #M
   <sha> <merge sha>`. Either way, `NEEDS_INPUT` for a conflict no rule
   settles. A later `PREMERGE #M` with a new head →

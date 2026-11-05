@@ -621,10 +621,10 @@ merged, so that lane's later `SYNC` names #N's final head as its base
   to (cap − 1) gate runs, again on each head move, plus, per lane launched
   on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
-  sha>` add the merge commit to that lane's `REVIEWED:` list. A `SYNCED`
-  reply in its place means #N had landed before the worker acted, and it
-  synced instead: add its head to that lane's `REVIEWED:` list and drop the
-  pre-merge entry.
+  sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
+  <new head> (PREMERGE #N)` in its place means #N had landed before the
+  worker acted, and it synced instead: add the reply's new head to that
+  lane's `REVIEWED:` list and drop the pre-merge entry.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started

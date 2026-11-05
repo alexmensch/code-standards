@@ -250,7 +250,7 @@ What changes:
   message may be acted on late, after a question to the owner. `MERGED` →
   run `SYNC #N base <sha>` instead, since merging a landed PR's head still
   leaves the branch behind main by its squash, and reply `SYNCED #N <new
-  head>` (no PR yet: the item in place of `#N`). Otherwise merge `<sha>`
+  head> (PREMERGE #M)` (no PR yet: the item in place of `#N`). Otherwise merge `<sha>`
   into this branch under the same conflict rules; run the gates under the
   project extension's shared-resource rules; push. Reply `PREMERGED #M
   <sha> <merge sha>`. Either way, `NEEDS_INPUT` for a conflict no rule

@@ -203,9 +203,7 @@ tracker read and link below.
 outcome its description states and any working-method rules in it or its
 design — and check the diff against each. A diff that breaks one is a
 finding: a goal saying "a check that keeps two copies in step is the
-defect", and a diff adding such a check. A holding container whose goal is
-one line ("open bugs across the product") is checked the same way and rarely
-yields one.
+defect", and a diff adding such a check.
 
 **History**, when the diff breaks a goal or the ticket is a bug. Over the
 files the diff changes:

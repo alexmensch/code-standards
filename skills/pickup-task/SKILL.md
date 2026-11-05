@@ -129,6 +129,11 @@ commit, and listed in § 6 with the item it wrote.
 A reviewer's options list is input, not a verdict: re-rank it under that
 test before routing the finding.
 
+Every other finding goes to the requester: a decision under that test, a fix
+that fails `code-craft`, disagreement with the ticket, or a case for
+deferring. Unsure whether that test makes it a decision → it goes to the
+requester.
+
 ### Review threads on the PR
 
 Before § 6 — so before every `READY_TO_LAND` — run `pr-cleanup` § Review
@@ -144,11 +149,6 @@ gh api graphql -F id=<thread id> -f query='
 
 Then run the check again — a fix can draw a new alert. While it prints a
 line, the PR is not ready to land.
-
-Every other finding goes to the requester: a decision under that test, a fix
-that fails `code-craft`, disagreement with the ticket, or a case for
-deferring. Unsure whether that test makes it a decision → it goes to the
-requester.
 
 ### Asking about a finding
 

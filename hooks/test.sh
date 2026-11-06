@@ -227,6 +227,93 @@ check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
+SYNC_BASE="$HERE/../skills/pickup-task/scripts/sync-base.sh"
+SB_FILES="a b c d e"
+g() { git -C "$repo" "$@"; }
+new_repo() {
+  repo="$STATE/sync-base/$1"
+  git init -q -b main "$repo"
+  g config user.name t && g config user.email t@t && g config commit.gpgsign false
+  put a=0 b=0 c=0 d=0 e=0
+}
+put() {
+  local kv
+  for kv in "$@"; do printf '%s\n' "${kv#*=}" > "$repo/${kv%%=*}"; done
+  g add -A && g commit -qm "$*"
+}
+branch() { g switch -q -c "$1" "${2:-HEAD}"; }
+on() { g switch -q "$1"; }
+merge() { g merge -q --no-edit "$1" >/dev/null; }
+
+# Each history leaves the lane checked out; main squashes each landed PR.
+h_revert() {
+  new_repo revert; branch lane; put c=L
+  branch M main; put a=M
+  on main; put a=M; on lane
+}
+h_single() {
+  new_repo single; branch lane; put a=L c=L
+  branch M main; put a=Me
+  on lane; merge M || put a=LMe
+  on M; put b=Mf
+  on main; put a=Me b=Mf; on lane
+}
+h_crisscross() {
+  new_repo crisscross; branch lane; put c=L
+  branch M main; put a=M1
+  on main; put d=X
+  on lane; merge M; merge main; put a=LM1 d=LX
+  on M; merge main; put b=Mf
+  on main; put a=M1 b=Mf; put e=U; on lane
+}
+h_two_landed() {
+  new_repo two-landed; branch lane; put c=L
+  branch P main; put a=Pe
+  branch M main; put b=Me
+  on lane; merge P; merge M
+  on P; put a=Pf
+  on main; put a=Pf
+  on M; put b=Mf; merge main
+  on main; put b=Mf; on lane
+}
+
+sync_new() { bash "$SYNC_BASE" main "$@"; }
+sync_18() { local t; t=$(git merge-tree --write-tree --merge-base="${!#}" HEAD main) \
+  && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
+sync_24() { local t; t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD "${!#}")" HEAD main) \
+  && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
+
+# outcome <recipe> <history> <head>... — the lane's files after the sync, or how it failed.
+outcome() (
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+  local recipe=$1 history=$2 f s
+  shift 2
+  rm -rf "$STATE/sync-base"
+  "$history" >/dev/null 2>&1
+  cd "$repo"
+  "$recipe" "$@" >/dev/null 2>&1; s=$?
+  case $s in
+    0) for f in $SB_FILES; do printf '%s=%s ' "$f" "$(git show "HEAD:$f")"; done ;;
+    1) echo conflict ;;
+    *) echo "error $s" ;;
+  esac
+)
+
+check "sync-base: a lane without the landed head keeps it" \
+  '[ "$(outcome sync_new h_revert M)" = "a=M b=0 c=L d=0 e=0 " ]'
+check "sync-base: the #18 recipe reverts it silently" '[ "$(outcome sync_18 h_revert M)" = "a=0 b=0 c=L d=0 e=0 " ]'
+check "sync-base: a pre-merge's resolution stands" \
+  '[ "$(outcome sync_new h_single M)" = "a=LMe b=Mf c=L d=0 e=0 " ]'
+check "sync-base: criss-cross merges cleanly" \
+  '[ "$(outcome sync_new h_crisscross M)" = "a=LM1 b=Mf c=L d=LX e=U " ]'
+check "sync-base: the #24 recipe conflicts on criss-cross" '[ "$(outcome sync_24 h_crisscross M)" = conflict ]'
+check "sync-base: two landed heads merge cleanly" \
+  '[ "$(outcome sync_new h_two_landed P M)" = "a=Pf b=Mf c=L d=0 e=0 " ]'
+check "sync-base: naming only the last landed head conflicts" '[ "$(outcome sync_new h_two_landed M)" = conflict ]'
+outcome sync_new h_single M >/dev/null
+check "sync-base: one commit on the lane, parents lane and main" \
+  '[ "$(git -C "$STATE/sync-base/single" log -1 --format=%P lane)" = "$(git -C "$STATE/sync-base/single" rev-parse lane@{1} main | xargs)" ]'
+
 unclosed_fence() {
   awk '/^[[:space:]]*```/ { rest = $0; sub(/^[[:space:]]*```/, "", rest)
          if (!open) open = FNR; else if (rest ~ /^[[:space:]]*$/) open = 0 }

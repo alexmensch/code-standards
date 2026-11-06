@@ -644,8 +644,8 @@ the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
 `n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges
 that head in at its next commit boundary while #N's CI and merge wait run,
 so conflict resolution leaves the critical path. #N lands as a squash, which git does not see as the commits the lane
-merged, so that lane's later `SYNC` names #N's final head as its base
-(step 2), and the earlier resolution stands.
+merged, so that lane's later `SYNC` names #N's final head among its landed
+pre-merged heads (step 2), and the earlier resolution stands.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or that neither shares a file nor waits on #N's item. Skip

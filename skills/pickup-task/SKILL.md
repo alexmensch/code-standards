@@ -255,19 +255,21 @@ What changes:
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
-  for a conflict no rule settles. **`SYNC #N base <sha>`** → build the merge
-  from the newest commit of `<sha>`'s history this branch holds, so
-  conflicts already resolved by a pre-merge stay resolved. Never `<sha>`
-  itself: on a branch that does not hold it, that base reads the branch as
-  undoing the landed PR, and the merge reverts it without a conflict:
+  for a conflict no rule settles. **`SYNC #N base <sha>`** → merge `<sha>`
+  into this branch first, as a later `PREMERGE` would, so conflicts already
+  resolved by a pre-merge stay resolved; then merge main onto that tree
+  with `<sha>` as the base, which the tree now holds. Git's own base search
+  in the first step uses every merge base, so a branch that holds both an
+  earlier pre-merged head and a main commit `<sha>` was synced onto still
+  merges cleanly. Commit the result as one merge of this branch and main:
 
   ```bash
   git fetch origin
   sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
-  if t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD <sha>)" HEAD origin/<main>); then
-    c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
-      && git merge --ff-only "$c"
-  else echo "conflicts:"; echo "$t"; fi
+  if ! s=$(git merge-tree --write-tree HEAD <sha>); then echo "conflicts:"; echo "$s"
+  elif ! t=$(git merge-tree --write-tree --merge-base=<sha> "$s" origin/<main>); then echo "conflicts:"; echo "$t"
+  else c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
+    && git merge --ff-only "$c"; fi
   ```
 
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git

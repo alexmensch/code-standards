@@ -293,7 +293,9 @@ restate a worker's report.
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
-finish. A slot is free while the items holding one number
+finish. Live sessions, and the gate runs a pre-merge starts in each, can so
+reach the cap plus the live approved lanes. A slot is free while the items
+holding one number
 fewer than the cap. Fill it: first
 hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each

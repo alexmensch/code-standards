@@ -590,8 +590,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    ask the user.
 4. **Land through a subagent**, so the merge wait and the cleanup stay out
    of this context. Spawn it on Sonnet (`model: "sonnet"` on the Agent
-   call): the route is scripted, and its only judgement — recognising a
-   deviation and stopping — does not need this session's model. Its brief:
+   call). Its brief:
    run `pr-cleanup` for #N from the main checkout;
    auto-merge is armed at `<h>`; worker `pickup-<item>` (its short id from
    `claude agents --json`) owns the worktree — for one of the user's own

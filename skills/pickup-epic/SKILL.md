@@ -649,10 +649,11 @@ merged, so that lane's later `SYNC` names #N's final head as its base
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or that neither shares a file nor waits on #N's item. Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
-  waiting on #N's item gets it until #N has merged. Each approval costs a
-  gate run per lane it reaches — up to the cap, plus the approved PRs queued
-  behind #N (§ 6 fill step) — again on each head move, plus, per lane launched
-  on #N, a rebuild of the seeded artifacts #N's diff makes stale.
+  waiting on #N's item gets it until #N has merged. Each approval costs up
+  to the cap's count of gate runs, since #N joins the back of the queue;
+  each later head move, up to the cap plus the live approved lanes queued
+  behind #N (§ 6 fill step); plus, per lane launched on #N, a rebuild of the
+  seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
   <new head> (PREMERGE #N)` in its place means #N had landed before the

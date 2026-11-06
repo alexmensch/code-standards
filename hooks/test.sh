@@ -369,6 +369,7 @@ if [ -n "$sync_base" ]; then
   check "sync-base: two landed heads merge cleanly" \
     '[ "$(outcome sync_new h_two_landed P M)" = "a=Pf b=Mf c=L d=0 e=0 " ]'
   check "sync-base: naming only the last landed head conflicts" '[ "$(outcome sync_new h_two_landed M)" = conflict ]'
+  check "sync-base: heads out of landing order conflict" '[ "$(outcome sync_new h_two_landed M P)" = conflict ]'
   check "sync-base: an unknown head is an error, not a conflict" '[ "$(outcome sync_new h_single deadbeef)" = "error 2" ]'
   check "sync-base: a signing failure is an error, not a conflict" '[ "$(outcome sync_unsignable h_single M)" = "error 2" ]'
   outcome sync_new h_single M >/dev/null

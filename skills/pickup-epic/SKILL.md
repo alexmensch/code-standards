@@ -567,18 +567,19 @@ version files and lockfiles conflict between any two PRs that both bump them.
    they report it pushed.
 
    A hibernated item has no worktree: count with `git rev-list --count
-   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it (§ 5), then `SYNC`. A `LANDING_FIX` for it:
-   relaunch it, then `LANDING_FIX`.
+   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it
+   (§ 5), then `SYNC`. A `LANDING_FIX` for it: relaunch it, then
+   `LANDING_FIX`.
 3. **Arm the merge here, never in the subagent** — this session holds the
    user's approval and the review check. From the main checkout, re-run
    step 1's check with `h` the PR's current `headRefOid`; it fails → as in
    step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
    nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
-   branch rule not `true` → ask the user, as for any deviation. Then
-   its § The signature trap's check and § Merge's
-   stack check and `mergeStateStatus` table, with this one command in place
-   of its merge, for `CLEAN` and `BLOCKED` alike; every other row as the
-   table says, except `BEHIND` / `DIRTY` → back to step 2:
+   branch rule not `true` → ask the user, as for any deviation. Then its
+   § The signature trap's check and § Merge's stack check and
+   `mergeStateStatus` table, with this one command in place of its merge,
+   for `CLEAN` and `BLOCKED` alike; every other row as the table says,
+   except `BEHIND` / `DIRTY` → back to step 2:
 
    ```bash
    gh pr merge <N> --squash --auto --match-head-commit <h>
@@ -590,13 +591,13 @@ version files and lockfiles conflict between any two PRs that both bump them.
    ask the user.
 4. **Land through a subagent**, so the merge wait and the cleanup stay out
    of this context. Spawn a fresh agent on Sonnet (`model: "sonnet"` on
-   the Agent call), never a fork, which ignores `model`. Its brief:
-   run `pr-cleanup` for #N from the main checkout;
-   auto-merge is armed at `<h>`; worker `pickup-<item>` (its short id from
-   `claude agents --json`) owns the worktree — for one of the user's own
-   items, the user's session does; never run `gh pr merge` except to
-   disarm; skip the project extension's post-landing step (the coordinator
-   runs it after the landing, step 5). In order:
+   the Agent call), never a fork, which ignores `model`. Its brief: run
+   `pr-cleanup` for #N from the main checkout; auto-merge is armed at `<h>`;
+   worker `pickup-<item>` (its short id from `claude agents --json`) owns
+   the worktree — for one of the user's own items, the user's session does;
+   never run `gh pr merge` except to disarm; skip the project extension's
+   post-landing step (the coordinator runs it after the landing, step 5).
+   In order:
    1. `pr-cleanup`'s route for a caller-armed merge, waiting in foreground
       calls of at most ten minutes each.
    2. § Close the tickets.
@@ -608,8 +609,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
       .deleteBranchOnMerge` — `false` → report the remote branch left
       behind. `claude rm` already deleted the local branch.
    5. Return `merged`, `LANDING_FIX <failed checks | unresolved threads>`,
-      the check that failed, or the
-      deviation `pr-cleanup` stopped on.
+      the check that failed, or the deviation `pr-cleanup` stopped on.
 
    **Hold.** The brief also gives the subagent its reply to the
    coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,

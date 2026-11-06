@@ -278,10 +278,10 @@ h_two_landed() {
 
 sync_new() { bash "$sync_base" main "$@"; }
 sync_unsignable() { git config commit.gpgsign true && git config gpg.program false && sync_new "$@"; }
-sync_18() { local t; t=$(git merge-tree --write-tree --merge-base="${!#}" HEAD main) \
+sync_from() { local t; t=$(git merge-tree --write-tree --merge-base="$1" HEAD main) \
   && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
-sync_24() { local t; t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD "${!#}")" HEAD main) \
-  && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
+sync_18() { sync_from "${!#}"; }
+sync_24() { sync_from "$(git merge-base HEAD "${!#}")"; }
 
 # outcome <recipe> <history> <head>... — the lane's files after the sync, or how it failed.
 outcome() (

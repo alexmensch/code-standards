@@ -291,10 +291,9 @@ restate a worker's report.
 
 **Then fill free slots — never silently.** A live worker or an
 idle-hibernated item holds a slot under the cap until its PR is approved
-(§ 7.1). From approval to landing it waits only for its landing turn, a sync
-or the landing, and holds none; a reply it still owes that is real work — a
-`LANDING_FIX`, a `SYNC` whose conflict goes to the user — is its to finish
-and still holds none. A slot is free while the items holding one number
+(§ 7.1). From approval until it lands it holds none, whatever it still
+owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
+finish. A slot is free while the items holding one number
 fewer than the cap. Fill it: first
 hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each

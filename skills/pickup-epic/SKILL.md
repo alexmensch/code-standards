@@ -125,7 +125,7 @@ The tracker skill maps all three operations.
 - **Open PRs** naming an item in the tree or the run:
   `gh pr list --state open --json number,title,headRefName,body`. Also
   **merged PRs whose items are still open or whose worker still runs**: a
-  landing cut off mid-way — finish it with § 7.4's brief, whose `pr-cleanup`
+  landing cut off mid-way — finish it through § 7.4, whose `pr-cleanup`
   takes the already-merged route.
 - **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
   is a **live worker**.

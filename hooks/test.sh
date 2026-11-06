@@ -227,7 +227,6 @@ check "skill guard never refuses a prompt without jq" 'PATH="$STATE/nojq" TMPDIR
 default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_name\": \"Edit\", \"tool_input\": {\"file_path\": \"$1\"}}"; }
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
-SYNC_BASE="$HERE/../skills/pickup-task/scripts/sync-base.sh"
 SB_FILES="a b c d e"
 g() { git -C "$repo" "$@"; }
 new_repo() {
@@ -277,7 +276,7 @@ h_two_landed() {
   on main; put b=Mf; on lane
 }
 
-sync_new() { bash "$SYNC_BASE" main "$@"; }
+sync_new() { bash "$sync_base" main "$@"; }
 sync_18() { local t; t=$(git merge-tree --write-tree --merge-base="${!#}" HEAD main) \
   && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
 sync_24() { local t; t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD "${!#}")" HEAD main) \
@@ -298,21 +297,6 @@ outcome() (
     *) echo "error $s" ;;
   esac
 )
-
-check "sync-base: a lane without the landed head keeps it" \
-  '[ "$(outcome sync_new h_revert M)" = "a=M b=0 c=L d=0 e=0 " ]'
-check "sync-base: the #18 recipe reverts it silently" '[ "$(outcome sync_18 h_revert M)" = "a=0 b=0 c=L d=0 e=0 " ]'
-check "sync-base: a pre-merge's resolution stands" \
-  '[ "$(outcome sync_new h_single M)" = "a=LMe b=Mf c=L d=0 e=0 " ]'
-check "sync-base: criss-cross merges cleanly" \
-  '[ "$(outcome sync_new h_crisscross M)" = "a=LM1 b=Mf c=L d=LX e=U " ]'
-check "sync-base: the #24 recipe conflicts on criss-cross" '[ "$(outcome sync_24 h_crisscross M)" = conflict ]'
-check "sync-base: two landed heads merge cleanly" \
-  '[ "$(outcome sync_new h_two_landed P M)" = "a=Pf b=Mf c=L d=0 e=0 " ]'
-check "sync-base: naming only the last landed head conflicts" '[ "$(outcome sync_new h_two_landed M)" = conflict ]'
-outcome sync_new h_single M >/dev/null
-check "sync-base: one commit on the lane, parents lane and main" \
-  '[ "$(git -C "$STATE/sync-base/single" log -1 --format=%P lane)" = "$(git -C "$STATE/sync-base/single" rev-parse lane@{1} main | xargs)" ]'
 
 unclosed_fence() {
   awk '/^[[:space:]]*```/ { rest = $0; sub(/^[[:space:]]*```/, "", rest)
@@ -365,6 +349,30 @@ if [ -n "$bodies" ]; then
   unclosed="$(while read -r b; do find "${b%/SKILL.md}" -name '*.md'; done <<< "$bodies" \
     | while read -r f; do unclosed_fence "$f"; done)"
   check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
+fi
+
+sync_base="$(while read -r b; do
+  if [[ "$b" == */pickup-task/SKILL.md ]] || grep -q '^<!-- Installed copy of code-standards skills/pickup-task/SKILL.md' "$b"; then
+    echo "${b%/SKILL.md}/scripts/sync-base.sh"
+  fi
+done <<< "$bodies")"
+if [ -n "$sync_base" ]; then
+  check "sync-base: a lane without the landed head keeps it" \
+    '[ "$(outcome sync_new h_revert M)" = "a=M b=0 c=L d=0 e=0 " ]'
+  check "sync-base: the #18 recipe reverts it silently" '[ "$(outcome sync_18 h_revert M)" = "a=0 b=0 c=L d=0 e=0 " ]'
+  check "sync-base: a pre-merge's resolution stands" \
+    '[ "$(outcome sync_new h_single M)" = "a=LMe b=Mf c=L d=0 e=0 " ]'
+  check "sync-base: criss-cross merges cleanly" \
+    '[ "$(outcome sync_new h_crisscross M)" = "a=LM1 b=Mf c=L d=LX e=U " ]'
+  check "sync-base: the #24 recipe conflicts on criss-cross" '[ "$(outcome sync_24 h_crisscross M)" = conflict ]'
+  check "sync-base: two landed heads merge cleanly" \
+    '[ "$(outcome sync_new h_two_landed P M)" = "a=Pf b=Mf c=L d=0 e=0 " ]'
+  check "sync-base: naming only the last landed head conflicts" '[ "$(outcome sync_new h_two_landed M)" = conflict ]'
+  outcome sync_new h_single M >/dev/null
+  check "sync-base: one commit on the lane, parents lane and main" \
+    '[ "$(git -C "$STATE/sync-base/single" log -1 --format=%P lane)" = "$(git -C "$STATE/sync-base/single" rev-parse lane@{1} main | xargs)" ]'
+else
+  echo "skip sync-base: pickup-task is not installed"
 fi
 
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

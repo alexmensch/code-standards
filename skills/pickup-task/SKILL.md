@@ -266,10 +266,11 @@ What changes:
   ```bash
   git fetch origin
   sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
-  if ! s=$(git merge-tree --write-tree HEAD <sha>); then echo "conflicts:"; echo "$s"
-  elif ! t=$(git merge-tree --write-tree --merge-base=<sha> "$s" origin/<main>); then echo "conflicts:"; echo "$t"
-  else c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
-    && git merge --ff-only "$c"; fi
+  if t=$(git merge-tree --write-tree HEAD <sha>) \
+    && t=$(git merge-tree --write-tree --merge-base=<sha> "$t" origin/<main>); then
+    c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
+      && git merge --ff-only "$c"
+  else echo "conflicts:"; echo "$t"; fi
   ```
 
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git

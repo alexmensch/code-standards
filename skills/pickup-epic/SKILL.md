@@ -88,7 +88,7 @@ nowhere else:
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
-  `idle` and keep their slot under the cap;
+  `idle`; § 6's fill step says which of them hold a slot under the cap;
 - the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
@@ -289,8 +289,13 @@ Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation, a free slot left empty. Never
 restate a worker's report.
 
-**Then fill free slots — never silently.** A slot is free while live workers
-and idle-hibernated items number fewer than the cap. Fill it: first
+**Then fill free slots — never silently.** A live worker or an
+idle-hibernated item holds a slot under the cap until its PR is approved
+(§ 7.1). From approval to landing it waits only for its landing turn, a sync
+or the landing, and holds none; a reply it still owes that is real work — a
+`LANDING_FIX`, a `SYNC` whose conflict goes to the user — is its to finish
+and still holds none. A slot is free while the items holding one number
+fewer than the cap. Fill it: first
 hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, an open decision, a lane
@@ -643,8 +648,9 @@ merged, so that lane's later `SYNC` names #N's final head as its base
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or that neither shares a file nor waits on #N's item. Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
-  waiting on #N's item gets it until #N has merged. Each approval costs up
-  to (cap − 1) gate runs, again on each head move, plus, per lane launched
+  waiting on #N's item gets it until #N has merged. Each approval costs a
+  gate run per lane it reaches — up to the cap, plus the approved PRs queued
+  behind #N (§ 6 fill step) — again on each head move, plus, per lane launched
   on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
@@ -692,7 +698,8 @@ run down, which is § Hibernate's trigger. Then:
 - a post-landing step may have been cut off → run it before any launch;
 - the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
-  happened meanwhile, ahead of new items, up to the cap.
+  happened meanwhile, ahead of new items, while a slot is free (§ 6 fill
+  step).
 
 ## Deviations — stop and ask
 

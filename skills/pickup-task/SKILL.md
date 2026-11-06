@@ -263,11 +263,12 @@ What changes:
   one merge of this branch and main, signed when `commit.gpgsign` is set:
 
   ```bash
-  git fetch origin
+  git fetch origin && git fetch origin pull/<M>/head...
   bash <this skill's folder>/scripts/sync-base.sh origin/<main> <sha>...
   ```
 
-  It merges each `<sha>` in turn, as a later `PREMERGE` would, so conflicts
+  One `pull/<M>/head` per PR on the list: a head this branch never merged
+  may be missing locally. It merges each `<sha>` in turn, as a later `PREMERGE` would, so conflicts
   already resolved by a pre-merge stay resolved, then main from the last.
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
   merge` would raise the pre-merge's conflicts again. Any other failure (a

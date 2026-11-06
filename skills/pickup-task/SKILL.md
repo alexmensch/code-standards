@@ -255,28 +255,23 @@ What changes:
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
-  for a conflict no rule settles. **`SYNC #N base <sha>`** → merge `<sha>`
-  into this branch first, as a later `PREMERGE` would, so conflicts already
-  resolved by a pre-merge stay resolved; then merge main onto that tree
-  with `<sha>` as the base. Keep that order: `<sha>` is a safe base only for
-  a tree that holds it, and on one that does not, the merge reads the branch
-  as undoing the landed PR and reverts it without a conflict. Git's own base search
-  in the first step uses every merge base, so a branch that holds both an
-  earlier pre-merged head and a main commit `<sha>` was synced onto still
-  merges cleanly. Commit the result as one merge of this branch and main:
+  for a conflict no rule settles. **`SYNC #N base <sha>...`** → the
+  branch's **landed pre-merged heads**: for each PR whose head this branch
+  pre-merged, once `gh pr view <M> --json state,mergeCommit,headRefOid,mergedAt`
+  shows it `MERGED` and `git merge-base --is-ancestor <mergeCommit oid> HEAD`
+  fails, its `headRefOid`, ordered by `mergedAt`. Merge them, then main, as
+  one merge of this branch and main, signed when `commit.gpgsign` is set:
 
   ```bash
-  git fetch origin
-  sign=$(git config --bool commit.gpgsign | sed -n 's/^true$/-S/p')
-  if t=$(git merge-tree --write-tree HEAD <sha>) \
-    && t=$(git merge-tree --write-tree --merge-base=<sha> "$t" origin/<main>); then
-    c=$(git commit-tree $sign "$t" -p HEAD -p origin/<main> -m "Merge origin/<main>") \
-      && git merge --ff-only "$c"
-  else echo "conflicts:"; echo "$t"; fi
+  git fetch origin && git fetch origin pull/<M>/head...
+  bash <this skill's folder>/scripts/sync-base.sh origin/<main> <sha>...
   ```
 
+  One `pull/<M>/head` per PR on the list: a head this branch never merged
+  may be missing locally. It merges each `<sha>` in turn, as a later `PREMERGE` would, so conflicts
+  already resolved by a pre-merge stay resolved, then main from the last.
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
-  merge` would raise the pre-merge's conflicts again. `commit-tree` fails (a
+  merge` would raise the pre-merge's conflicts again. Any other failure (a
   signing error) → `NEEDS_INPUT` with the error; never retry unsigned.
 - **`PREMERGE #M <sha>`** → PR #M is approved to land before this one and
   `<sha>` is its final head; an item still blocked in the tracker by #M's
@@ -284,7 +279,8 @@ What changes:
   made yet, otherwise at the next commit boundary, `git fetch origin
   pull/<M>/head`, then check `gh pr view <M> --json state -q .state` — the
   message may be acted on late, after a question to the owner. `MERGED` →
-  run `SYNC #N base <sha>` instead, since merging a landed PR's head still
+  run `SYNC #N base` instead, with the branch's landed pre-merged heads and
+  `<sha>` among them in `mergedAt` order, since merging a landed PR's head still
   leaves the branch behind main by its squash, and reply `SYNCED #N <new
   head> (PREMERGE #M)` (no PR yet: the item in place of `#N`). Otherwise merge `<sha>`
   into this branch under the same conflict rules; run the gates under the

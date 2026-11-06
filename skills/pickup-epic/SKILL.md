@@ -589,8 +589,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    included (it would write the worker's branch), or a refused command →
    ask the user.
 4. **Land through a subagent**, so the merge wait and the cleanup stay out
-   of this context. Spawn it on Sonnet (`model: "sonnet"` on the Agent
-   call). Its brief:
+   of this context. Spawn a fresh agent on Sonnet (`model: "sonnet"` on
+   the Agent call), never a fork, which ignores `model`. Its brief:
    run `pr-cleanup` for #N from the main checkout;
    auto-merge is armed at `<h>`; worker `pickup-<item>` (its short id from
    `claude agents --json`) owns the worktree — for one of the user's own

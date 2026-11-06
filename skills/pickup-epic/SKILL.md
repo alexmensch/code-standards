@@ -558,9 +558,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
    **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
-   `SYNC #N` to its worker — `SYNC #N base <head>` when a PR pre-merged
-   into it has landed since, with the final head of the one that landed
-   last — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
+   `SYNC #N` to its worker — `SYNC #N base <head>...` when a PR pre-merged
+   into it has landed since, with every one of the lane's landed pre-merged
+   heads (`pickup-task` § Coordinated mode defines them, the lane's head as
+   `HEAD`) — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
    sync merge, to the lane's `REVIEWED:` list. For one of the user's own
    items, tell the user it is behind instead, and add the sync merge once
    they report it pushed.

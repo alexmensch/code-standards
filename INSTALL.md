@@ -132,8 +132,8 @@ Harness with no skill folder: add one line per skill to the block, after the
 Copy `skills/<name>/` to the target skill folder for each skill not skipped,
 under its final name, replacing any previous install of it, and add the
 installed-copy notice (§ 4) for `skills/<name>/SKILL.md` on the line after
-its frontmatter. Then make
-`scripts/diff-shape.sh` executable and run it once from the target repo (or,
+its frontmatter. Then make every skill's `scripts/*.sh` executable, and
+run `scripts/diff-shape.sh` once from the target repo (or,
 for a user install, from the repo the session is in):
 
 ```

@@ -25,7 +25,7 @@ asking where both sides changed.
 | `skills/code-craft/` | On design, refactor, review, recurring bug | Design pass, refactoring, review lens, bug classes; `references/` holds the smells table, patterns admissible by force, and write-time patterns |
 | `skills/pr-review/` | On a review request | Review priority order, resource and performance cost, diff efficiency with numbers (`scripts/diff-shape.sh`), plan drift, epic goals and recurrence (history lookup on a goals breach or a bug), disposition of findings |
 | `skills/pr-cleanup/` | Claude Code + GitHub only; on "merge / land PR N", "/pr-cleanup" | Lands a named PR: merge the default branch in, signature check, unresolved-review-thread check, squash-merge or arm auto-merge and watch, close tickets, remove the worktree, fast-forward local main; loads a project's `*-pr-cleanup` extension |
-| `skills/pickup-task/` | On "work on ticket X", "/pickup-task" | Takes shovel-ready work only: readiness gate, implement, PR, `pr-review` in a subagent, fix the findings `code-craft` settles, hand every decision back |
+| `skills/pickup-task/` | On "work on ticket X", "/pickup-task" | Takes shovel-ready work only: readiness gate, implement, PR, `pr-review` in a subagent, fix the findings `code-craft` settles, hand every decision back; under `pickup-epic`, syncs a lane onto landed pre-merges (`scripts/sync-base.sh`) |
 | `skills/pickup-epic/` | Claude Code only; on "work through epic X", "/pickup-epic" | Coordinates a planned epic: a just-in-time queue over its dependency graph, a `pickup-task` background session per ready item, lanes kept off each other's files, one landing at a time with per-PR approval, a replan on every worker report, a run state on the epic that survives compaction and resume, hibernation into handoffs that fresh sessions resume from — per idle worker before its prompt cache expires, and for the whole run on request or once none is left; reminders of unanswered questions; loads a project's `*-pickup-epic` extension |
 | `skills/beads/` | Projects tracked with `bd` only; whenever a session runs `bd` | `bd` command syntax and its traps: dependency argument order, silent truncation, parentage from the `parent` field, closing with a reason |
 | `hooks/` | Claude Code only | Keeps the design pass in front of the model on every turn of a review, denies edits to installed copies, and denies a stylesheet or code edit until `cube-css` or `code-craft` is loaded — `hooks/README.md` |
@@ -37,7 +37,8 @@ and it names the skill to load for the full pass.
 
 - `bash hooks/test.sh` — the hooks' behavioural tests, then the skill
   checks: the bundle's skills are found, no skill body holds text the skill
-  loader substitutes, and every code fence is closed.
+  loader substitutes, and every code fence is closed; then `pickup-task`'s
+  `scripts/sync-base.sh` against each lane history a `SYNC base` can meet.
 - `bash skills/pr-review/scripts/diff-shape.sh <base>` — run from inside any
   repo to check the bucketing.
 - Skills cross-reference each other and the fragment by section name. A

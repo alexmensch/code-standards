@@ -277,6 +277,7 @@ h_two_landed() {
 }
 
 sync_new() { bash "$sync_base" main "$@"; }
+sync_unsignable() { git config commit.gpgsign true && git config gpg.program false && sync_new "$@"; }
 sync_18() { local t; t=$(git merge-tree --write-tree --merge-base="${!#}" HEAD main) \
   && git merge --ff-only -q "$(git commit-tree "$t" -p HEAD -p main -m m)"; }
 sync_24() { local t; t=$(git merge-tree --write-tree --merge-base="$(git merge-base HEAD "${!#}")" HEAD main) \
@@ -368,6 +369,8 @@ if [ -n "$sync_base" ]; then
   check "sync-base: two landed heads merge cleanly" \
     '[ "$(outcome sync_new h_two_landed P M)" = "a=Pf b=Mf c=L d=0 e=0 " ]'
   check "sync-base: naming only the last landed head conflicts" '[ "$(outcome sync_new h_two_landed M)" = conflict ]'
+  check "sync-base: an unknown head is an error, not a conflict" '[ "$(outcome sync_new h_single deadbeef)" = "error 2" ]'
+  check "sync-base: a signing failure is an error, not a conflict" '[ "$(outcome sync_unsignable h_single M)" = "error 2" ]'
   outcome sync_new h_single M >/dev/null
   check "sync-base: one commit on the lane, parents lane and main" \
     '[ "$(git -C "$STATE/sync-base/single" log -1 --format=%P lane)" = "$(git -C "$STATE/sync-base/single" rev-parse lane@{1} main | xargs)" ]'

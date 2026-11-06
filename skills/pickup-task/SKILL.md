@@ -258,7 +258,9 @@ What changes:
   for a conflict no rule settles. **`SYNC #N base <sha>`** → merge `<sha>`
   into this branch first, as a later `PREMERGE` would, so conflicts already
   resolved by a pre-merge stay resolved; then merge main onto that tree
-  with `<sha>` as the base, which the tree now holds. Git's own base search
+  with `<sha>` as the base. Keep that order: `<sha>` is a safe base only for
+  a tree that holds it, and on one that does not, the merge reads the branch
+  as undoing the landed PR and reverts it without a conflict. Git's own base search
   in the first step uses every merge base, so a branch that holds both an
   earlier pre-merged head and a main commit `<sha>` was synced onto still
   merges cleanly. Commit the result as one merge of this branch and main:

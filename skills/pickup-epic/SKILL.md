@@ -174,7 +174,8 @@ user itself.
   criteria. One fails → the item does not launch; § 6's fill step names it.
   An open decision is a gap, not a readiness failure.
 - **Unrecorded dependency** — ask whether to record it, naming both items
-  and what this one uses from the other, with no recommended option.
+  and what this one uses from the other, with no recommended option. Read
+  both items in full first — through a subagent when there are many.
   Recorded → the item waits on it.
 - **Lane** — the files it will touch, from its text and the code it names,
   against every running worker's actual changes (§ Lanes). Overlap → hold it

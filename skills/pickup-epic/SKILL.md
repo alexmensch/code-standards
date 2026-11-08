@@ -268,7 +268,8 @@ that repo's main checkout with ` — tracker in <this repo's main checkout>`
 appended to its prompt; every git and `gh` step for it — lanes, review
 check, landing — runs from that checkout, and the project's post-landing
 step does not apply to it. An item preflight wrote an `UNRESOLVED` note on
-gets ` — UNRESOLVED in notes` appended last.
+gets ` — UNRESOLVED in notes` appended after any ` — tracker in` suffix and
+before ` — resume from handoff`.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that

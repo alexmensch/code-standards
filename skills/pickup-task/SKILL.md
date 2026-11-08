@@ -223,10 +223,16 @@ prompt started, not requests from a third party. Load the project's
 What changes:
 
 - **The item is given and already claimed.** Never resolve or claim another.
-  Answers from the coordinator's preflight are in the item's notes, so they
-  count as written down. A launch prompt carrying ` — tracker in <path>`:
+  A launch prompt carrying ` — tracker in <path>`:
   the item lives in the tracker of the checkout at `<path>`, and every
   tracker operation runs against that one.
+- **An `UNRESOLVED` note is an open question, never settled** — whether or
+  not the launch prompt carries ` — UNRESOLVED in notes`. The coordinator
+  wrote it at preflight from the item and its pointers alone, without
+  checking it against the code. Investigate it, then ask the requester under
+  § Never decide for the requester; a later note recording their answer
+  settles it. An open decision so noted does not fail § 2: it is asked, not
+  refused.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   The coordinator tells the user only that this session needs them, so put

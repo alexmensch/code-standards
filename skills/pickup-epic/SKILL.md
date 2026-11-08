@@ -163,8 +163,9 @@ decisions to the user. A gap is any of:
 - a premise that another item's landing has changed.
 
 Write each gap into the item's notes, one note each, starting `UNRESOLVED`:
-what conflicts with what, with a pointer to each side — item IDs, files,
-the owner decision's text — and no proposed answer. Launch it with
+the open decision quoted, or what conflicts with what with a pointer to
+each side — item IDs, files, the owner decision's text — and no proposed
+answer. Launch it with
 ` — UNRESOLVED in notes` (§ 5); the worker investigates each and asks the
 user itself.
 

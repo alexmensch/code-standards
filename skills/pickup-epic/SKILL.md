@@ -193,8 +193,8 @@ These checks' questions, and which item takes a slot, are the only questions
 this session asks at preflight. Ask with the question tool, batched across
 the items about to launch, each question standing alone in the shape of
 `pickup-task` § Asking about a finding. Record each answer where the run
-reads it: a dependency in the tracker, a goal in the epic, a hold or bundle
-in the run state.
+reads it: a dependency in the tracker, a goal in the epic, the rest in the
+run state.
 
 ## Lanes
 

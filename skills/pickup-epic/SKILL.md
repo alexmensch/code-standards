@@ -56,9 +56,9 @@ another item's premise, a dependency appears.
 
 - **State lives in the tracker, the PRs, the session list and the run state —
   never only in this conversation.** Every replan re-reads them (§ 1).
-- **Preflight an item right before it launches, never earlier.** An answer
-  given now for an item five landings away is a guess about what those
-  landings change.
+- **Preflight an item right before it launches, never earlier.** A gap
+  noted now for an item five landings away misses what those landings
+  change.
 - **Lanes are measured, not forecast**, from real diffs as workers push.
   Never predict a merge conflict; report one only when git does.
 

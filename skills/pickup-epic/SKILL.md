@@ -29,14 +29,15 @@ on the critical path.
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, preflight answers, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, preflight's `UNRESOLVED` notes, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
 ## What invoking this authorises — and only this
 
 For items in the tree under the named epic, and items the user brings into
 the run: file an item under the named epic for such work that has none
-(§ 5), claim them, write the user's preflight answers into them and the
-goals they give into an epic (§ 3), launch
+(§ 5), claim them, write preflight's `UNRESOLVED` notes into them, the
+dependencies the user approves into the tracker and the goals they give
+into an epic (§ 3), launch
 workers, stop and remove a worker's session (§ Removing a worker's session),
 send the coordinator's message kinds,
 close a sub-epic once all its children are closed. Each merge still needs the
@@ -145,12 +146,35 @@ Among items with no open blocker (§ 1 says which count as satisfied):
 
 ## 3. Preflight — per item, at launch time
 
-Read the item in full, with its notes and parent chain, then all five:
+Read the item in full, with its notes and parent chain.
 
-- **Readiness** — `pickup-task` § 2's four criteria.
-- **Unrecorded dependency** — it builds on something an open item delivers
-  (a module, a rule, a file it names) with no dependency recorded → propose
-  recording it.
+**Identify gaps; never resolve them.** The worker reads all the code the
+item touches; this session reads the item and a little of it, so an option
+it researches or recommends rests on less than the worker will see. Never
+research options for an item's content, recommend one, or put its content
+decisions to the user. A gap is any of:
+
+- an open decision written in the item;
+- a conflict between the item and another item, an epic's goals, or an
+  owner decision in force;
+- a dependency on what an open item delivers (a module, a rule, a file it
+  names) that the tracker does not record, and the user chose not to
+  record (below);
+- a premise that another item's landing has changed.
+
+Write each gap into the item's notes, one note each, starting `UNRESOLVED`:
+what conflicts with what, with a pointer to each side — item IDs, files,
+the owner decision's text — and no proposed answer. Launch it with
+` — UNRESOLVED in notes` (§ 5); the worker investigates each and asks the
+user itself.
+
+**Run-level checks** — each needs only the run's state:
+
+- **Readiness** — `pickup-task` § 2's outcome, acceptance and bounded
+  criteria. One fails → the item does not launch; § 6's fill step names it.
+  An open decision is a gap, not a readiness failure.
+- **Unrecorded dependency** — ask whether to record it, naming both items
+  and what this one uses from the other. Recorded → the item waits on it.
 - **Lane** — the files it will touch, from its text and the code it names,
   against every running worker's actual changes (§ Lanes). Overlap → hold it
   until that worker lands, or ask whether to bundle it into that PR. Overlap
@@ -162,15 +186,12 @@ Read the item in full, with its notes and parent chain, then all five:
   epic's description: `pr-review` checks every diff against it. A one-line
   outcome, as a holding container has, is enough.
 
-Ask only decisions the item **leaves open in writing**. Never recommend an
-option you have not checked against the code it touches. A proposed
-dependency is a recommendation too: read both items in full before putting
-it to the user — through a subagent when there are many. A decision that
-only appears once the code is read belongs to the worker, who asks the user
-directly. Ask with the question tool, batched across the items about to
-launch, each question standing alone in the shape of `pickup-task` § Asking
-about a finding. **Write each answer into the item's notes before launching
-it**: the worker treats notes as written down and does not re-ask.
+These checks' questions, and which item takes a slot, are the only questions
+this session asks at preflight. Ask with the question tool, batched across
+the items about to launch, each question standing alone in the shape of
+`pickup-task` § Asking about a finding. Record each answer where the run
+reads it: a dependency in the tracker, a goal in the epic, a hold or bundle
+in the run state.
 
 ## Lanes
 
@@ -244,7 +265,8 @@ launch it by that ID. An item whose work is in another repo launches from
 that repo's main checkout with ` — tracker in <this repo's main checkout>`
 appended to its prompt; every git and `gh` step for it — lanes, review
 check, landing — runs from that checkout, and the project's post-landing
-step does not apply to it.
+step does not apply to it. An item preflight wrote an `UNRESOLVED` note on
+gets ` — UNRESOLVED in notes` appended last.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
@@ -299,7 +321,7 @@ holding one number
 fewer than the cap. Fill it: first
 hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each
-candidate and why it cannot start: blocked by X, an open decision, a lane
+candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
 outside it that would unblock it, for the user to bring in. Every slot held
 by an idle-hibernated item → name each and what relaunches it. That report

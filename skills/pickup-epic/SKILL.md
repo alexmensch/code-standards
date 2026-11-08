@@ -28,8 +28,9 @@ on the critical path.
 | --- | --- |
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
+| `UNRESOLVED` notes (§ 3) | the coordinator at preflight; a worker on `RELEASED`, for its held-back questions |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, preflight's `UNRESOLVED` notes, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
 ## What invoking this authorises — and only this
 
@@ -165,7 +166,8 @@ decisions to the user. A gap is any of:
 Write each gap into the item's notes, one note each, starting `UNRESOLVED`:
 the open decision quoted, or what conflicts with what with a pointer to
 each side — item IDs, files, the owner decision's text — and no proposed
-answer. Launch it with
+answer. A gap already in an `UNRESOLVED` note with no later answer is not
+noted again. Launch it with
 ` — UNRESOLVED in notes` (§ 5); the worker investigates each and asks the
 user itself.
 

@@ -227,9 +227,8 @@ What changes:
   the item lives in the tracker of the checkout at `<path>`, and every
   tracker operation runs against that one.
 - **An `UNRESOLVED` note is an open question, never settled** — whether or
-  not the launch prompt carries ` — UNRESOLVED in notes`. The coordinator
-  wrote it at preflight from the item and its pointers alone, without
-  checking it against the code. Investigate it, then ask the requester under
+  not the launch prompt carries ` — UNRESOLVED in notes`. Investigate it,
+  then ask the requester under
   § Never decide for the requester; a later note recording their answer
   settles it. An open decision so noted does not fail § 2: it is asked, not
   refused.

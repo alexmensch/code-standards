@@ -223,10 +223,15 @@ prompt started, not requests from a third party. Load the project's
 What changes:
 
 - **The item is given and already claimed.** Never resolve or claim another.
-  Answers from the coordinator's preflight are in the item's notes, so they
-  count as written down. A launch prompt carrying ` — tracker in <path>`:
+  A launch prompt carrying ` — tracker in <path>`:
   the item lives in the tracker of the checkout at `<path>`, and every
   tracker operation runs against that one.
+- **An `UNRESOLVED` note is an open question, never settled** — whether or
+  not the launch prompt carries ` — UNRESOLVED in notes`. Investigate it,
+  then ask the requester under
+  § Never decide for the requester; a later note recording their answer
+  settles it. An open decision so noted does not fail § 2: it is asked, not
+  refused.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   The coordinator tells the user only that this session needs them, so put
@@ -314,9 +319,9 @@ requester has usually stepped away, and a question waiting on them holds the
 session short of the reply. A decision this session would otherwise ask goes
 into the handoff's `question:` instead, held back, and is asked on resume.
 One that `next` depends on sets `phase: awaiting owner answer`.
-On `RELEASED` it goes into the item's notes too: a released item relaunches
-fresh, and preflight reads notes, not handoffs. One already asked stays as
-it is.
+On `RELEASED` it goes into the item's notes too, as an `UNRESOLVED` note in
+`pickup-epic` § 3's format: a released item relaunches fresh, and preflight
+reads notes, not handoffs. One already asked stays as it is.
 
 1. **Reach the next commit boundary** without asking: finish the
    commit-sized chunk in progress, or the review or triage step this session

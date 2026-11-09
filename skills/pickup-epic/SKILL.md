@@ -408,8 +408,8 @@ done
 The idle watcher never hands off a worker waiting on the user: it reads no
 message until its question is settled, and once answered it works on with
 the answer. Nor one in a pull wait: its `pulling` mark matches no case, so it
-is neither timed nor dismissed — mid-pull it has no commit boundary to hand
-off at, and the pull timer keeps it warm instead. Per line printed:
+is neither timed nor dismissed — a hand-off would stop its command, and the
+pull timer keeps it warm instead. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `dismissed` — the user dismissed its question, so its turn ended → the
@@ -511,8 +511,9 @@ session. A later worker starts fresh from that record (§ 5).
 
    The branch stays on origin; for a released item, report it to the user —
    deleting a remote branch is theirs.
-3. **Run state**: a hibernated or parked item joins the hibernated list,
-   with what relaunches it (§ The run state). A released item does not:
+3. **Run state**: any pull wait of the item is cleared. A hibernated or
+   parked item joins the hibernated list, with what relaunches it (§ The
+   run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.
    A handoff whose `question:` is not `none` also lists the item as waiting

@@ -335,7 +335,9 @@ reads notes, not handoffs. One already asked stays as it is.
    commit-sized chunk in progress, or the review or triage step this session
    is in — the part that does not depend on a held-back question. Commit
    normally — never a WIP commit — and push. A branch with no commits of its
-   own is not pushed; its handoff says `branch: none`.
+   own is not pushed; its handoff says `branch: none`. In a pull wait,
+   stop the background command rather than wait for it, send `PULL_DONE`,
+   and put its re-run in `next:`.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
    The latest one is the item's handoff; a resumed session's own supersedes
    it:

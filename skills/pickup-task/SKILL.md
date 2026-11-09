@@ -260,8 +260,9 @@ What changes:
   waits on it. The coordinator picks pre-merge recipients from the tracker.
 - **Never merge, and never touch the main checkout.** Landing belongs to the
   coordinator, one PR at a time.
-- **`PULL_PING <item>`** → reply `PULL_ETA` with the pull's current ETA,
-  from its progress output, and end the turn. The round trip is what keeps
+- **`PULL_PING <item>`** while in a pull wait → reply `PULL_ETA` with the
+  pull's current ETA, from its progress output, and end the turn. After
+  `PULL_DONE`, ignore it: that message already answered it. The round trip is what keeps
   both sessions' prompt caches warm through a pull longer than their
   one-hour lifetime.
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`

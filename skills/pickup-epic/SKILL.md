@@ -374,7 +374,7 @@ carries no idle timestamp. It reads a file this session rewrites with every
 run-state write: one line per live worker of this run, `<item>`, `<item>
 waiting` while it waits on the user, or `<item> pulling` while it is in a
 pull wait, even one also waiting on the user — a dismissed question must
-not hand off a worker mid-pull. Left out: the item landing now, a
+not hand off a worker whose command still runs. Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 

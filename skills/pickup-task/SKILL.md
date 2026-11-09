@@ -248,6 +248,9 @@ What changes:
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope, or a review proposes a mechanism ticket (`code-craft` § Bug classes). Write the finding into each affected item first |
 | `READY_TO_LAND` | § 6 is reached with no question open, no unresolved review thread (§ 5) and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `thread <link>`, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
+| `PULL_WAIT` | the turn is about to end on a background command — a data pull, a long build — expected to outlast the prompt cache's one-hour lifetime, or of unknown length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
+| `PULL_ETA` | the reply to `PULL_PING`, while the command runs: `PULL_ETA <item> — ETA <time>` |
+| `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
 
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
@@ -257,6 +260,11 @@ What changes:
   waits on it. The coordinator picks pre-merge recipients from the tracker.
 - **Never merge, and never touch the main checkout.** Landing belongs to the
   coordinator, one PR at a time.
+- **`PULL_PING <item>`** while in a pull wait → reply `PULL_ETA` with the
+  command's current ETA, from its progress output, and end the turn. After
+  `PULL_DONE`, ignore it: that message already answered it. The round trip
+  is what keeps both sessions' prompt caches warm through a wait longer
+  than their one-hour lifetime.
 - **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
   § Bring main in does, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
@@ -327,7 +335,9 @@ reads notes, not handoffs. One already asked stays as it is.
    commit-sized chunk in progress, or the review or triage step this session
    is in — the part that does not depend on a held-back question. Commit
    normally — never a WIP commit — and push. A branch with no commits of its
-   own is not pushed; its handoff says `branch: none`.
+   own is not pushed; its handoff says `branch: none`. In a pull wait,
+   stop the background command rather than wait for it, send `PULL_DONE`,
+   and put its re-run in `next:`.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
    The latest one is the item's handoff; a resumed session's own supersedes
    it:

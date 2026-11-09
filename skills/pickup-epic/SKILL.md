@@ -426,7 +426,8 @@ An idle hand-off records what relaunches the item:
 | anything else | `resume`: the user's word, or § Resume |
 
 **Timers.** The reminder and pull timers are one script, `<minutes>` being
-15 for `remind` and 55 for `pull`; it prints its own name:
+15 for `remind` and, for `pull`, the idle watcher's `limit` in minutes; it
+prints its own name:
 
 ```bash
 for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>

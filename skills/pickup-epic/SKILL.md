@@ -78,6 +78,8 @@ nowhere else:
   through § 7 when the user says so;
 - holds, each with its reason and what lifts it;
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
+- workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
+  `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
 - questions this session put to the user, or held back during a hibernate
   (§ Hibernate), and not yet answered — a landing approval, a preflight, a
   `PLAN_CHANGE`, a deviation — asked at § Resume;
@@ -104,7 +106,7 @@ This session's name — the one workers and every other session message — live
 the run state, so there is one copy to keep current. Set it at kickoff and on
 resume. **Ending the run** — at § 8, at § Hibernate, and when the user tells
 this session to stop or abandon the run — is one step before the final
-message: stop both watchers and delete the idle watcher's watch file
+message: stop every watcher and delete the idle watcher's watch file
 (§ Watchers), then clear the field.
 
 A coordinator killed mid-run cannot clear it, so the field may outlive its
@@ -304,6 +306,9 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
+| `PULL_WAIT` | record the pull wait; its watch line becomes `<item> pulling` (§ Watchers) |
+| `PULL_ETA` | update that worker's ETA in the run state |
+| `PULL_DONE` | clear the pull wait; its watch line goes back to `<item>` |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
@@ -335,11 +340,11 @@ is the fill step's result: an event that ends with a slot free or held that
 way, no launch and no report has skipped the step —
 unless the report would repeat the last one word for word.
 
-## Watchers — idle workers and open questions
+## Watchers — idle workers, open questions and pull waits
 
-Two background shells, each started with `run_in_background` so its exit
+Three background shells, each started with `run_in_background` so its exit
 re-invokes this session. Each script opens with these lines, `<watcher>`
-being `idle` or `remind`:
+being `idle`, `remind` or `pull`:
 
 ```bash
 p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid; echo $$ > "$p"
@@ -355,7 +360,7 @@ event. `watcher:` printed → tell the user; the watcher cannot see.
 At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user and the user has written in this session since the last
-reminder. Should run with no pid file → start it; should not → remove the
+reminder; the pull timer while it lists a worker in a pull wait. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind.
 
@@ -364,8 +369,9 @@ prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
 the age of the worker's transcript, which every model call writes — the
 user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
-run-state write: one line per live worker of this run, `<item>`, or `<item>
-waiting` while it waits on the user. Left out: the item landing now, a
+run-state write: one line per live worker of this run, `<item>`, `<item>
+waiting` while it waits on the user, or `<item> pulling` while it is in a
+pull wait. Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 
@@ -399,7 +405,9 @@ done
 
 The idle watcher never hands off a worker waiting on the user: it reads no
 message until its question is settled, and once answered it works on with
-the answer. Per line printed:
+the answer. Nor one in a pull wait: its `pulling` mark matches no case, so it
+is neither timed nor dismissed — mid-pull it has no commit boundary to hand
+off at, and the pull timer keeps it warm instead. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `dismissed` — the user dismissed its question, so its turn ended → the
@@ -414,13 +422,19 @@ An idle hand-off records what relaunches the item:
 | `awaiting owner answer` | the user saying, in this session, that they will answer it |
 | anything else | `resume`: the user's word, or § Resume |
 
-**Reminder timer.** Reminds the user every 15 minutes, naming each worker
-waiting on the user — a hibernated one whose question was dismissed included
-— never its question:
+**Timers.** The reminder and pull timers are one script, `<minutes>` being
+15 for `remind` and 55 for `pull`; it prints its own name:
 
 ```bash
-for i in $(seq 15); do sleep 60; mine || exit 0; done; echo remind
+for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
 ```
+
+- `remind` → remind the user, naming each worker waiting on the user — a
+  hibernated one whose question was dismissed included — never its
+  question.
+- `pull` → send `PULL_PING <item>` to each worker in a pull wait. Its
+  `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
+  their one-hour lifetime.
 
 Once the fill step launches nothing and idle hand-offs have left no live
 worker, with the landing queue empty, no landing in progress and no

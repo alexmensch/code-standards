@@ -362,7 +362,9 @@ run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user and the user has written in this session since the last
 reminder; the pull timer while it lists a worker in a pull wait. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
-with a pid file: a shell that died leaves one behind.
+with a pid file: a shell that died leaves one behind. A pull timer started
+that way first sends `PULL_PING` to each worker in a pull wait, since the
+restart resets its count while the worker's cache clock runs on.
 
 **Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
 prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is

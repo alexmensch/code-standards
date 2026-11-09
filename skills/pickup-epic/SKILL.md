@@ -306,9 +306,9 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `UNBLOCKED` | clear that worker's "waiting on the user" |
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
-| `PULL_WAIT` | record the pull wait; its watch line becomes `<item> pulling` (§ Watchers) |
+| `PULL_WAIT` | record the pull wait |
 | `PULL_ETA` | update that worker's ETA in the run state; ignored once `PULL_DONE` has cleared its pull wait |
-| `PULL_DONE` | clear the pull wait; its watch line goes back to `<item>` |
+| `PULL_DONE` | clear the pull wait |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
@@ -373,7 +373,8 @@ user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
 run-state write: one line per live worker of this run, `<item>`, `<item>
 waiting` while it waits on the user, or `<item> pulling` while it is in a
-pull wait. Left out: the item landing now, a
+pull wait, even one also waiting on the user — a dismissed question must
+not hand off a worker mid-pull. Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 

@@ -269,7 +269,7 @@ PRS=(<N>); PINS=()   # a pinned stack: PRS every member bottom first, PINS each 
 for PR in "${PRS[@]}"; do th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
   [ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }; done
 pass() {   # prints one terminal line, GREEN, or nothing while pending
-  local PR=$1 pin=$2 info st merged auto head fails threads pending req got missing
+  local PR=${1} pin=${2} info st merged auto head fails threads pending req got missing
   info=$(gh pr view $PR --json state,mergedAt,autoMergeRequest,headRefOid \
     -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)|\(.headRefOid)"' 2>/dev/null || true)
   [ -n "$info" ] || return 0                    # transient API failure, keep going

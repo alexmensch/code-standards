@@ -233,7 +233,10 @@ What changes:
   headRefName -q .headRefName`. Open the
   PR with `--base <base>`, then link it above #M — into #M's stack, or a new
   one with #M when it has none — as the `gh-stack` skill's `link` says; load
-  it. `PR_OPEN`'s detail names the stack. No `PREMERGE` comes from #M or
+  it. A PR linked after it opened gets no CI run on its head until a later
+  event: send one that moves no commit, as the `gh-stack` skill's § A stack
+  member carrying no checks says. `PR_OPEN`'s detail names the stack. No
+  `PREMERGE` comes from #M or
   the PRs below it: this branch is built on them.
 - **An `UNRESOLVED` note is an open question, never settled** — whether or
   not the launch prompt carries ` — UNRESOLVED in notes`. Investigate it,

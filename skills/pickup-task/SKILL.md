@@ -226,6 +226,14 @@ What changes:
   A launch prompt carrying ` — tracker in <path>`:
   the item lives in the tracker of the checkout at `<path>`, and every
   tracker operation runs against that one.
+- **A launch prompt carrying ` — stacked on #<M>`**: this item's PR joins
+  #M's GitHub stack, directly above #M. Before the first edit, while the
+  branch has no commits of its own, `git reset --hard origin/<base>`, where
+  `<base>` is `gh pr view <M> --json headRefName -q .headRefName`. Open the
+  PR with `--base <base>`, then link it above #M — into #M's stack, or a new
+  one with #M when it has none — as the `gh-stack` skill's `link` says; load
+  it. `PR_OPEN`'s detail names the stack. No `PREMERGE` comes from #M or
+  the PRs below it: this branch is built on them.
 - **An `UNRESOLVED` note is an open question, never settled** — whether or
   not the launch prompt carries ` — UNRESOLVED in notes`. Investigate it,
   then ask the requester under
@@ -265,24 +273,26 @@ What changes:
   `PULL_DONE`, ignore it: that message already answered it. The round trip
   is what keeps both sessions' prompt caches warm through a wait longer
   than their one-hour lifetime.
-- **`SYNC #N`** → bring the default branch into this branch as `pr-cleanup`
-  § Bring main in does, under the project's `*-pr-cleanup` extension's
+- **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
+  --json baseRefName`: `<main>` unless stacked), into this branch as
+  `pr-cleanup` § Bring main in does with `origin/<main>`, under the project's `*-pr-cleanup` extension's
   conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
   for a conflict no rule settles. **`SYNC #N base <sha>...`** → the
   branch's **landed pre-merged heads**: for each PR whose head this branch
   pre-merged, once `gh pr view <M> --json state,mergeCommit,headRefOid,mergedAt`
   shows it `MERGED` and `git merge-base --is-ancestor <mergeCommit oid> HEAD`
-  fails, its `headRefOid`, ordered by `mergedAt`. Merge them, then main, as
-  one merge of this branch and main, signed when `commit.gpgsign` is set:
+  fails, its `headRefOid`, ordered by `mergedAt`. Merge them, then the
+  base, as one merge of this branch and the base, signed when
+  `commit.gpgsign` is set:
 
   ```bash
   git fetch origin && git fetch origin pull/<M>/head...
-  bash <this skill's folder>/scripts/sync-base.sh origin/<main> <sha>...
+  bash <this skill's folder>/scripts/sync-base.sh origin/<base> <sha>...
   ```
 
   One `pull/<M>/head` per PR on the list: a head this branch never merged
   may be missing locally. It merges each `<sha>` in turn, as a later `PREMERGE` would, so conflicts
-  already resolved by a pre-merge stay resolved, then main from the last.
+  already resolved by a pre-merge stay resolved, then the base from the last.
   `conflicts:` printed → `NEEDS_INPUT`, naming the files; a plain `git
   merge` would raise the pre-merge's conflicts again. Any other failure (a
   signing error) → `NEEDS_INPUT` with the error; never retry unsigned.
@@ -306,9 +316,12 @@ What changes:
   `git revert -m 1 <each merge commit of a #M head>` (`-m 1` keeps this
   branch's side), run the gates, push, and reply `UNMERGED #M`. The revert
   is sync work too.
-- **`LANDING_FIX #N <failed checks | unresolved threads>`** → the landing
-  found them. Fix a failed check in the PR as a review finding; triage the
-  threads under § 5's Review threads. Push, and reply `READY_TO_LAND`.
+- **`LANDING_FIX #N <failed checks | missing checks | unresolved threads>`**
+  → the landing found them. Fix a failed check in the PR as a review
+  finding; triage the threads under § 5's Review threads. A stack member
+  missing a required check gets a workflow event that moves no commit, as
+  the `gh-stack` skill's § A stack member carrying no checks says. Push any
+  commit, and reply `READY_TO_LAND`.
 - After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
   as above without sending `READY_TO_LAND` again. The coordinator lands the
   PR, then stops and removes this session and its worktree; nothing is sent

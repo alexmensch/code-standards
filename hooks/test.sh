@@ -390,15 +390,19 @@ if [ -n "$pr_cleanup" ]; then
   cat > "$WS/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 d=$GH_STUB
-echo "$*" >> "$d/calls"
+echo "$1 $2" >> "$d/calls"
 pr=$3
 for a; do case $a in n=*) pr=${a#n=} ;; esac; done
 [ ! -f "$d/$pr.down.$1.$2" ] || exit 1
 case "$1 $2 $*" in
-  "pr view "*statusCheckRollup*) awk '{print $1}' "$d/$pr.checks" ;;
-  "pr view "*) cat "$d/$pr" ;;
-  "pr checks "*pending*) awk '$2=="pending"' "$d/$pr.checks" | wc -l | tr -d ' ' ;;
-  "pr checks "*) awk '$2=="fail" || $2=="cancel" {print $1}' "$d/$pr.checks" ;;
+  "pr view "*)
+    IFS='|' read -r st merged auto head < "$d/$pr"
+    awk 'NF {print $1, $2}' "$d/$pr.checks" | jq -Rn --arg st "$st" --arg m "$merged" --arg a "$auto" --arg h "$head" '
+      {pass: "SUCCESS", fail: "FAILURE", cancel: "CANCELLED"} as $c
+      | {state: $st, mergedAt: (if $m == "" then null else $m end), headRefOid: $h,
+         autoMergeRequest: (if $a == "true" then {} else null end),
+         statusCheckRollup: [inputs | split(" ") | {__typename: "CheckRun", name: .[0],
+           status: (if .[1] == "pending" then "IN_PROGRESS" else "COMPLETED" end), conclusion: $c[.[1]]}]}' ;;
   "api graphql "*) cat "$d/$pr.threads" 2>/dev/null ;;
   "api repos/"*) printf 'Tests\nLint\n' ;;
 esac
@@ -418,7 +422,7 @@ exit 0" ]'
   member 1 "OPEN||false|a1" "${green[@]}"
   check "watch: an unarmed PR ends it" '[[ "$(watch 1)" == "PR 1 auto-merge NOT ARMED"* ]]'
   member 1 "OPEN||true|a1" "Tests cancel" "Lint pass"
-  check "watch: a cancelled check ends it" '[[ "$(watch 1)" == "PR 1 CHECKS FAILED/CANCELLED: Tests "* ]]'
+  check "watch: a cancelled check ends it" '[[ "$(watch 1)" == "PR 1 CHECKS FAILED/CANCELLED: Tests"* ]]'
   member 1 "OPEN||true|a1" "Tests pass"
   check "watch: a required check never reported ends it" '[[ "$(watch 1)" == "PR 1 BLOCKED: required check never reported: Lint "* ]]'
   member 1 "OPEN||true|a1" "${green[@]}"; echo "t1 bot a.ts url" > "$WS/d/1.threads"
@@ -431,9 +435,12 @@ exit 0" ]'
   member 2 "OPEN||false|b1" "Tests pending" "Lint pass"
   check "watch: a pending member keeps the stack waiting" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
   member 1 "OPEN||false|a1" "Tests fail" "Lint pass"; member 2 "OPEN||false|b1" "Tests pass"
-  check "watch: every member that ends a stack is reported" '[ "$(watch 1=a1 2=b1)" = "PR 1 CHECKS FAILED/CANCELLED: Tests 
+  check "watch: every member that ends a stack is reported" '[ "$(watch 1=a1 2=b1)" = "PR 1 CHECKS FAILED/CANCELLED: Tests
 PR 2 BLOCKED: required check never reported: Lint 
 exit 0" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"; rm -f "$WS/d/calls"
+  watch 1=a1 2=b1 >/dev/null
+  check "watch: one rules read, then two calls per member per pass" '[ "$(wc -l < "$WS/d/calls" | tr -d " ")" = 5 ]'
   check "watch: two unpinned PRs are a usage error" '[ "$(watch 1 2)" = "exit 2" ]'
   check "watch: a stack pins every member" '[ "$(watch 1=a1 2)" = "exit 2" ]'
 else

@@ -18,40 +18,52 @@ if [ ${#pins[@]} = 0 ]; then [ ${#prs[@]} = 1 ] || usage; else [ ${#pins[@]} = $
 interval=${PR_WATCH_INTERVAL:-30}
 passes=${PR_WATCH_PASSES:-0}
 
+# gh pr checks' buckets, computed from the rollup gh pr view returns.
+view='def state: if .__typename == "StatusContext" then .state
+    elif .status == "COMPLETED" then .conclusion else .status end;
+  def bucket: state as $s
+    | if $s == "SUCCESS" then "pass" elif $s == "SKIPPED" or $s == "NEUTRAL" then "skipping"
+      elif $s == "CANCELLED" then "cancel"
+      elif $s == "ERROR" or $s == "FAILURE" or $s == "TIMED_OUT" or $s == "ACTION_REQUIRED" then "fail"
+      else "pending" end;
+  (.statusCheckRollup // []) as $r
+  | "\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)|\(.headRefOid)|\([$r[] | select(bucket == "pending")] | length)",
+    ([$r[] | select(bucket == "fail" or bucket == "cancel") | .name // .context] | join(" ")),
+    ($r[] | .name // .context)'
+
 pass() {
-  local pr=$1 pin=$2 info st merged auto head fails threads pending req got missing
-  info=$(gh pr view "$pr" --json state,mergedAt,autoMergeRequest,headRefOid \
-    -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)|\(.headRefOid)"' 2>/dev/null || true)
-  [ -n "$info" ] || return 0
-  IFS='|' read -r st merged auto head <<< "$info"
+  local pr=$1 pin=$2 v st merged auto head pending fails threads missing
+  v=$(gh pr view "$pr" --json state,mergedAt,autoMergeRequest,headRefOid,statusCheckRollup 2>/dev/null \
+    | jq -r "$view" 2>/dev/null) || return 0
+  [ -n "$v" ] || return 0
+  IFS='|' read -r st merged auto head pending <<< "${v%%$'\n'*}"
   case "$st" in
     MERGED) echo "PR $pr MERGED at $merged"; return ;;
     CLOSED) echo "PR $pr CLOSED WITHOUT MERGING — cleanup not run"; return ;;
   esac
   [ -z "$pin" ] || [ "$head" = "$pin" ] || { echo "PR $pr HEAD MOVED: $head, pinned $pin"; return; }
-  fails=$(gh pr checks "$pr" --json name,bucket \
-    -q '.[] | select(.bucket=="fail" or .bucket=="cancel") | .name' \
-    2>/dev/null | tr '\n' ' ' || true)
+  fails=$(sed -n 2p <<< "$v")
   [ -z "$fails" ] || { echo "PR $pr CHECKS FAILED/CANCELLED: $fails"; return; }
   threads=$(bash "$HERE/threads.sh" "$pr" 2>/dev/null || true)
   [ -z "$threads" ] || { echo "PR $pr UNRESOLVED REVIEW THREADS:"; echo "$threads"; return; }
   [ -n "$pin" ] || [ "$auto" = "true" ] || { echo "PR $pr auto-merge NOT ARMED"; return; }
-  pending=$(gh pr checks "$pr" --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
   [ "$pending" = 0 ] || return 0
-  req=$(gh api "repos/{owner}/{repo}/rules/branches/$main" \
-    -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') || return 0
-  got=$(gh pr view "$pr" --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)') || return 0
-  missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
+  missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '1,2d;/^$/d' <<< "$v" | sort -u) | tr '\n' ' ')
   if [ -n "$missing" ]; then echo "PR $pr BLOCKED: required check never reported: $missing"; else echo GREEN; fi
 }
 
-n=0
+n=0 have_req=''
 while true; do
+  [ -n "$have_req" ] || { req=$(gh api "repos/{owner}/{repo}/rules/branches/$main" \
+    -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') \
+    && have_req=1; }
   green=0 ended=''
-  for i in "${!prs[@]}"; do
-    out=$(pass "${prs[$i]}" "${pins[$i]:-}")
-    case "$out" in '') ;; GREEN) green=$((green + 1)) ;; *) ended="$ended$out"$'\n' ;; esac
-  done
+  if [ -n "$have_req" ]; then
+    for i in "${!prs[@]}"; do
+      out=$(pass "${prs[$i]}" "${pins[$i]:-}")
+      case "$out" in '') ;; GREEN) green=$((green + 1)) ;; *) ended="$ended$out"$'\n' ;; esac
+    done
+  fi
   [ -z "$ended" ] || { printf %s "$ended"; exit 0; }
   [ ${#pins[@]} = 0 ] || [ "$green" != ${#prs[@]} ] || { echo "STACK GREEN"; exit 0; }
   n=$((n + 1))

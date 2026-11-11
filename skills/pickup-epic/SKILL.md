@@ -759,7 +759,8 @@ skill holds, except:
   held. A stack lands whole: it takes one place in the landing queue once
   the user has named every open member and each is approved, and lands every
   one of them; none lands alone.
-- **Landing**, in place of § 7.2–7.4:
+- **Landing**, in place of § 7.2–7.4; a § 7 reference to its steps 2, 3
+  and 4 means this landing's steps 1, 2 and 3:
   1. § 7.2 for each member, bottom up — its pre-merged PRs first, then
      `SYNC` when behind its base (`git rev-list --count
      origin/<branch>..origin/<base branch>`), waiting for `SYNCED` before

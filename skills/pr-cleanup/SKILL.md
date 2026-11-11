@@ -71,9 +71,10 @@ can fire between two of your own commands. If `MERGED`, the work left is
 **Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
 caller holds the approval and ran the pre-arm checks. Run
 [Review threads](#review-threads--check-before-arming-the-merge), then go
-straight to [The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack), skipping
-Bring main in, The signature trap and Merge — the first two would move the
-armed head — and once `MERGED`, take the route above. Never re-arm and
+straight to
+[The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack),
+skipping Bring main in, The signature trap and Merge — the first two would
+move the armed head — and once `MERGED`, take the route above. Never re-arm and
 never merge; on a failed or cancelled check or an unresolved review thread,
 run `gh pr merge <N> --disable-auto` and report it.
 
@@ -265,9 +266,9 @@ bash <this skill's folder>/scripts/watch.sh <main> <N>=<pinned head>...
 ```
 
 It prints what ended it — for a stack, every member's: `MERGED`, `STACK
-GREEN`, or what stopped it — closed, auto-merge not armed, a moved head, a failed or
-cancelled check, an unresolved thread, or a required check that never
-reported.
+GREEN`, or what stopped it — closed, auto-merge not armed, a moved head, a
+failed or cancelled check, an unresolved thread, or a required check that
+never reported.
 
 `cancel` is a terminal bucket and is **not** `fail` — a cancelled required
 check blocks the merge for good while auto-merge stays armed, so a

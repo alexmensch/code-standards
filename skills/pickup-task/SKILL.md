@@ -279,8 +279,8 @@ What changes:
   than their one-hour lifetime.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
-  `pr-cleanup` § Bring main in does with `origin/<main>`, under the project's `*-pr-cleanup` extension's
-  conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
+  `pr-cleanup` § Bring main in does with `origin/<main>`, under the
+  project's `*-pr-cleanup` extension's conflict rules; run the gates; push. Reply `SYNCED #N`, or `NEEDS_INPUT`
   for a conflict no rule settles. **`SYNC #N base <sha>...`** → the
   branch's **landed pre-merged heads**: for each PR whose head this branch
   pre-merged, once `gh pr view <M> --json state,mergeCommit,headRefOid,mergedAt`

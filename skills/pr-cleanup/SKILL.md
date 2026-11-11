@@ -244,32 +244,39 @@ guards reject inline, and the PR number in the filename stops two concurrent
 landings sharing one watcher.
 
 ```bash
-PR=<N>; th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
-[ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }
-while true; do
+PRS=(<N>)
+for PR in "${PRS[@]}"; do th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
+  [ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }; done
+pass() {   # prints one terminal line, GREEN, or nothing while pending
+  local PR=$1 info st merged auto fails threads pending req got missing
   info=$(gh pr view $PR --json state,mergedAt,autoMergeRequest \
     -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)"' 2>/dev/null || true)
-  [ -z "$info" ] && { sleep 30; continue; }     # transient API failure, keep going
+  [ -n "$info" ] || return 0                    # transient API failure, keep going
   IFS='|' read -r st merged auto <<< "$info"
   case "$st" in
-    MERGED) echo "PR $PR MERGED at $merged"; break ;;
-    CLOSED) echo "PR $PR CLOSED WITHOUT MERGING — cleanup not run"; break ;;
+    MERGED) echo "PR $PR MERGED at $merged"; return ;;
+    CLOSED) echo "PR $PR CLOSED WITHOUT MERGING — cleanup not run"; return ;;
   esac
   fails=$(gh pr checks $PR --json name,bucket \
     -q '.[] | select(.bucket=="fail" or .bucket=="cancel") | .name' \
     2>/dev/null | tr '\n' ' ' || true)
-  if [ -n "$fails" ]; then echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; break; fi
-  threads=$(bash "$th" 2>/dev/null || true)
-  if [ -n "$threads" ]; then echo "PR $PR UNRESOLVED REVIEW THREADS:"; echo "$threads"; break; fi
-  if [ "$auto" != "true" ]; then echo "PR $PR auto-merge NOT ARMED"; break; fi
+  [ -z "$fails" ] || { echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; return; }
+  threads=$(bash "${TMPDIR:-/tmp}/pr-threads-$PR.sh" 2>/dev/null || true)
+  [ -z "$threads" ] || { echo "PR $PR UNRESOLVED REVIEW THREADS:"; echo "$threads"; return; }
+  [ "$auto" = "true" ] || { echo "PR $PR auto-merge NOT ARMED"; return; }
   pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
-  if [ "$pending" = 0 ] \
-    && req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
-         -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') \
-    && got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)'); then
-    missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
-    if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; break; fi
-  fi
+  [ "$pending" = 0 ] || return 0
+  req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
+    -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') || return 0
+  got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)') || return 0
+  missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
+  if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; else echo GREEN; fi
+}
+while true; do
+  for PR in "${PRS[@]}"; do
+    out=$(pass "$PR")
+    case "$out" in ''|GREEN) ;; *) echo "$out"; exit 0 ;; esac
+  done
   sleep 30
 done
 ```

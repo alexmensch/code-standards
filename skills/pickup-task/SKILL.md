@@ -228,8 +228,9 @@ What changes:
   tracker operation runs against that one.
 - **A launch prompt carrying ` — stacked on #<M>`**: this item's PR joins
   #M's GitHub stack, directly above #M. Before the first edit, while the
-  branch has no commits of its own, `git reset --hard origin/<base>`, where
-  `<base>` is `gh pr view <M> --json headRefName -q .headRefName`. Open the
+  branch has no commits of its own, `git fetch origin <base>` and `git
+  reset --hard origin/<base>`, where `<base>` is `gh pr view <M> --json
+  headRefName -q .headRefName`. Open the
   PR with `--base <base>`, then link it above #M — into #M's stack, or a new
   one with #M when it has none — as the `gh-stack` skill's `link` says; load
   it. `PR_OPEN`'s detail names the stack. No `PREMERGE` comes from #M or

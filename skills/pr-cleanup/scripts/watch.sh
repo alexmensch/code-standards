@@ -44,7 +44,7 @@ pass() {
   [ -z "$pin" ] || [ "$head" = "$pin" ] || { echo "PR $pr HEAD MOVED: $head, pinned $pin"; return; }
   fails=$(sed -n 2p <<< "$v")
   [ -z "$fails" ] || { echo "PR $pr CHECKS FAILED/CANCELLED: $fails"; return; }
-  threads=$(bash "$HERE/threads.sh" "$pr" 2>/dev/null || true)
+  threads=$(bash "$HERE/threads.sh" "$pr" 2>/dev/null) || return 0
   [ -z "$threads" ] || { echo "PR $pr UNRESOLVED REVIEW THREADS:"; echo "$threads"; return; }
   [ -n "$pin" ] || [ "$auto" = "true" ] || { echo "PR $pr auto-merge NOT ARMED"; return; }
   [ "$pending" = 0 ] || return 0

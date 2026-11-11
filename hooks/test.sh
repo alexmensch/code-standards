@@ -403,7 +403,7 @@ case "$1 $2 $*" in
          autoMergeRequest: (if $a == "true" then {} else null end),
          statusCheckRollup: [inputs | split(" ") | {__typename: "CheckRun", name: .[0],
            status: (if .[1] == "pending" then "IN_PROGRESS" else "COMPLETED" end), conclusion: $c[.[1]]}]}' ;;
-  "api graphql "*) cat "$d/$pr.threads" 2>/dev/null ;;
+  "api graphql "*) cat "$d/$pr.threads" 2>/dev/null || true ;;
   "api repos/"*) printf 'Tests\nLint\n' ;;
 esac
 EOF
@@ -438,6 +438,10 @@ exit 0" ]'
   check "watch: every member that ends a stack is reported" '[ "$(watch 1=a1 2=b1)" = "PR 1 CHECKS FAILED/CANCELLED: Tests
 PR 2 BLOCKED: required check never reported: Lint 
 exit 0" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"; touch "$WS/d/2.down.api.graphql"
+  check "watch: a failed thread read is unknown, never clean" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  touch "$WS/d/1.down.pr.view"; rm "$WS/d/2.down.api.graphql"
+  check "watch: a failed PR read is unknown, never clean" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
   member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"; rm -f "$WS/d/calls"
   watch 1=a1 2=b1 >/dev/null
   check "watch: one rules read, then two calls per member per pass" '[ "$(wc -l < "$WS/d/calls" | tr -d " ")" = 5 ]'

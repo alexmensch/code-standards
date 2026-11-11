@@ -260,8 +260,8 @@ bash <this skill's folder>/scripts/watch.sh <main> <N>
 bash <this skill's folder>/scripts/watch.sh <main> <N>=<pinned head>...
 ```
 
-It prints the one line that ended it: `MERGED`, `STACK GREEN`, or what
-stopped it — closed, auto-merge not armed, a moved head, a failed or
+It prints what ended it — for a stack, every member's: `MERGED`, `STACK
+GREEN`, or what stopped it — closed, auto-merge not armed, a moved head, a failed or
 cancelled check, an unresolved thread, or a required check that never
 reported.
 

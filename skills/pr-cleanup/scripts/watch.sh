@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Watches an armed PR until it merges, or a caller-pinned stack until every member is green; prints the line that ended it.
+# Watches an armed PR until it merges, or a caller-pinned stack until every member is green; prints what ended it, every member's.
 # Usage: watch.sh <main> <N>   |   watch.sh <main> <N>=<pinned head>...   (a stack: every member, bottom first)
 
 set -uo pipefail
@@ -47,11 +47,12 @@ pass() {
 
 n=0
 while true; do
-  green=0
+  green=0 ended=''
   for i in "${!prs[@]}"; do
     out=$(pass "${prs[$i]}" "${pins[$i]:-}")
-    case "$out" in '') ;; GREEN) green=$((green + 1)) ;; *) echo "$out"; exit 0 ;; esac
+    case "$out" in '') ;; GREEN) green=$((green + 1)) ;; *) ended="$ended$out"$'\n' ;; esac
   done
+  [ -z "$ended" ] || { printf %s "$ended"; exit 0; }
   [ ${#pins[@]} = 0 ] || [ "$green" != ${#prs[@]} ] || { echo "STACK GREEN"; exit 0; }
   n=$((n + 1))
   [ "$passes" = 0 ] || [ "$n" -lt "$passes" ] || exit 3

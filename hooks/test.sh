@@ -430,6 +430,10 @@ exit 0" ]'
   check "watch: a moved head ends it" '[[ "$(watch 1=a1 2=b0)" == "PR 2 HEAD MOVED: b1, pinned b0"* ]]'
   member 2 "OPEN||false|b1" "Tests pending" "Lint pass"
   check "watch: a pending member keeps the stack waiting" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  member 1 "OPEN||false|a1" "Tests fail" "Lint pass"; member 2 "OPEN||false|b1" "Tests pass"
+  check "watch: every member that ends a stack is reported" '[ "$(watch 1=a1 2=b1)" = "PR 1 CHECKS FAILED/CANCELLED: Tests 
+PR 2 BLOCKED: required check never reported: Lint 
+exit 0" ]'
   check "watch: two unpinned PRs are a usage error" '[ "$(watch 1 2)" = "exit 2" ]'
   check "watch: a stack pins every member" '[ "$(watch 1=a1 2)" = "exit 2" ]'
 else

@@ -12,8 +12,9 @@ skill-guard.sh              denies an edit until the skill its file needs is loa
 settings.snippet.json       the settings.json entries, with a <HOOK_DIR> placeholder
 test.sh                     behavioural tests for all three, plus the bundle's skill bodies checked for
                             loader-substituted text and unclosed fences (the repo's skills/, or installed
-                            copies carrying the installed-copy notice), and pickup-task's
-                            scripts/sync-base.sh on each lane history: bash test.sh
+                            copies carrying the installed-copy notice), pickup-task's
+                            scripts/sync-base.sh on each lane history, and pr-cleanup's
+                            scripts/watch.sh against a stubbed gh: bash test.sh
 ```
 
 ## Review design reminder

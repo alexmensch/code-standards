@@ -379,4 +379,61 @@ else
   echo "skip sync-base: pickup-task is not installed"
 fi
 
+pr_cleanup="$(while read -r b; do
+  if [[ "$b" == */pr-cleanup/SKILL.md ]] || grep -q '^<!-- Installed copy of code-standards skills/pr-cleanup/SKILL.md' "$b"; then
+    echo "${b%/SKILL.md}/scripts"
+  fi
+done <<< "$bodies")"
+if [ -n "$pr_cleanup" ]; then
+  WS="$STATE/watch"
+  mkdir -p "$WS/bin" "$WS/d"
+  cat > "$WS/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+d=$GH_STUB
+echo "$*" >> "$d/calls"
+pr=$3
+for a; do case $a in n=*) pr=${a#n=} ;; esac; done
+[ ! -f "$d/$pr.down.$1.$2" ] || exit 1
+case "$1 $2 $*" in
+  "pr view "*statusCheckRollup*) awk '{print $1}' "$d/$pr.checks" ;;
+  "pr view "*) cat "$d/$pr" ;;
+  "pr checks "*pending*) awk '$2=="pending"' "$d/$pr.checks" | wc -l | tr -d ' ' ;;
+  "pr checks "*) awk '$2=="fail" || $2=="cancel" {print $1}' "$d/$pr.checks" ;;
+  "api graphql "*) cat "$d/$pr.threads" 2>/dev/null ;;
+  "api repos/"*) printf 'Tests\nLint\n' ;;
+esac
+EOF
+  chmod +x "$WS/bin/gh"
+  # member <pr> <state|mergedAt|auto|head> <check bucket>...
+  member() { echo "$2" > "$WS/d/$1"; printf '%s\n' "${@:3}" > "$WS/d/$1.checks"; rm -f "$WS/d/$1".threads "$WS/d/$1".down.*; }
+  watch() { PATH="$WS/bin:$PATH" GH_STUB="$WS/d" PR_WATCH_INTERVAL=0 PR_WATCH_PASSES=2 \
+    bash "$pr_cleanup/watch.sh" main "$@" 2>/dev/null; echo "exit $?"; }
+  green=("Tests pass" "Lint pass")
+
+  member 1 "OPEN||true|a1" "${green[@]}"
+  check "watch: an armed, green PR waits for the merge" '[ "$(watch 1)" = "exit 3" ]'
+  member 1 "MERGED|T|true|a1" "${green[@]}"
+  check "watch: a merged PR ends it" '[ "$(watch 1)" = "PR 1 MERGED at T
+exit 0" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"
+  check "watch: an unarmed PR ends it" '[[ "$(watch 1)" == "PR 1 auto-merge NOT ARMED"* ]]'
+  member 1 "OPEN||true|a1" "Tests cancel" "Lint pass"
+  check "watch: a cancelled check ends it" '[[ "$(watch 1)" == "PR 1 CHECKS FAILED/CANCELLED: Tests "* ]]'
+  member 1 "OPEN||true|a1" "Tests pass"
+  check "watch: a required check never reported ends it" '[[ "$(watch 1)" == "PR 1 BLOCKED: required check never reported: Lint "* ]]'
+  member 1 "OPEN||true|a1" "${green[@]}"; echo "t1 bot a.ts url" > "$WS/d/1.threads"
+  check "watch: an open thread ends it" '[[ "$(watch 1)" == "PR 1 UNRESOLVED REVIEW THREADS:"* ]]'
+
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"
+  check "watch: a green pinned stack prints STACK GREEN" '[ "$(watch 1=a1 2=b1)" = "STACK GREEN
+exit 0" ]'
+  check "watch: a moved head ends it" '[[ "$(watch 1=a1 2=b0)" == "PR 2 HEAD MOVED: b1, pinned b0"* ]]'
+  member 2 "OPEN||false|b1" "Tests pending" "Lint pass"
+  check "watch: a pending member keeps the stack waiting" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  check "watch: two unpinned PRs are a usage error" '[ "$(watch 1 2)" = "exit 2" ]'
+  check "watch: a stack pins every member" '[ "$(watch 1=a1 2)" = "exit 2" ]'
+else
+  echo "skip watch: pr-cleanup is not installed"
+fi
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

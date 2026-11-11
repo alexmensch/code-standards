@@ -116,17 +116,10 @@ code-scanning alerts endpoint filtered to the PR's merge ref has returned an
 empty list while an alert's thread stood unresolved, so the thread is the
 signal. An outdated thread counts: its lines moved, its point is unanswered.
 
-Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
-run `bash <that path>`; the watch runs the same file:
+Run, from inside the repository:
 
 ```bash
-gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
-  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
-    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
-      pageInfo { hasNextPage endCursor } nodes { id isResolved
-        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
-  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
-      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
+bash <this skill's folder>/scripts/threads.sh <N>
 ```
 
 One line per unresolved thread — id, author, file, link — and nothing when
@@ -257,53 +250,20 @@ holds the branch, and the remote side is the repo's auto-delete setting.
 
 ### The watch — only for the `--auto` case and a pinned stack
 
-**The script must exit on every terminal state** — a monitor that only matches
+**The watch exits on every terminal state** — a monitor that only matches
 success is silent through a failure, and silence looks identical to "still
-running". Write it to `${TMPDIR:-/tmp}/pr-watch-<N>.sh` and hand `Monitor` the
-plain command `bash <that path>`: the loop needs `$( )`, which some command
-guards reject inline, and the PR number in the filename stops two concurrent
-landings sharing one watcher.
+running". Hand `Monitor` the plain command, a pinned stack with every
+member and its pinned head, bottom first:
 
 ```bash
-PRS=(<N>); PINS=()   # a pinned stack: PRS every member bottom first, PINS each one's pinned head
-for PR in "${PRS[@]}"; do th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
-  [ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }; done
-pass() {   # prints one terminal line, GREEN, or nothing while pending
-  local PR=${1} pin=${2} info st merged auto head fails threads pending req got missing
-  info=$(gh pr view $PR --json state,mergedAt,autoMergeRequest,headRefOid \
-    -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)|\(.headRefOid)"' 2>/dev/null || true)
-  [ -n "$info" ] || return 0                    # transient API failure, keep going
-  IFS='|' read -r st merged auto head <<< "$info"
-  case "$st" in
-    MERGED) echo "PR $PR MERGED at $merged"; return ;;
-    CLOSED) echo "PR $PR CLOSED WITHOUT MERGING — cleanup not run"; return ;;
-  esac
-  [ -z "$pin" ] || [ "$head" = "$pin" ] || { echo "PR $PR HEAD MOVED: $head, pinned $pin"; return; }
-  fails=$(gh pr checks $PR --json name,bucket \
-    -q '.[] | select(.bucket=="fail" or .bucket=="cancel") | .name' \
-    2>/dev/null | tr '\n' ' ' || true)
-  [ -z "$fails" ] || { echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; return; }
-  threads=$(bash "${TMPDIR:-/tmp}/pr-threads-$PR.sh" 2>/dev/null || true)
-  [ -z "$threads" ] || { echo "PR $PR UNRESOLVED REVIEW THREADS:"; echo "$threads"; return; }
-  [ -n "$pin" ] || [ "$auto" = "true" ] || { echo "PR $PR auto-merge NOT ARMED"; return; }
-  pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
-  [ "$pending" = 0 ] || return 0
-  req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
-    -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') || return 0
-  got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)') || return 0
-  missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
-  if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; else echo GREEN; fi
-}
-while true; do
-  green=0
-  for i in "${!PRS[@]}"; do
-    out=$(pass "${PRS[$i]}" "${PINS[$i]:-}")
-    case "$out" in '') ;; GREEN) green=$((green + 1)) ;; *) echo "$out"; exit 0 ;; esac
-  done
-  [ ${#PINS[@]} = 0 ] || [ "$green" != ${#PRS[@]} ] || { echo "STACK GREEN"; exit 0; }
-  sleep 30
-done
+bash <this skill's folder>/scripts/watch.sh <main> <N>
+bash <this skill's folder>/scripts/watch.sh <main> <N>=<pinned head>...
 ```
+
+It prints the one line that ended it: `MERGED`, `STACK GREEN`, or what
+stopped it — closed, auto-merge not armed, a moved head, a failed or
+cancelled check, an unresolved thread, or a required check that never
+reported.
 
 `cancel` is a terminal bucket and is **not** `fail` — a cancelled required
 check blocks the merge for good while auto-merge stays armed, so a
@@ -407,8 +367,9 @@ an open code-scanning alert at or above a `code_scanning` rule's threshold
 select(.type=="code_scanning") | .parameters'`; the alert links from its
 review thread); then an orphaned required-status context — a renamed CI job
 strands its old name as a required check forever. The watch's `required
-check never reported` exit names the last; outside a watch, run its `req`,
-`got` and `missing` lines with `PR=<N>`.
+check never reported` exit names the last; outside a watch, compare the
+branch rules' required contexts with the PR's `statusCheckRollup` names, as
+`scripts/watch.sh` does.
 
 Report the cause; changing branch rules is the user's call, never yours.
 

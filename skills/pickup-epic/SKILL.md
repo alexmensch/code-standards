@@ -84,6 +84,8 @@ nowhere else:
   (§ Hibernate), and not yet answered — a landing approval, a preflight, a
   `PLAN_CHANGE`, a deviation — asked at § Resume;
 - landing approvals given and the landing queue;
+- stacks the user chose (§ Stacks): each one's number, its members bottom
+  first — item, PR, branch — and the items the user named to land in it;
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
@@ -236,7 +238,9 @@ fi
 A shared file is a hazard to sequence, not a conflict to predict. A lane
 the run state lists as holding an unlanded pre-merge shows that PR's files
 as its own: take its files from `git diff --no-renames --name-only <the
-pre-merged head>...origin/<its branch>` instead.
+pre-merged head>...origin/<its branch>` instead. A stack member's worktree
+and branch lines show every member below it as its own the same way: take
+them from `origin/<its base branch>...` in place of `origin/<main>...`.
 
 ## 4. Kickoff
 
@@ -273,8 +277,8 @@ that repo's main checkout with ` — tracker in <this repo's main checkout>`
 appended to its prompt; every git and `gh` step for it — lanes, review
 check, landing — runs from that checkout, and the project's post-landing
 step does not apply to it. An item preflight wrote an `UNRESOLVED` note on
-gets ` — UNRESOLVED in notes` appended after any ` — tracker in` suffix and
-before ` — resume from handoff`.
+gets ` — UNRESOLVED in notes` appended after any ` — tracker in` and
+` — stacked on` suffixes (§ Stacks) and before ` — resume from handoff`.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
@@ -547,8 +551,9 @@ ask, of any kind § The run state lists, goes into the run state as held
 back, and § Resume asks it. An approved PR whose landing needs the user — a
 deviation, or a question open or held back on its item — stops at a safe
 point and is recorded, not asked: its merge disarmed (`gh pr merge <N>
---disable-auto`), its worker's session kept, and the run state listing it
-as stopped at its step, no longer the landing in progress.
+--disable-auto`; a stack's landing subagent sent `HOLD` before its merge),
+its worker's session kept, and the run state listing it as stopped at its
+step, no longer the landing in progress.
 
 1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
    fix it is part of its landing. Finish landing every PR already approved,
@@ -618,7 +623,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    (§ 5), then `SYNC`. A `LANDING_FIX` for it: relaunch it, then
    `LANDING_FIX`.
 3. **Arm the merge here, never in the subagent** — this session holds the
-   user's approval and the review check. From the main checkout, re-run
+   user's approval and the review check. A stack, which cannot be armed,
+   pins its heads here instead (§ Stacks). From the main checkout, re-run
    step 1's check with `h` the PR's current `headRefOid`; it fails → as in
    step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
    nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
@@ -661,7 +667,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    **Hold.** The brief also gives the subagent its reply to the
    coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
    then run nothing local — gates, builds, tests, worktree or session removal
-   — until `RESUME`; a merge already armed on the host may complete; reply
+   — until `RESUME`; a merge already armed on the host may complete, and a
+   stack's `gh stack merge` not yet issued waits for `RESUME` too; reply
    with the step it stopped at. A message reaches the subagent only between
    its tool calls, so `HOLD` takes effect up to one call late — one merge
    wait of at most ten minutes. That wait polls the host and is not local
@@ -679,7 +686,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    A landing cut off resumes at step 5 when the session is gone from
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 4 when the PR is merged or its `autoMergeRequest` is
-   set; otherwise at step 3.
+   set, or a stack's landing subagent is running; otherwise at step 3.
 5. **Update the run state**, start the project's post-landing step on the
    new main with `run_in_background`, so its exit re-invokes this session,
    then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
@@ -697,7 +704,8 @@ merged, so that lane's later `SYNC` names #N's final head among its landed
 pre-merged heads (step 2), and the earlier resolution stands.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or that neither shares a file nor waits on #N's item. Skip
+  the user` — or that neither shares a file nor waits on #N's item. A
+  member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
   waiting on #N's item gets it until #N has merged. Each approval costs up
   to the cap's count of gate runs, since #N joins the back of the queue;
@@ -725,6 +733,48 @@ pre-merged heads (step 2), and the earlier resolution stands.
 Run the project's post-landing step without a pipe on its output, or with
 `set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
 build's.
+
+## Stacks — a dependent chain landed as one
+
+A chain of items lands as a GitHub stack only when the user chooses it; the
+run state records the stack and the items they named to land in it. The
+`gh-stack` skill carries `gh stack`'s mechanics — load it, or stop and ask
+before any stack step when it is not installed. Everything else in this
+skill holds, except:
+
+- **Launch.** A member launches with ` — stacked on #<M>` after any
+  ` — tracker in` suffix, `#<M>` being the member directly below it — the
+  stack's top at launch, or the PR it starts from. The worker builds on #M's
+  branch and links its PR above #M (`pickup-task` § Coordinated mode).
+- **No pre-merge inside a stack.** A member is built on every member below
+  it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
+  member #N sends `SYNC #<member>` to each member above it whose branch
+  lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
+  branch>` fails), bottom up, each once the one below replied `SYNCED`; each
+  new head joins that member's `REVIEWED:` list. Lanes outside the stack get
+  `PREMERGE` as usual.
+- **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
+  held. The stack takes one place in the landing queue once every member the
+  user named is approved, and lands every one of them; none lands alone.
+- **Landing**, in place of § 7.2–7.4:
+  1. § 7.2 for each member, bottom up — its pre-merged PRs first, then
+     `SYNC` when behind its base (`git rev-list --count
+     origin/<branch>..origin/<base branch>`), waiting for `SYNCED` before
+     the member above, since each merges the branch below.
+  2. Pin the heads. From the main checkout, for each member at its current
+     `headRefOid`: § 7.1's review check, and § 7.3's `pr-cleanup` checks
+     with the stack check naming this stack. A failure → as in § 7.3, for
+     that member.
+  3. The landing subagent, briefed as § 7.4 with these changes: run
+     `pr-cleanup` for "stack #<S> lands at pinned heads `<N>=<sha>`…",
+     bottom first, with the heads pinned in step 2; it issues `gh stack
+     merge` itself, and only on the watch's `STACK GREEN`; sub-steps 2–3
+     run for every member. It returns `merged`, or the watch's exit — a
+     moved head → back to step 1; a failed check, a required check never
+     reported (`missing checks`: a member linked after it opened has no run
+     on its head) or a thread → `LANDING_FIX` to that member's worker, and
+     the stack goes to the back of the queue.
+  4. § 7.5 once, for the whole stack.
 
 ## 8. Finish
 

@@ -222,9 +222,8 @@ gh api graphql -F owner='{owner}' -F name='{repo}' -f query='
     pullRequest(number: <N>) { stack { number size } } } }'   # null => not stacked
 ```
 
-Non-null → unless invoked with a pinned stack
-([Ground truth](#ground-truth-first)), hand off to the `gh-stack` skill if
-one is installed, otherwise stop and ask. An error (the host has no `stack` field) → stop and ask. The
+Non-null → hand off to the `gh-stack` skill if one is installed, otherwise
+stop and ask. An error (the host has no `stack` field) → stop and ask. The
 rest of this section assumes a standalone PR.
 
 | | |

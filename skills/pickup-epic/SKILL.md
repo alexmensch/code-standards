@@ -754,8 +754,9 @@ skill holds, except:
   new head joins that member's `REVIEWED:` list. Lanes outside the stack get
   `PREMERGE` as usual.
 - **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
-  held. The stack takes one place in the landing queue once every member the
-  user named is approved, and lands every one of them; none lands alone.
+  held. A stack lands whole: it takes one place in the landing queue once
+  the user has named every open member and each is approved, and lands every
+  one of them; none lands alone.
 - **Landing**, in place of § 7.2–7.4:
   1. § 7.2 for each member, bottom up — its pre-merged PRs first, then
      `SYNC` when behind its base (`git rev-list --count
@@ -764,7 +765,9 @@ skill holds, except:
   2. Pin the heads. From the main checkout, for each member at its current
      `headRefOid`: § 7.1's review check, and § 7.3's `pr-cleanup` checks
      with the stack check naming this stack. A failure → as in § 7.3, for
-     that member.
+     that member. Then `pr-cleanup`'s `scripts/stack-pins.sh` with every
+     member's `<N>=<head>`, bottom first: a difference other than a moved
+     head — an open member not named or not approved — is a deviation.
   3. The landing subagent, briefed as § 7.4 with these changes: run
      `pr-cleanup` for "stack #<S> lands at pinned heads `<N>=<sha>`…",
      bottom first, with the heads pinned in step 2; it issues `gh stack

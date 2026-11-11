@@ -81,17 +81,22 @@ run `gh pr merge <N> --disable-auto` and report it.
 heads `<N>=<sha>`…", bottom first: the caller holds the approval for every
 member and ran the pre-merge checks at those heads. Run
 [Review threads](#review-threads--check-before-arming-the-merge) for each
-member, then [The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack) with every
-member and its pinned head, skipping Bring main in, The signature trap and
-Merge. On `STACK GREEN`, and never before:
+member, then [The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack)
+with every member and its pinned head, skipping Bring main in, The
+signature trap and Merge. On `STACK GREEN`, and never before, in one
+command — `gh stack merge` has no head guard, so `stack-pins.sh` is it, read
+as late as it can be:
 
 ```bash
-gh stack merge <top N> --squash --yes
+bash <this skill's folder>/scripts/stack-pins.sh <N>=<sha>... && gh stack merge <top N> --squash --yes
 git fetch -q origin && git log --format='%h %s' -<members> origin/<main>   # one squash per member, top first
 ```
 
-Then take the `MERGED` route above for every member. Any other exit of the
-watch → merge nothing and report it. The `gh-stack` skill, if installed,
+`stack-pins.sh` prints each difference between the pinned list and the
+stack's open members — a moved head, an unpinned member below the top or
+any open member above it — and exits non-zero, so nothing merges. Then take
+the `MERGED` route above for every member. Any other exit of the watch, or
+a difference → merge nothing and report it. The `gh-stack` skill, if installed,
 carries the merge's mechanics; its `gh stack` commands that rewrite or push
 branches are not authorised here.
 

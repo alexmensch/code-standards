@@ -403,6 +403,10 @@ case "$1 $2 $*" in
          autoMergeRequest: (if $a == "true" then {} else null end),
          statusCheckRollup: [inputs | split(" ") | {__typename: "CheckRun", name: .[0],
            status: (if .[1] == "pending" then "IN_PROGRESS" else "COMPLETED" end), conclusion: $c[.[1]]}]}' ;;
+  "api graphql "*"stack {"*)
+    q='' prev=''
+    for a; do [ "$prev" != -q ] || q=$a; prev=$a; done
+    jq -r "$q" "$d/stack.json" ;;
   "api graphql "*) cat "$d/$pr.threads" 2>/dev/null || true ;;
   "api repos/"*) printf 'Tests\nLint\n' ;;
 esac
@@ -447,6 +451,26 @@ exit 0" ]'
   check "watch: one rules read, then two calls per member per pass" '[ "$(wc -l < "$WS/d/calls" | tr -d " ")" = 5 ]'
   check "watch: two unpinned PRs are a usage error" '[ "$(watch 1 2)" = "exit 2" ]'
   check "watch: a stack pins every member" '[ "$(watch 1=a1 2)" = "exit 2" ]'
+
+  # stack <N>:<state>:<head>... — the stack's entries, bottom first
+  stack() { printf '%s\n' "$@" | jq -Rn '{data: {repository: {pullRequest: {stack: {entries: {nodes:
+    [inputs | split(":") | {pullRequest: {number: (.[0] | tonumber), state: .[1], headRefOid: .[2]}}]}}}}}}' \
+    > "$WS/d/stack.json"; }
+  pins() { PATH="$WS/bin:$PATH" GH_STUB="$WS/d" bash "$pr_cleanup/stack-pins.sh" "$@" 2>/dev/null; echo "exit $?"; }
+  rm -f "$WS/d/"*.down.*
+  stack 1:MERGED:a1 2:OPEN:b1 3:OPEN:c1
+  check "stack-pins: the open members at their pins match" '[ "$(pins 2=b1 3=c1)" = "exit 0" ]'
+  check "stack-pins: a moved head is a difference" '[ "$(pins 2=b0 3=c1)" = "pinned only: 2=b0
+stack only: 2=b1
+exit 1" ]'
+  check "stack-pins: an open member above the top is a difference" '[ "$(pins 2=b1)" = "stack only: 3=c1
+exit 1" ]'
+  check "stack-pins: an unpinned member below is a difference" '[ "$(pins 3=c1)" = "stack only: 2=b1
+exit 1" ]'
+  echo '{"data": {"repository": {"pullRequest": {"stack": null}}}}' > "$WS/d/stack.json"
+  check "stack-pins: a PR in no stack is a difference" '[[ "$(pins 3=c1)" == "#3 is in no stack"*"exit 1" ]]'
+  touch "$WS/d/3.down.api.graphql"
+  check "stack-pins: an unreadable stack is an error, not a match" '[ "$(pins 3=c1)" = "exit 2" ]'
 else
   echo "skip watch: pr-cleanup is not installed"
 fi

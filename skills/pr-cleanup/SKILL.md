@@ -19,11 +19,13 @@ them.
 
 ## What this skill authorises — and only this
 
-For **the PR named at invocation**, and nothing else:
+For **the PR named at invocation**, or the stack a caller pinned, and
+nothing else:
 
 - **Merge it**, squash only — or, when the caller armed it, never merge:
   wait for it, and disarm with `--disable-auto` on a failed or cancelled
   check or an unresolved review thread ([Ground truth](#ground-truth-first)).
+  A pinned stack: `gh stack merge`, only once the watch prints `STACK GREEN`.
 - **Merge `origin/<main>` into its branch and push**
   ([Bring main in](#bring-main-in--always-check-even-when-nothing-suggests-it)).
 - **Force-push it, with `--force-with-lease`, only for the re-sign in
@@ -69,11 +71,35 @@ can fire between two of your own commands. If `MERGED`, the work left is
 **Armed by the caller** — invoked with "auto-merge is armed at `<sha>`": the
 caller holds the approval and ran the pre-arm checks. Run
 [Review threads](#review-threads--check-before-arming-the-merge), then go
-straight to [The watch](#the-watch--only-for-the---auto-case), skipping
-Bring main in, The signature trap and Merge — the first two would move the
-armed head — and once `MERGED`, take the route above. Never re-arm and
+straight to
+[The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack),
+skipping Bring main in, The signature trap and Merge — the first two would
+move the armed head — and once `MERGED`, take the route above. Never re-arm and
 never merge; on a failed or cancelled check or an unresolved review thread,
 run `gh pr merge <N> --disable-auto` and report it.
+
+**A stack pinned by the caller** — invoked with "a stack lands at pinned
+heads `<N>=<sha>`…", bottom first: the caller holds the approval for every
+member and ran the pre-merge checks at those heads. Run
+[Review threads](#review-threads--check-before-arming-the-merge) for each
+member, then [The watch](#the-watch--only-for-the---auto-case-and-a-pinned-stack)
+with every member and its pinned head, skipping Bring main in, The
+signature trap and Merge. On `STACK GREEN`, and never before, in one
+command — `gh stack merge` has no head guard, so `stack-pins.sh` is it, read
+as late as it can be:
+
+```bash
+bash <this skill's folder>/scripts/stack-pins.sh <N>=<sha>... && gh stack merge <top N> --squash --yes
+git fetch -q origin && git log --format='%h %s' -<members> origin/<main>   # one squash per member, top first
+```
+
+`stack-pins.sh` prints each difference between the pinned list and the
+stack's open members — a moved head, an unpinned member below the top or
+any open member above it — and exits non-zero, so nothing merges. Then take
+the `MERGED` route above for every member. Any other exit of the watch, or
+a difference → merge nothing and report it. The `gh-stack` skill, if installed,
+carries the merge's mechanics; its `gh stack` commands that rewrite or push
+branches are not authorised here.
 
 Collect the tickets: their IDs appear in the PR title, body and commit
 subjects, in the pattern the project's tracker uses. Gather all three and
@@ -96,17 +122,10 @@ code-scanning alerts endpoint filtered to the PR's merge ref has returned an
 empty list while an alert's thread stood unresolved, so the thread is the
 signal. An outdated thread counts: its lines moved, its point is unanswered.
 
-Write this to `${TMPDIR:-/tmp}/pr-threads-<N>.sh`, PR number filled in, and
-run `bash <that path>`; the watch runs the same file:
+Run, from inside the repository:
 
 ```bash
-gh api graphql --paginate -F owner='{owner}' -F name='{repo}' -F n=<N> -f query='
-  query($owner: String!, $name: String!, $n: Int!, $endCursor: String) { repository(owner: $owner, name: $name) {
-    pullRequest(number: $n) { reviewThreads(first: 100, after: $endCursor) {
-      pageInfo { hasNextPage endCursor } nodes { id isResolved
-        comments(first: 1) { nodes { author { login } path url } } } } } } }' \
-  -q '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)
-      | .comments.nodes[0] as $c | "\(.id) \($c.author.login) \($c.path) \($c.url)"'
+bash <this skill's folder>/scripts/threads.sh <N>
 ```
 
 One line per unresolved thread — id, author, file, link — and nothing when
@@ -234,45 +253,22 @@ gh pr merge <N> --squash --auto
 Never pass `--delete-branch`: the local side fails while the worktree still
 holds the branch, and the remote side is the repo's auto-delete setting.
 
-### The watch — only for the `--auto` case
+### The watch — only for the `--auto` case and a pinned stack
 
-**The script must exit on every terminal state** — a monitor that only matches
+**The watch exits on every terminal state** — a monitor that only matches
 success is silent through a failure, and silence looks identical to "still
-running". Write it to `${TMPDIR:-/tmp}/pr-watch-<N>.sh` and hand `Monitor` the
-plain command `bash <that path>`: the loop needs `$( )`, which some command
-guards reject inline, and the PR number in the filename stops two concurrent
-landings sharing one watcher.
+running". Hand `Monitor` the plain command, a pinned stack with every
+member and its pinned head, bottom first:
 
 ```bash
-PR=<N>; th=${TMPDIR:-/tmp}/pr-threads-$PR.sh
-[ -f "$th" ] || { echo "PR $PR: $th missing — write it (Review threads)"; exit 1; }
-while true; do
-  info=$(gh pr view $PR --json state,mergedAt,autoMergeRequest \
-    -q '"\(.state)|\(.mergedAt // "")|\(.autoMergeRequest != null)"' 2>/dev/null || true)
-  [ -z "$info" ] && { sleep 30; continue; }     # transient API failure, keep going
-  IFS='|' read -r st merged auto <<< "$info"
-  case "$st" in
-    MERGED) echo "PR $PR MERGED at $merged"; break ;;
-    CLOSED) echo "PR $PR CLOSED WITHOUT MERGING — cleanup not run"; break ;;
-  esac
-  fails=$(gh pr checks $PR --json name,bucket \
-    -q '.[] | select(.bucket=="fail" or .bucket=="cancel") | .name' \
-    2>/dev/null | tr '\n' ' ' || true)
-  if [ -n "$fails" ]; then echo "PR $PR CHECKS FAILED/CANCELLED: $fails"; break; fi
-  threads=$(bash "$th" 2>/dev/null || true)
-  if [ -n "$threads" ]; then echo "PR $PR UNRESOLVED REVIEW THREADS:"; echo "$threads"; break; fi
-  if [ "$auto" != "true" ]; then echo "PR $PR auto-merge NOT ARMED"; break; fi
-  pending=$(gh pr checks $PR --json bucket -q '[.[] | select(.bucket=="pending")] | length' 2>/dev/null || true)
-  if [ "$pending" = 0 ] \
-    && req=$(gh api 'repos/{owner}/{repo}/rules/branches/<main>' \
-         -q '.[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context') \
-    && got=$(gh pr view $PR --json statusCheckRollup -q '.statusCheckRollup[]? | (.name // .context)'); then
-    missing=$(comm -23 <(sed '/^$/d' <<< "$req" | sort -u) <(sed '/^$/d' <<< "$got" | sort -u) | tr '\n' ' ')
-    if [ -n "$missing" ]; then echo "PR $PR BLOCKED: required check never reported: $missing"; break; fi
-  fi
-  sleep 30
-done
+bash <this skill's folder>/scripts/watch.sh <main> <N>
+bash <this skill's folder>/scripts/watch.sh <main> <N>=<pinned head>...
 ```
+
+It prints what ended it — for a stack, every member's: `MERGED`, `STACK
+GREEN`, or what stopped it — closed, auto-merge not armed, a moved head, a
+failed or cancelled check, an unresolved thread, or a required check that
+never reported.
 
 `cancel` is a terminal bucket and is **not** `fail` — a cancelled required
 check blocks the merge for good while auto-merge stays armed, so a
@@ -284,9 +280,9 @@ Auto-merge does not wait for a thread: one posted after the arm — a late
 code-scanning alert — merges with the PR unless the branch rules require
 conversation resolution, which § Review threads requires; the watch stops it
 only when it posts before the merge. `Monitor` with
-`persistent: true`. Only `MERGED` continues to
-[Close the tickets](#close-the-tickets); every other exit is a
-[deviation](#deviations--stop-and-ask).
+`persistent: true`. Only `MERGED` — or, for a pinned stack, `STACK GREEN`
+and the merge — continues to [Close the tickets](#close-the-tickets); every
+other exit is a [deviation](#deviations--stop-and-ask).
 
 ## Close the tickets
 
@@ -376,8 +372,9 @@ an open code-scanning alert at or above a `code_scanning` rule's threshold
 select(.type=="code_scanning") | .parameters'`; the alert links from its
 review thread); then an orphaned required-status context — a renamed CI job
 strands its old name as a required check forever. The watch's `required
-check never reported` exit names the last; outside a watch, run its `req`,
-`got` and `missing` lines with `PR=<N>`.
+check never reported` exit names the last; outside a watch, compare the
+branch rules' required contexts with the PR's `statusCheckRollup` names, as
+`scripts/watch.sh` does.
 
 Report the cause; changing branch rules is the user's call, never yours.
 
@@ -385,7 +382,8 @@ Report the cause; changing branch rules is the user's call, never yours.
 
 - PR is a draft, has requested changes, or has unresolved review threads
   ([Review threads](#review-threads--check-before-arming-the-merge)).
-- A check failed or was cancelled, or the monitor exited `CLOSED` / not-armed.
+- A check failed or was cancelled, or the monitor exited `CLOSED` / not-armed
+  / head moved.
 - `mergeStateStatus` is `UNSTABLE` — something is failing even though GitHub
   would let the merge through.
 - Merge conflicts the project's extension does not give a rule for.

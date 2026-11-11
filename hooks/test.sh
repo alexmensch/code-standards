@@ -379,4 +379,100 @@ else
   echo "skip sync-base: pickup-task is not installed"
 fi
 
+pr_cleanup="$(while read -r b; do
+  if [[ "$b" == */pr-cleanup/SKILL.md ]] || grep -q '^<!-- Installed copy of code-standards skills/pr-cleanup/SKILL.md' "$b"; then
+    echo "${b%/SKILL.md}/scripts"
+  fi
+done <<< "$bodies")"
+if [ -n "$pr_cleanup" ]; then
+  WS="$STATE/watch"
+  mkdir -p "$WS/bin" "$WS/d"
+  cat > "$WS/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+d=$GH_STUB
+echo "$1 $2" >> "$d/calls"
+pr=$3
+for a; do case $a in n=*) pr=${a#n=} ;; esac; done
+[ ! -f "$d/$pr.down.$1.$2" ] || exit 1
+case "$1 $2 $*" in
+  "pr view "*)
+    IFS='|' read -r st merged auto head < "$d/$pr"
+    awk 'NF {print $1, $2}' "$d/$pr.checks" | jq -Rn --arg st "$st" --arg m "$merged" --arg a "$auto" --arg h "$head" '
+      {pass: "SUCCESS", fail: "FAILURE", cancel: "CANCELLED"} as $c
+      | {state: $st, mergedAt: (if $m == "" then null else $m end), headRefOid: $h,
+         autoMergeRequest: (if $a == "true" then {} else null end),
+         statusCheckRollup: [inputs | split(" ") | {__typename: "CheckRun", name: .[0],
+           status: (if .[1] == "pending" then "IN_PROGRESS" else "COMPLETED" end), conclusion: $c[.[1]]}]}' ;;
+  "api graphql "*"stack {"*)
+    q='' prev=''
+    for a; do [ "$prev" != -q ] || q=$a; prev=$a; done
+    jq -r "$q" "$d/stack.json" ;;
+  "api graphql "*) cat "$d/$pr.threads" 2>/dev/null || true ;;
+  "api repos/"*) printf 'Tests\nLint\n' ;;
+esac
+EOF
+  chmod +x "$WS/bin/gh"
+  # member <pr> <state|mergedAt|auto|head> <check bucket>...
+  member() { echo "$2" > "$WS/d/$1"; printf '%s\n' "${@:3}" > "$WS/d/$1.checks"; rm -f "$WS/d/$1".threads "$WS/d/$1".down.*; }
+  watch() { PATH="$WS/bin:$PATH" GH_STUB="$WS/d" PR_WATCH_INTERVAL=0 PR_WATCH_PASSES=2 \
+    bash "$pr_cleanup/watch.sh" main "$@" 2>/dev/null; echo "exit $?"; }
+  green=("Tests pass" "Lint pass")
+
+  member 1 "OPEN||true|a1" "${green[@]}"
+  check "watch: an armed, green PR waits for the merge" '[ "$(watch 1)" = "exit 3" ]'
+  member 1 "MERGED|T|true|a1" "${green[@]}"
+  check "watch: a merged PR ends it" '[ "$(watch 1)" = "PR 1 MERGED at T
+exit 0" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"
+  check "watch: an unarmed PR ends it" '[[ "$(watch 1)" == "PR 1 auto-merge NOT ARMED"* ]]'
+  member 1 "OPEN||true|a1" "Tests cancel" "Lint pass"
+  check "watch: a cancelled check ends it" '[[ "$(watch 1)" == "PR 1 CHECKS FAILED/CANCELLED: Tests"* ]]'
+  member 1 "OPEN||true|a1" "Tests pass"
+  check "watch: a required check never reported ends it" '[[ "$(watch 1)" == "PR 1 BLOCKED: required check never reported: Lint "* ]]'
+  member 1 "OPEN||true|a1" "${green[@]}"; echo "t1 bot a.ts url" > "$WS/d/1.threads"
+  check "watch: an open thread ends it" '[[ "$(watch 1)" == "PR 1 UNRESOLVED REVIEW THREADS:"* ]]'
+
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"
+  check "watch: a green pinned stack prints STACK GREEN" '[ "$(watch 1=a1 2=b1)" = "STACK GREEN
+exit 0" ]'
+  check "watch: a moved head ends it" '[[ "$(watch 1=a1 2=b0)" == "PR 2 HEAD MOVED: b1, pinned b0"* ]]'
+  member 2 "OPEN||false|b1" "Tests pending" "Lint pass"
+  check "watch: a pending member keeps the stack waiting" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  member 1 "OPEN||false|a1" "Tests fail" "Lint pass"; member 2 "OPEN||false|b1" "Tests pass"
+  check "watch: every member that ends a stack is reported" '[ "$(watch 1=a1 2=b1)" = "PR 1 CHECKS FAILED/CANCELLED: Tests
+PR 2 BLOCKED: required check never reported: Lint 
+exit 0" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"; touch "$WS/d/2.down.api.graphql"
+  check "watch: a failed thread read is unknown, never clean" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  touch "$WS/d/1.down.pr.view"; rm "$WS/d/2.down.api.graphql"
+  check "watch: a failed PR read is unknown, never clean" '[ "$(watch 1=a1 2=b1)" = "exit 3" ]'
+  member 1 "OPEN||false|a1" "${green[@]}"; member 2 "OPEN||false|b1" "${green[@]}"; rm -f "$WS/d/calls"
+  watch 1=a1 2=b1 >/dev/null
+  check "watch: one rules read, then two calls per member per pass" '[ "$(wc -l < "$WS/d/calls" | tr -d " ")" = 5 ]'
+  check "watch: two unpinned PRs are a usage error" '[ "$(watch 1 2)" = "exit 2" ]'
+  check "watch: a stack pins every member" '[ "$(watch 1=a1 2)" = "exit 2" ]'
+
+  # stack <N>:<state>:<head>... — the stack's entries, bottom first
+  stack() { printf '%s\n' "$@" | jq -Rn '{data: {repository: {pullRequest: {stack: {entries: {nodes:
+    [inputs | split(":") | {pullRequest: {number: (.[0] | tonumber), state: .[1], headRefOid: .[2]}}]}}}}}}' \
+    > "$WS/d/stack.json"; }
+  pins() { PATH="$WS/bin:$PATH" GH_STUB="$WS/d" bash "$pr_cleanup/stack-pins.sh" "$@" 2>/dev/null; echo "exit $?"; }
+  rm -f "$WS/d/"*.down.*
+  stack 1:MERGED:a1 2:OPEN:b1 3:OPEN:c1
+  check "stack-pins: the open members at their pins match" '[ "$(pins 2=b1 3=c1)" = "exit 0" ]'
+  check "stack-pins: a moved head is a difference" '[ "$(pins 2=b0 3=c1)" = "pinned only: 2=b0
+stack only: 2=b1
+exit 1" ]'
+  check "stack-pins: an open member above the top is a difference" '[ "$(pins 2=b1)" = "stack only: 3=c1
+exit 1" ]'
+  check "stack-pins: an unpinned member below is a difference" '[ "$(pins 3=c1)" = "stack only: 2=b1
+exit 1" ]'
+  echo '{"data": {"repository": {"pullRequest": {"stack": null}}}}' > "$WS/d/stack.json"
+  check "stack-pins: a PR in no stack is a difference" '[[ "$(pins 3=c1)" == "#3 is in no stack"*"exit 1" ]]'
+  touch "$WS/d/3.down.api.graphql"
+  check "stack-pins: an unreadable stack is an error, not a match" '[ "$(pins 3=c1)" = "exit 2" ]'
+else
+  echo "skip watch: pr-cleanup is not installed"
+fi
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

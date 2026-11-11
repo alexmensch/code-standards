@@ -77,7 +77,7 @@ armed head — and once `MERGED`, take the route above. Never re-arm and
 never merge; on a failed or cancelled check or an unresolved review thread,
 run `gh pr merge <N> --disable-auto` and report it.
 
-**A stack pinned by the caller** — invoked with "stack #<S> lands at pinned
+**A stack pinned by the caller** — invoked with "a stack lands at pinned
 heads `<N>=<sha>`…", bottom first: the caller holds the approval for every
 member and ran the pre-merge checks at those heads. Run
 [Review threads](#review-threads--check-before-arming-the-merge) for each

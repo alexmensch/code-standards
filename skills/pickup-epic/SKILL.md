@@ -84,8 +84,10 @@ nowhere else:
   (§ Hibernate), and not yet answered — a landing approval, a preflight, a
   `PLAN_CHANGE`, a deviation — asked at § Resume;
 - landing approvals given and the landing queue;
-- stacks the user chose (§ Stacks): each one's number, its members bottom
-  first — item, PR, branch — and the items the user named to land in it;
+- stacks the user chose (§ Stacks): each one's members bottom first — item,
+  PR, branch — and the items the user named to land in it. A restructure
+  re-allocates a stack's number, so it is read from any member when needed
+  (`gh-stack` § Finding the stack);
 - pre-merges sent (§ 7 Pre-merge): each later item, the approved PR, and
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
@@ -769,7 +771,7 @@ skill holds, except:
      member's `<N>=<head>`, bottom first: a difference other than a moved
      head — an open member not named or not approved — is a deviation.
   3. The landing subagent, briefed as § 7.4 with these changes: run
-     `pr-cleanup` for "stack #<S> lands at pinned heads `<N>=<sha>`…",
+     `pr-cleanup` for "a stack lands at pinned heads `<N>=<sha>`…",
      bottom first, with the heads pinned in step 2; it issues `gh stack
      merge` itself, and only on the watch's `STACK GREEN`; sub-steps 2–3
      run for every member. It returns `merged`, or the watch's exit — a

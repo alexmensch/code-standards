@@ -37,6 +37,10 @@ monitor tools, and `pickup-epic` drives Claude Code background sessions and
 messages between them: install both only on Claude Code, and record them as
 skipped (`:-`, § 4) elsewhere.
 
+`pickup-epic` launches `pickup-task` sessions and runs `pickup-task`'s
+`scripts/sync-only.sh`: install it only together with `pickup-task`, and
+skipping `pickup-task` skips `pickup-epic` too.
+
 `beads` is the command reference for one ticket tracker, `bd`. Install it only
 when the project in scope (or, for a user install, any project the user works
 in) has a `.beads/` folder or `bd` on the `PATH`; ask if unsure. Otherwise

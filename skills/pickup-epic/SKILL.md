@@ -709,7 +709,7 @@ git does not see as the commits the lane merged, so that lane's later
 and the earlier resolution stands.
 
 A move of #N's head from a lane's held `<old>` is **sync-only** when, after
-`git fetch origin`,
+one `git fetch origin` per § 1,
 `bash <this skill's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
 exits 0: every commit between is a merge of a commit main holds, with the
 tree a plain merge of its parents gives — #N's clean `SYNC` merges, and a
@@ -738,7 +738,8 @@ by hand fails it, and so does any other exit.
   catches an approval whose pre-merge was missed, a lane that has started
   sharing a file since, and a head move `sync-only.sh` does not pass — whose
   `PREMERGE #N <new head>` names the commits in between. It costs one
-  § Lanes run per such PR per § 1. A sync-only move sends nothing to a
+  § Lanes run per such PR per § 1, plus one `sync-only.sh` run per lane
+  holding an earlier #N head. A sync-only move sends nothing to a
   lane holding an earlier #N head: a clean merge carries only main's
   changes, which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`

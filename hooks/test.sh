@@ -394,7 +394,8 @@ h_fix() { h_syncs; put d=F; }
 h_premerge() { h_n; branch P main; put e=P; on N; merge P; }
 h_unmerge() { h_premerge; g tag -f held; g revert --no-edit -m 1 HEAD; }
 h_resolved() { h_n; on main; put a=X; on N; g merge -q main; put a=NX; }
-h_fold() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on main; put b=Me e=0; on N; merge main; }
+h_fold() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on main; put b=Me e=0; on N
+  (cd "$repo" && bash "$sync_base" main M); }
 h_fold_moved() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on M; put b=Mf
   on main; put b=Mf; on N; g merge -q main; put b=Mf; }
 h_fold_resolved() { h_n; branch M main; put a=Me; on N; g merge -q M; put a=NMe; g tag -f held

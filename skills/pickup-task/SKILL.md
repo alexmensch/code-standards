@@ -346,14 +346,16 @@ What changes:
 
 ### Hand off
 
-The coordinator is about to remove this session; a fresh one may resume the
-item from what this leaves behind.
+From `HIBERNATE` or `RELEASED`, the coordinator is about to remove this
+session; a fresh one may resume the item from what this leaves behind. From
+`WIND_DOWN`, the requester has stepped away and those messages will follow.
 
 **No new question to the requester from `WIND_DOWN`, `HIBERNATE` or
 `RELEASED` on.** The
 requester has usually stepped away, and a question waiting on them holds the
-session short of the reply. A decision this session would otherwise ask goes
-into the handoff's `question:` instead, held back, and is asked on resume.
+session short of the reply. A decision this session would otherwise ask is
+held back in this session until step 2 writes it into the handoff's
+`question:`, and is asked on resume.
 One that `next` depends on sets `phase: awaiting owner answer`.
 On `RELEASED` it goes into the item's notes too, as an `UNRESOLVED` note in
 `pickup-epic` § 3's format: a released item relaunches fresh, and preflight

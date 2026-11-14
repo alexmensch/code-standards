@@ -402,6 +402,7 @@ h_fold_resolved() { h_n; branch M main; put a=Me; on N; g merge -q M; put a=NMe;
 h_octopus() { h_n; branch X main; put b=X; branch Y main; put c=Y; on main; merge X; merge Y; on N
   g merge -q --no-edit X Y; }
 h_stacked() { new_repo sync-only; branch B; put d=B; branch N; put a=N; g tag held; on B; put e=B; on N; merge B; }
+h_missing() { h_syncs; rm -f "$repo/.git/objects/$(g rev-parse main~ | sed 's|^..|&/|')"; }
 h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on main; put b=X; on N; merge main; }
 
 if [ -n "$pickup_task" ]; then
@@ -430,6 +431,7 @@ if [ -n "$pickup_task" ]; then
   check "sync-only: merges of a stack member's base pass against that base" '[ "$(sync_only h_stacked held B)" = 0 ]'
   check "sync-only: merges of a stack member's base fail against main" '[ "$(sync_only h_stacked)" = 1 ]'
   check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
+  check "sync-only: a missing object is an error, not a move" '[ "$(sync_only h_missing)" = 2 ]'
   check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'
 else
   echo "skip sync-only: pickup-task is not installed"

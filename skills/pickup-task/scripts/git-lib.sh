@@ -7,6 +7,13 @@ verify_commits() {
   done
 }
 
+is_ancestor() {
+  local s=0
+  git merge-base --is-ancestor "$1" "$2" || s=$?
+  [ "$s" -le 1 ] || exit 2
+  return "$s"
+}
+
 # Sets t to the merged tree, or to the conflict listing with status 1.
 # merge-tree also exits 1 on a name it cannot resolve: callers verify every ref first, so 1 here is a conflict.
 merge_tree() {

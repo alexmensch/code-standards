@@ -769,7 +769,8 @@ skill holds, except:
   it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
   member #N sends `SYNC #<member>` to each member above it whose branch
   lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
-  branch>` fails), bottom up, each once the one below replied `SYNCED`; each
+  branch>` fails), bottom up, each once the one below replied `SYNCED` or
+  was skipped; each
   new head joins that member's `REVIEWED:` list. Skip a member when
   `sync-only.sh` passes from its newest #N commit (`git merge-base
   origin/<#N's branch> origin/<its branch>`) to #N's head, with

@@ -92,8 +92,8 @@ nowhere else:
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
   of `PREMERGED`;
-- workers sent `WIND_DOWN` or `HIBERNATE`, each with which, until their
-  session is removed (§ Hand-off), and those that replied `WOUND_DOWN`;
+- workers sent `WIND_DOWN`, and those sent `HIBERNATE`, each until its
+  session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
@@ -322,7 +322,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
 | A report that the item now waits on another item, X, to land | X's PR approved and unlanded → § Pre-merge sends it X's head instead. Otherwise park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
-| `WOUND_DOWN` | record it. Its detail names a question held back → the item's landing needs the user (§ Hibernate) |
+| `WOUND_DOWN` | its detail names a question held back → the item's landing needs the user (§ Hibernate) |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
 | A watcher exits printing | § Watchers |

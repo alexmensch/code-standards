@@ -385,6 +385,35 @@ else
   echo "skip sync-base: pickup-task is not installed"
 fi
 
+# Each history leaves #N's branch N checked out at its head, with tag held on the head a lane holds.
+h_n() { new_repo sync-only; branch N; put a=N; g tag held; }
+h_syncs() { h_n; on main; put b=X; on N; merge main; on main; put c=Y; on N; merge main; }
+h_fix() { h_syncs; put d=F; }
+h_premerge() { h_n; branch P main; put e=P; on N; merge P; }
+h_unmerge() { h_premerge; g tag -f held; g revert --no-edit -m 1 HEAD; }
+h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on N; on main; put b=X; on N; merge main; }
+
+pickup_epic="$(bundle_scripts pickup-epic)"
+if [ -n "$pickup_epic" ]; then
+  sync_only() (
+    export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+    rm -rf "$STATE/sync-base"
+    "$1" >/dev/null 2>&1
+    cd "$repo"
+    bash "$pickup_epic/sync-only.sh" "${2:-held}" N main >/dev/null 2>&1
+    echo $?
+  )
+  check "sync-only: merges of main pass" '[ "$(sync_only h_syncs)" = 0 ]'
+  check "sync-only: no move passes" '[ "$(sync_only h_n)" = 0 ]'
+  check "sync-only: a fix after the syncs fails" '[ "$(sync_only h_fix)" = 1 ]'
+  check "sync-only: a pre-merge of a head main lacks fails" '[ "$(sync_only h_premerge)" = 1 ]'
+  check "sync-only: an unmerge revert fails" '[ "$(sync_only h_unmerge)" = 1 ]'
+  check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
+  check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'
+else
+  echo "skip sync-only: pickup-epic is not installed"
+fi
+
 pr_cleanup="$(bundle_scripts pr-cleanup)"
 if [ -n "$pr_cleanup" ]; then
   WS="$STATE/watch"

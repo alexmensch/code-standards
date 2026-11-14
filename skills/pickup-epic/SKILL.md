@@ -697,23 +697,33 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
-reverts and `LANDING_FIX` fixes. Every other worker's lane that lands
-after #N — later in the landing queue or not yet in it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
-the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
-`n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges
-that head in at its next commit boundary while #N's CI and merge wait run,
-so conflict resolution leaves the critical path. #N lands as a squash, which git does not see as the commits the lane
-merged, so that lane's later `SYNC` names #N's final head among its landed
-pre-merged heads (step 2), and the earlier resolution stands.
+reverts and `LANDING_FIX` fixes. Every other worker's lane that lands after
+#N — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from
+`gh pr view <N> --json headRefOid`, when § Lanes' command with `n=<N>`
+lists it or its item waits on #N's item (§ 1). Its worker merges that head
+in at its next commit boundary while #N's CI and merge wait run, so
+conflict resolution leaves the critical path. #N lands as a squash, which
+git does not see as the commits the lane merged, so that lane's later
+`SYNC` names #N's final head among its landed pre-merged heads (step 2),
+and the earlier resolution stands.
+
+A move of #N's head from a lane's held `<old>` is **sync-only** when, after
+`git fetch origin`,
+`bash <this skill's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
+exits 0: every commit between is a merge of a commit main holds — #N's
+`SYNC` merges, folding in landed pre-merged heads or not. A `PREMERGE`
+merge, an `UNMERGE` revert or a `LANDING_FIX` fix fails it, and so does
+any other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or an earlier one the head moved from by a sync-only move
-  (below), or that neither shares a file nor waits on #N's item. A
+  (`sync-only.sh` exits 0), or that neither shares a file nor waits on #N's item. A
   member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
   waiting on #N's item gets it until #N has merged. Each approval costs up
   to the cap's count of gate runs, since #N joins the back of the queue;
-  each later head move that is not sync-only, up to the cap plus the live
+  each later head move `sync-only.sh` does not pass, up to the cap plus the live
   approved lanes queued behind #N (§ 6 fill step); plus, per lane launched
   on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
@@ -724,13 +734,11 @@ pre-merged heads (step 2), and the earlier resolution stands.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
-  sharing a file since, and a head move that is not sync-only — whose
+  sharing a file since, and a head move `sync-only.sh` does not pass — whose
   `PREMERGE #N <new head>` names the commits in between. It costs one
-  § Lanes run per such PR per § 1. A sync-only move — every commit since
-  the lane's held #N head one of #N's `SYNC` merges of origin/<main>,
-  folding in landed pre-merged heads or not; never a `PREMERGE` merge or
-  `UNMERGE` revert — sends nothing to a lane holding an earlier #N head:
-  those commits are main's, which the lane folds in at its own `SYNC`.
+  § Lanes run per such PR per § 1. A sync-only move sends nothing to a
+  lane holding an earlier #N head: those commits are main's, which the lane
+  folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:

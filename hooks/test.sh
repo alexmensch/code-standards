@@ -362,8 +362,8 @@ bundle_scripts() {
   done <<< "$bodies"
 }
 
-sync_base="$(bundle_scripts pickup-task)"
-sync_base="${sync_base:+$sync_base/sync-base.sh}"
+pickup_task="$(bundle_scripts pickup-task)"
+sync_base="${pickup_task:+$pickup_task/sync-base.sh}"
 if [ -n "$sync_base" ]; then
   check "sync-base: a lane without the landed head keeps it" \
     '[ "$(outcome sync_new h_revert M)" = "a=M b=0 c=L d=0 e=0 " ]'
@@ -404,14 +404,13 @@ h_octopus() { h_n; branch X main; put b=X; branch Y main; put c=Y; on main; merg
 h_stacked() { new_repo sync-only; branch B; put d=B; branch N; put a=N; g tag held; on B; put e=B; on N; merge B; }
 h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on main; put b=X; on N; merge main; }
 
-pickup_epic="$(bundle_scripts pickup-epic)"
-if [ -n "$pickup_epic" ]; then
+if [ -n "$pickup_task" ]; then
   sync_only_says() (
     export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
     rm -rf "$REPOS"
     "$1" >/dev/null 2>&1
     cd "$repo"
-    bash "$pickup_epic/sync-only.sh" "${2:-held}" N "${3:-main}" 2>/dev/null
+    bash "$pickup_task/sync-only.sh" "${2:-held}" N "${3:-main}" 2>/dev/null
     echo $?
   )
   sync_only() { sync_only_says "$@" | tail -1; }
@@ -433,7 +432,7 @@ if [ -n "$pickup_epic" ]; then
   check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
   check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'
 else
-  echo "skip sync-only: pickup-epic is not installed"
+  echo "skip sync-only: pickup-task is not installed"
 fi
 
 pr_cleanup="$(bundle_scripts pr-cleanup)"

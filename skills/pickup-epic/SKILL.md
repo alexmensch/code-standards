@@ -710,7 +710,7 @@ and the earlier resolution stands.
 
 A move of #N's head from a lane's held `<old>` is **sync-only** when, after
 one `git fetch origin` per § 1,
-`bash <this skill's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
+`bash <pickup-task's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
 exits 0: every commit between is a merge of a commit main holds, with the
 tree a plain merge of its parents gives — #N's clean `SYNC` merges, and a
 fold of a landed pre-merged head only when a plain merge reproduces it. A

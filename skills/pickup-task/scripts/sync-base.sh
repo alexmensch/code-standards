@@ -5,9 +5,8 @@
 set -euo pipefail
 
 [ $# -ge 2 ] || { echo "usage: sync-base.sh <base> <head>..." >&2; exit 2; }
-for ref in "$@"; do
-  git rev-parse -q --verify "$ref^{commit}" >/dev/null || { echo "not a commit: $ref" >&2; exit 2; }
-done
+. "$(dirname "${BASH_SOURCE[0]}")/git-refs.sh"
+verify_commits "$@"
 base="$1"
 shift
 

@@ -5,9 +5,8 @@
 set -uo pipefail
 
 [ $# -eq 3 ] || { echo "usage: sync-only.sh <held> <head> <main-ref>" >&2; exit 2; }
-for ref in "$@"; do
-  git rev-parse -q --verify "$ref^{commit}" >/dev/null || { echo "not a commit: $ref" >&2; exit 2; }
-done
+. "$(dirname "${BASH_SOURCE[0]}")/git-refs.sh"
+verify_commits "$@"
 held=$1 head=$2 main=$3
 
 git merge-base --is-ancestor "$held" "$head" || { echo "$head does not hold $held"; exit 1; }

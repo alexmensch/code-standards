@@ -386,15 +386,18 @@ else
 fi
 
 # Each history leaves #N's branch N checked out at its head, with tag held on the head a lane holds.
+# A squash on main also names e=0, so it is never the same commit as the head it lands.
 h_n() { new_repo sync-only; branch N; put a=N; g tag held; }
 h_syncs() { h_n; on main; put b=X; on N; merge main; on main; put c=Y; on N; merge main; }
 h_fix() { h_syncs; put d=F; }
 h_premerge() { h_n; branch P main; put e=P; on N; merge P; }
 h_unmerge() { h_premerge; g tag -f held; g revert --no-edit -m 1 HEAD; }
 h_resolved() { h_n; on main; put a=X; on N; g merge -q main; put a=NX; }
-h_fold() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on main; put b=Me; on N; merge main; }
+h_fold() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on main; put b=Me e=0; on N; merge main; }
 h_fold_moved() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on M; put b=Mf
   on main; put b=Mf; on N; g merge -q main; put b=Mf; }
+h_fold_resolved() { h_n; branch M main; put a=Me; on N; g merge -q M; put a=NMe; g tag -f held
+  on main; put a=Me e=0; on N; (cd "$repo" && bash "$sync_base" main M); }
 h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on N; on main; put b=X; on N; merge main; }
 
 pickup_epic="$(bundle_scripts pickup-epic)"
@@ -413,7 +416,8 @@ if [ -n "$pickup_epic" ]; then
   check "sync-only: a pre-merge of a head main lacks fails" '[ "$(sync_only h_premerge)" = 1 ]'
   check "sync-only: an unmerge revert fails" '[ "$(sync_only h_unmerge)" = 1 ]'
   check "sync-only: a hand-resolved conflict with main fails" '[ "$(sync_only h_resolved)" = 1 ]'
-  check "sync-only: a fold of a landed head main squashed unchanged passes" '[ "$(sync_only h_fold)" = 0 ]'
+  check "sync-only: a fold over a conflict-free pre-merge passes" '[ "$(sync_only h_fold)" = 0 ]'
+  check "sync-only: a fold over a hand-resolved pre-merge fails" '[ "$(sync_only h_fold_resolved)" = 1 ]'
   check "sync-only: a fold a plain merge cannot reproduce fails" '[ "$(sync_only h_fold_moved)" = 1 ]'
   check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
   check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'

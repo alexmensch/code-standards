@@ -712,10 +712,11 @@ A move of #N's head from a lane's held `<old>` is **sync-only** when, after
 `git fetch origin`,
 `bash <this skill's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
 exits 0: every commit between is a merge of a commit main holds, with the
-tree a plain merge of its parents gives — #N's clean `SYNC` merges,
-folding in landed pre-merged heads or not. A `PREMERGE` merge, an
-`UNMERGE` revert, a `LANDING_FIX` fix or a `SYNC` merge whose conflicts
-#N's worker resolved fails it, and so does any other exit.
+tree a plain merge of its parents gives — #N's clean `SYNC` merges, and a
+fold of a landed pre-merged head only when a plain merge reproduces it. A
+`PREMERGE` merge, an `UNMERGE` revert, a `LANDING_FIX` fix, a `SYNC` merge
+whose conflicts #N's worker resolved, or a fold over a pre-merge resolved
+by hand fails it, and so does any other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or an earlier one the head moved from by a sync-only move

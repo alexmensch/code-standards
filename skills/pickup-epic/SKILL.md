@@ -707,14 +707,15 @@ merged, so that lane's later `SYNC` names #N's final head among its landed
 pre-merged heads (step 2), and the earlier resolution stands.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or that neither shares a file nor waits on #N's item. A
+  the user` — or an earlier one the head moved from by sync work alone
+  (below), or that neither shares a file nor waits on #N's item. A
   member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
   waiting on #N's item gets it until #N has merged. Each approval costs up
   to the cap's count of gate runs, since #N joins the back of the queue;
-  each later head move, up to the cap plus the live approved lanes queued
-  behind #N (§ 6 fill step); plus, per lane launched on #N, a rebuild of the
-  seeded artifacts #N's diff makes stale.
+  each later head move other than sync work, up to the cap plus the live
+  approved lanes queued behind #N (§ 6 fill step); plus, per lane launched
+  on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
   <new head> (PREMERGE #N)` in its place means #N had landed before the
@@ -723,8 +724,14 @@ pre-merged heads (step 2), and the earlier resolution stands.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
-  sharing a file since, and a head move — whose `PREMERGE #N <new head>` names the
-  commits in between. It costs one § Lanes run per such PR per § 1.
+  sharing a file since, and a head move by a `LANDING_FIX` fix or any other
+  non-sync commit — whose `PREMERGE #N <new head>` names the commits in
+  between. A head move by sync work alone — #N's `SYNC` merges of
+  origin/<main>, folding in landed pre-merged heads or not — is no head
+  move here: a lane holding an earlier #N head gets nothing. Those commits
+  are main's, which the lane folds in at its own `SYNC`, and once #N lands
+  that `SYNC` names #N's final head among its landed pre-merged heads. It
+  costs one § Lanes run per such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:

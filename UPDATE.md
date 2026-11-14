@@ -51,10 +51,12 @@ section in new only is new — take it.
 
 - **In `skills/` but not in `skills=`** → new since the install. Run
   `INSTALL.md` § 3's collision check and § 5's copy for it alone.
-- **In `skills=` with `:-`** → skipped at install; leave it skipped.
+- **In `skills=` with `:-`** → skipped at install; leave it skipped, unless
+  an installed skill needs it (next bullet).
 - **Installed, but a skill it needs (`INSTALL.md` § 2) is skipped** — such
   as `pickup-epic` without `pickup-task` → ask: install the needed skill (as
-  a new one, above), or skip this one too.
+  a new one, above), or skip this one too: remove its installed copy and
+  record it `:-`.
 - **In `skills=` but no longer in `skills/`** → removed from the bundle. Ask
   before deleting the installed copy.
 

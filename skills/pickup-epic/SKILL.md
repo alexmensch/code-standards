@@ -720,14 +720,15 @@ by hand fails it, and so does any other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or an earlier one the head moved from by a sync-only move
-  (`sync-only.sh` exits 0), or that neither shares a file nor waits on #N's item. A
-  member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
-  the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
-  waiting on #N's item gets it until #N has merged. Each approval costs up
-  to the cap's count of gate runs, since #N joins the back of the queue;
-  each later head move `sync-only.sh` does not pass, up to the cap plus the live
-  approved lanes queued behind #N (§ 6 fill step); plus, per lane launched
-  on #N, a rebuild of the seeded artifacts #N's diff makes stale.
+  (`sync-only.sh` exits 0), or that neither shares a file nor waits on
+  #N's item. A member above #N in #N's stack gets `SYNC` instead
+  (§ Stacks). Skip the file-sharing lanes all when #N has no CI or merge
+  wait ahead; a lane waiting on #N's item gets it until #N has merged. Each
+  approval costs up to the cap's count of gate runs, since #N joins the
+  back of the queue; each later head move `sync-only.sh` does not pass, up
+  to the cap plus the live approved lanes queued behind #N (§ 6 fill step);
+  plus, per lane launched on #N, a rebuild of the seeded artifacts #N's
+  diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
   <new head> (PREMERGE #N)` in its place means #N had landed before the

@@ -696,7 +696,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    deviation.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
-its head moves only by sync merges and `LANDING_FIX` fixes. Every other
+its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
+reverts and `LANDING_FIX` fixes. Every other
 worker's lane that lands after #N — later in the landing queue or not yet in
 it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
 the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
@@ -724,14 +725,13 @@ pre-merged heads (step 2), and the earlier resolution stands.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
-  sharing a file since, and a head move by a `LANDING_FIX` fix or any other
-  non-sync commit — whose `PREMERGE #N <new head>` names the commits in
-  between. A sync-only move — every commit since the lane's held #N head
+  sharing a file since, and a head move that is not sync-only — whose
+  `PREMERGE #N <new head>` names the commits in between. It costs one
+  § Lanes run per such PR per § 1. A sync-only move — every commit since the lane's held #N head
   one of #N's `SYNC` merges of origin/<main>, folding in landed pre-merged
   heads or not; never a `PREMERGE` merge or `UNMERGE` revert — sends
   nothing to a lane holding an earlier #N head: those commits are main's,
-  which the lane folds in at its own `SYNC`. It costs one § Lanes run per
-  such PR per § 1.
+  which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:

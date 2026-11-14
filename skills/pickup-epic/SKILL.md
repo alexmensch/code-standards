@@ -707,13 +707,13 @@ merged, so that lane's later `SYNC` names #N's final head among its landed
 pre-merged heads (step 2), and the earlier resolution stands.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or an earlier one the head moved from by sync work alone
+  the user` — or an earlier one the head moved from by a sync-only move
   (below), or that neither shares a file nor waits on #N's item. A
   member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
   the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
   waiting on #N's item gets it until #N has merged. Each approval costs up
   to the cap's count of gate runs, since #N joins the back of the queue;
-  each later head move other than sync work, up to the cap plus the live
+  each later head move that is not sync-only, up to the cap plus the live
   approved lanes queued behind #N (§ 6 fill step); plus, per lane launched
   on #N, a rebuild of the seeded artifacts #N's diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
@@ -726,9 +726,10 @@ pre-merged heads (step 2), and the earlier resolution stands.
   catches an approval whose pre-merge was missed, a lane that has started
   sharing a file since, and a head move by a `LANDING_FIX` fix or any other
   non-sync commit — whose `PREMERGE #N <new head>` names the commits in
-  between. A head move by sync work alone — #N's `SYNC` merges of
-  origin/<main>, folding in landed pre-merged heads or not — is no head
-  move here: a lane holding an earlier #N head gets nothing. Those commits
+  between. A sync-only move — every commit since the lane's held #N head
+  one of #N's `SYNC` merges of origin/<main>, folding in landed pre-merged
+  heads or not; never a `PREMERGE` merge or `UNMERGE` revert — sends
+  nothing to a lane holding an earlier #N head. Those commits
   are main's, which the lane folds in at its own `SYNC`, and once #N lands
   that `SYNC` names #N's final head among its landed pre-merged heads. It
   costs one § Lanes run per such PR per § 1.

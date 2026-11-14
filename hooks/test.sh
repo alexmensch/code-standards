@@ -391,6 +391,10 @@ h_syncs() { h_n; on main; put b=X; on N; merge main; on main; put c=Y; on N; mer
 h_fix() { h_syncs; put d=F; }
 h_premerge() { h_n; branch P main; put e=P; on N; merge P; }
 h_unmerge() { h_premerge; g tag -f held; g revert --no-edit -m 1 HEAD; }
+h_resolved() { h_n; on main; put a=X; on N; g merge -q main; put a=NX; }
+h_fold() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on main; put b=Me; on N; merge main; }
+h_fold_moved() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on M; put b=Mf
+  on main; put b=Mf; on N; g merge -q main; put b=Mf; }
 h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on N; on main; put b=X; on N; merge main; }
 
 pickup_epic="$(bundle_scripts pickup-epic)"
@@ -408,6 +412,9 @@ if [ -n "$pickup_epic" ]; then
   check "sync-only: a fix after the syncs fails" '[ "$(sync_only h_fix)" = 1 ]'
   check "sync-only: a pre-merge of a head main lacks fails" '[ "$(sync_only h_premerge)" = 1 ]'
   check "sync-only: an unmerge revert fails" '[ "$(sync_only h_unmerge)" = 1 ]'
+  check "sync-only: a hand-resolved conflict with main fails" '[ "$(sync_only h_resolved)" = 1 ]'
+  check "sync-only: a fold of a landed head main squashed unchanged passes" '[ "$(sync_only h_fold)" = 0 ]'
+  check "sync-only: a fold a plain merge cannot reproduce fails" '[ "$(sync_only h_fold_moved)" = 1 ]'
   check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
   check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'
 else

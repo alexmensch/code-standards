@@ -711,10 +711,11 @@ and the earlier resolution stands.
 A move of #N's head from a lane's held `<old>` is **sync-only** when, after
 `git fetch origin`,
 `bash <this skill's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
-exits 0: every commit between is a merge of a commit main holds — #N's
-`SYNC` merges, folding in landed pre-merged heads or not. A `PREMERGE`
-merge, an `UNMERGE` revert or a `LANDING_FIX` fix fails it, and so does
-any other exit.
+exits 0: every commit between is a merge of a commit main holds, with the
+tree a plain merge of its parents gives — #N's clean `SYNC` merges,
+folding in landed pre-merged heads or not. A `PREMERGE` merge, an
+`UNMERGE` revert, a `LANDING_FIX` fix or a `SYNC` merge whose conflicts
+#N's worker resolved fails it, and so does any other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or an earlier one the head moved from by a sync-only move
@@ -737,8 +738,8 @@ any other exit.
   sharing a file since, and a head move `sync-only.sh` does not pass — whose
   `PREMERGE #N <new head>` names the commits in between. It costs one
   § Lanes run per such PR per § 1. A sync-only move sends nothing to a
-  lane holding an earlier #N head: those commits are main's, which the lane
-  folds in at its own `SYNC`.
+  lane holding an earlier #N head: a clean merge carries only main's
+  changes, which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:

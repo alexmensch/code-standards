@@ -398,18 +398,22 @@ h_fold_moved() { h_n; branch M main; put b=Me; on N; merge M; g tag -f held; on 
   on main; put b=Mf; on N; g merge -q main; put b=Mf; }
 h_fold_resolved() { h_n; branch M main; put a=Me; on N; g merge -q M; put a=NMe; g tag -f held
   on main; put a=Me e=0; on N; (cd "$repo" && bash "$sync_base" main M); }
+h_octopus() { h_n; branch X main; put b=X; branch Y main; put c=Y; on main; merge X; merge Y; on N
+  g merge -q --no-edit X Y; }
+h_stacked() { new_repo sync-only; branch B; put d=B; branch N; put a=N; g tag held; on B; put e=B; on N; merge B; }
 h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on N; on main; put b=X; on N; merge main; }
 
 pickup_epic="$(bundle_scripts pickup-epic)"
 if [ -n "$pickup_epic" ]; then
-  sync_only() (
+  sync_only_says() (
     export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
     rm -rf "$STATE/sync-base"
     "$1" >/dev/null 2>&1
     cd "$repo"
-    bash "$pickup_epic/sync-only.sh" "${2:-held}" N main >/dev/null 2>&1
+    bash "$pickup_epic/sync-only.sh" "${2:-held}" N "${3:-main}" 2>/dev/null
     echo $?
   )
+  sync_only() { sync_only_says "$@" | tail -1; }
   check "sync-only: merges of main pass" '[ "$(sync_only h_syncs)" = 0 ]'
   check "sync-only: no move passes" '[ "$(sync_only h_n)" = 0 ]'
   check "sync-only: a fix after the syncs fails" '[ "$(sync_only h_fix)" = 1 ]'
@@ -419,6 +423,12 @@ if [ -n "$pickup_epic" ]; then
   check "sync-only: a fold over a conflict-free pre-merge passes" '[ "$(sync_only h_fold)" = 0 ]'
   check "sync-only: a fold over a hand-resolved pre-merge fails" '[ "$(sync_only h_fold_resolved)" = 1 ]'
   check "sync-only: a fold a plain merge cannot reproduce fails" '[ "$(sync_only h_fold_moved)" = 1 ]'
+  check "sync-only: the fix is the commit it names" \
+    '[ "$(sync_only_says h_fix)" = "$(git -C "$STATE/sync-base/sync-only" rev-parse N) is not a two-parent merge
+1" ]'
+  check "sync-only: an octopus merge fails" '[ "$(sync_only h_octopus)" = 1 ]'
+  check "sync-only: merges of a stack member's base pass against that base" '[ "$(sync_only h_stacked held B)" = 0 ]'
+  check "sync-only: merges of a stack member's base fail against main" '[ "$(sync_only h_stacked)" = 1 ]'
   check "sync-only: a held head the branch lacks fails" '[ "$(sync_only h_elsewhere)" = 1 ]'
   check "sync-only: an unknown held head is an error" '[ "$(sync_only h_syncs deadbeef)" = 2 ]'
 else

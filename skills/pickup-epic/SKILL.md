@@ -729,10 +729,9 @@ pre-merged heads (step 2), and the earlier resolution stands.
   between. A sync-only move — every commit since the lane's held #N head
   one of #N's `SYNC` merges of origin/<main>, folding in landed pre-merged
   heads or not; never a `PREMERGE` merge or `UNMERGE` revert — sends
-  nothing to a lane holding an earlier #N head. Those commits
-  are main's, which the lane folds in at its own `SYNC`, and once #N lands
-  that `SYNC` names #N's final head among its landed pre-merged heads. It
-  costs one § Lanes run per such PR per § 1.
+  nothing to a lane holding an earlier #N head: those commits are main's,
+  which the lane folds in at its own `SYNC`. It costs one § Lanes run per
+  such PR per § 1.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:

@@ -37,6 +37,13 @@ monitor tools, and `pickup-epic` drives Claude Code background sessions and
 messages between them: install both only on Claude Code, and record them as
 skipped (`:-`, § 4) elsewhere.
 
+Some skills run others, or their scripts: `pr-review` needs `code-craft`;
+`pickup-task` needs `pr-review`, `code-craft` and `pr-cleanup`;
+`pickup-epic` needs `pickup-task` (its sessions and its
+`scripts/sync-only.sh`), `pr-cleanup` and `pr-review`. Install a skill only
+together with what it needs; skipping a needed skill skips every skill that
+needs it.
+
 `beads` is the command reference for one ticket tracker, `bd`. Install it only
 when the project in scope (or, for a user install, any project the user works
 in) has a `.beads/` folder or `bd` on the `PATH`; ask if unsure. Otherwise

@@ -696,25 +696,37 @@ version files and lockfiles conflict between any two PRs that both bump them.
    deviation.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
-its head moves only by sync merges and `LANDING_FIX` fixes. Every other
-worker's lane that lands after #N — later in the landing queue or not yet in
-it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
-the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
-`n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges
-that head in at its next commit boundary while #N's CI and merge wait run,
-so conflict resolution leaves the critical path. #N lands as a squash, which git does not see as the commits the lane
-merged, so that lane's later `SYNC` names #N's final head among its landed
-pre-merged heads (step 2), and the earlier resolution stands.
+its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
+reverts and `LANDING_FIX` fixes. Every other worker's lane that lands after
+#N — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from
+`gh pr view <N> --json headRefOid`, when § Lanes' command with `n=<N>`
+lists it or its item waits on #N's item (§ 1). Its worker merges that head
+in at its next commit boundary while #N's CI and merge wait run, so
+conflict resolution leaves the critical path. #N lands as a squash, which
+git does not see as the commits the lane merged, so that lane's later
+`SYNC` names #N's final head among its landed pre-merged heads (step 2),
+and the earlier resolution stands.
+
+A move of #N's head from a lane's held `<old>` is **sync-only** when, after
+one `git fetch origin` per § 1,
+`bash <pickup-task's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
+exits 0, which #N's clean `SYNC` merges pass, folding in landed
+pre-merged heads when a plain merge reproduces the fold. Any other commit —
+a `PREMERGE` merge or `UNMERGE` revert included — fails it, and so does any
+other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or that neither shares a file nor waits on #N's item. A
-  member above #N in #N's stack gets `SYNC` instead (§ Stacks). Skip
-  the file-sharing lanes all when #N has no CI or merge wait ahead; a lane
-  waiting on #N's item gets it until #N has merged. Each approval costs up
-  to the cap's count of gate runs, since #N joins the back of the queue;
-  each later head move, up to the cap plus the live approved lanes queued
-  behind #N (§ 6 fill step); plus, per lane launched on #N, a rebuild of the
-  seeded artifacts #N's diff makes stale.
+  the user` — or an earlier one the head moved from by a sync-only move
+  (`sync-only.sh` exits 0), or that neither shares a file nor waits on
+  #N's item. A member above #N in #N's stack gets `SYNC` instead
+  (§ Stacks). Skip the file-sharing lanes all when #N has no CI or merge
+  wait ahead; a lane waiting on #N's item gets it until #N has merged. Each
+  approval costs up to the cap's count of gate runs, since #N joins the
+  back of the queue; each later head move `sync-only.sh` does not pass, up
+  to the cap plus the live approved lanes queued behind #N (§ 6 fill step);
+  plus, per lane launched on #N, a rebuild of the seeded artifacts #N's
+  diff makes stale.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
   <new head> (PREMERGE #N)` in its place means #N had landed before the
@@ -723,8 +735,12 @@ pre-merged heads (step 2), and the earlier resolution stands.
 - At every § 1, run this procedure again for each unlanded approved PR, at
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
-  sharing a file since, and a head move — whose `PREMERGE #N <new head>` names the
-  commits in between. It costs one § Lanes run per such PR per § 1.
+  sharing a file since, and a head move `sync-only.sh` does not pass — whose
+  `PREMERGE #N <new head>` names the commits in between. It costs one
+  § Lanes run per such PR per § 1, plus one `sync-only.sh` run per lane
+  holding an earlier #N head. A sync-only move sends nothing to a
+  lane holding an earlier #N head: a clean merge carries only main's
+  changes, which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:
@@ -753,9 +769,12 @@ skill holds, except:
   it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
   member #N sends `SYNC #<member>` to each member above it whose branch
   lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
-  branch>` fails), bottom up, each once the one below replied `SYNCED`; each
-  new head joins that member's `REVIEWED:` list. Lanes outside the stack get
-  `PREMERGE` as usual.
+  branch>` fails), bottom up, each once the one below replied `SYNCED` or
+  was skipped; each new head joins that member's `REVIEWED:` list. Skip a
+  member when `sync-only.sh` passes from its newest #N commit (`git
+  merge-base origin/<#N's branch> origin/<its branch>`) to #N's head, with
+  `origin/<#N's base branch>` as the main ref, for § Pre-merge's reason.
+  Lanes outside the stack get `PREMERGE` as usual.
 - **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
   held. A stack lands whole: it takes one place in the landing queue once
   the user has named every open member and each is approved, and lands every

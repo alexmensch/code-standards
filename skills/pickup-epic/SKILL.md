@@ -697,8 +697,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
-reverts and `LANDING_FIX` fixes. Every other worker's lane that lands after #N — later in the landing queue or not yet in
-it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
+reverts and `LANDING_FIX` fixes. Every other worker's lane that lands
+after #N — later in the landing queue or not yet in it, at any stage from implementing to approved — gets `PREMERGE #N <head>`,
 the head from `gh pr view <N> --json headRefOid`, when § Lanes' command with
 `n=<N>` lists it or its item waits on #N's item (§ 1). Its worker merges
 that head in at its next commit boundary while #N's CI and merge wait run,

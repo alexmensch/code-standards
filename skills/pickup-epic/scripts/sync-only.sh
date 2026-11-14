@@ -20,5 +20,6 @@ while read -r c p1 p2 rest; do
   s=0
   t=$(git merge-tree --write-tree "$p1" "$p2") || s=$?
   [ "$s" -le 1 ] || exit 2
-  [ "$t" = "$(git rev-parse "$c^{tree}")" ] || { echo "$c is not the clean merge of its parents"; exit 1; }
+  [ "$s" -eq 0 ] && [ "$t" = "$(git rev-parse "$c^{tree}")" ] \
+    || { echo "$c is not the clean merge of its parents"; exit 1; }
 done <<< "$commits"

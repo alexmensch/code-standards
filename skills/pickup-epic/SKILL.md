@@ -769,8 +769,11 @@ skill holds, except:
   member #N sends `SYNC #<member>` to each member above it whose branch
   lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
   branch>` fails), bottom up, each once the one below replied `SYNCED`; each
-  new head joins that member's `REVIEWED:` list. Lanes outside the stack get
-  `PREMERGE` as usual.
+  new head joins that member's `REVIEWED:` list. Skip a member when
+  `sync-only.sh` passes from its newest #N commit (`git merge-base
+  origin/<#N's branch> origin/<its branch>`) to #N's head, with
+  `origin/<#N's base branch>` as the main ref: Landing step 1 below syncs
+  every member bottom up anyway. Lanes outside the stack get `PREMERGE` as usual.
 - **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
   held. A stack lands whole: it takes one place in the landing queue once
   the user has named every open member and each is approved, and lands every

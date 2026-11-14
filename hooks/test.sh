@@ -352,11 +352,17 @@ if [ -n "$bodies" ]; then
   check "every code fence in the skills is closed" '[ -z "$unclosed" ] || { echo "$unclosed"; false; }'
 fi
 
-sync_base="$(while read -r b; do
-  if [[ "$b" == */pickup-task/SKILL.md ]] || grep -q '^<!-- Installed copy of code-standards skills/pickup-task/SKILL.md' "$b"; then
-    echo "${b%/SKILL.md}/scripts/sync-base.sh"
-  fi
-done <<< "$bodies")"
+# bundle_scripts <skill> — that bundle skill's scripts folder, empty when it is not installed.
+bundle_scripts() {
+  while read -r b; do
+    if [[ "$b" == */$1/SKILL.md ]] || grep -q "^<!-- Installed copy of code-standards skills/$1/SKILL.md" "$b"; then
+      echo "${b%/SKILL.md}/scripts"
+    fi
+  done <<< "$bodies"
+}
+
+sync_base="$(bundle_scripts pickup-task)"
+sync_base="${sync_base:+$sync_base/sync-base.sh}"
 if [ -n "$sync_base" ]; then
   check "sync-base: a lane without the landed head keeps it" \
     '[ "$(outcome sync_new h_revert M)" = "a=M b=0 c=L d=0 e=0 " ]'
@@ -379,11 +385,7 @@ else
   echo "skip sync-base: pickup-task is not installed"
 fi
 
-pr_cleanup="$(while read -r b; do
-  if [[ "$b" == */pr-cleanup/SKILL.md ]] || grep -q '^<!-- Installed copy of code-standards skills/pr-cleanup/SKILL.md' "$b"; then
-    echo "${b%/SKILL.md}/scripts"
-  fi
-done <<< "$bodies")"
+pr_cleanup="$(bundle_scripts pr-cleanup)"
 if [ -n "$pr_cleanup" ]; then
   WS="$STATE/watch"
   mkdir -p "$WS/bin" "$WS/d"

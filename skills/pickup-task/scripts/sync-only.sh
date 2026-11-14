@@ -5,7 +5,7 @@
 set -uo pipefail
 
 [ $# -eq 3 ] || { echo "usage: sync-only.sh <held> <head> <main-ref>" >&2; exit 2; }
-. "$(dirname "${BASH_SOURCE[0]}")/git-refs.sh"
+. "$(dirname "${BASH_SOURCE[0]}")/git-lib.sh"
 verify_commits "$@"
 held=$1 head=$2 main=$3
 
@@ -16,9 +16,6 @@ while read -r c p1 p2 rest; do
   [ -n "$c" ] || continue
   [ -n "${p2:-}" ] && [ -z "${rest:-}" ] || { echo "$c is not a two-parent merge"; exit 1; }
   git merge-base --is-ancestor "$p2" "$main" || { echo "$c merges $p2, which $main does not hold"; exit 1; }
-  s=0
-  t=$(git merge-tree --write-tree "$p1" "$p2") || s=$?
-  [ "$s" -le 1 ] || exit 2
-  [ "$s" -eq 0 ] && [ "$t" = "$(git rev-parse "$c^{tree}")" ] \
+  merge_tree "$p1" "$p2" && [ "$t" = "$(git rev-parse "$c^{tree}")" ] \
     || { echo "$c is not the clean merge of its parents"; exit 1; }
 done <<< "$commits"

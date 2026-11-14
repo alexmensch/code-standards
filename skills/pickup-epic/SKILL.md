@@ -92,12 +92,14 @@ nowhere else:
   the head sent — or `told the user` for one of the user's own items —
   dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
   of `PREMERGED`;
-- workers sent `HIBERNATE`, until their session is removed (§ Hand-off);
+- workers sent `WIND_DOWN`, and those sent `HIBERNATE`, each until its
+  session is removed (§ Hand-off);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
   `idle`; § 6's fill step says which of them hold a slot under the cap;
-- the mark `HIBERNATED` while the whole run is hibernated (§ Hibernate);
+- the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
+  place once the whole run is hibernated (§ Hibernate);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
 
@@ -320,6 +322,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
 | A report that the item now waits on another item, X, to land | X's PR approved and unlanded → § Pre-merge sends it X's head instead. Otherwise park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
+| `WOUND_DOWN` | its detail names a question held back → the item's landing needs the user (§ Hibernate) |
 | `HIBERNATED` | § Hand-off, steps 2–3 |
 | Idle notice with no report | ask the user to look at that worker |
 | A watcher exits printing | § Watchers |
@@ -328,7 +331,9 @@ Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation, a free slot left empty. Never
 restate a worker's report.
 
-**Then fill free slots — never silently.** A live worker or an
+**Then fill free slots — never silently.** While the run state is marked
+`WINDING DOWN`, this step launches nothing and reports nothing (§ Hibernate
+step 1). Otherwise, a live worker or an
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
@@ -541,10 +546,13 @@ Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,
 "hibernate" — said in this session or written as free text after
 `/pickup-epic <epic>` here. The intent decides; there is no fixed syntax or
-argument order. It also runs unasked once idle hand-offs leave no live
-worker (§ Watchers). Only the coordinator hibernates: the request anywhere else
-would make a second coordinator (§ Deviations). A wind-down, not an
-immediate stop.
+argument order. A request that puts the wind-down off until a later event
+— "keep going until something needs me, then hibernate" — is a wind-down
+request like any other: it starts now and launches nothing new; only the
+landings already approved keep going (step 1). It also runs unasked once
+idle hand-offs leave no live worker (§ Watchers). Only the coordinator
+hibernates: the request anywhere else would make a second coordinator
+(§ Deviations). A wind-down, not an immediate stop.
 
 **No question to the user once it starts** — from the request, or from the
 unasked start. The user has stepped away, and a question waiting on them
@@ -557,6 +565,15 @@ point and is recorded, not asked: its merge disarmed (`gh pr merge <N>
 its worker's session kept, and the run state listing it as stopped at its
 step, no longer the landing in progress.
 
+**Nor from any worker.** At the start, mark the run state `WINDING DOWN`,
+then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
+relaunches during the wind-down right after its launch: it asks the user
+nothing more, holds each question for its handoff, pauses at its next
+commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
+A worker recorded "waiting on the user", or `blocked` in `claude agents
+--json`, reads it only once its question is answered or dismissed: tell
+the user which ones. The user's own items get nothing.
+
 1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
    fix it is part of its landing. Finish landing every PR already approved,
    in queue order (§ 7) — the landing in progress first — and wait for each
@@ -568,13 +585,11 @@ step, no longer the landing in progress.
    every live worker not already sent it and not kept at a stopped landing,
    with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
-   A worker recorded "waiting on the user", or `blocked` in `claude agents
-   --json`, acts on no message until its question is answered or dismissed:
-   tell the user which ones. The user's own items stay listed in the run
+   The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
 3. Once every worker is removed, or kept at a stopped landing: mark the
-   run state `HIBERNATED`, end the
+   run state `HIBERNATED` in place of `WINDING DOWN`, end the
    run (§ The coordinator field), and say in the final message that this
    coordinator session is finished and safe to delete.
 
@@ -824,7 +839,11 @@ run down, which is § Hibernate's trigger. Then:
 - ask each question the run state lists as unanswered, put to the user or
   held back;
 - a post-landing step may have been cut off → run it before any launch;
-- the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
+- the run state lists live workers sent `WIND_DOWN` — kept at a stopped
+  landing, or left by a cut-off wind-down → § Hand-off with `HIBERNATE
+  <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every
+  question until then; its handoff carries them to the relaunch, which asks;
+- the run state is marked `WINDING DOWN` or `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, while a slot is free (§ 6 fill
   step).

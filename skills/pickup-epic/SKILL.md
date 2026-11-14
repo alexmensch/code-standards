@@ -546,10 +546,13 @@ Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,
 "hibernate" — said in this session or written as free text after
 `/pickup-epic <epic>` here. The intent decides; there is no fixed syntax or
-argument order. It also runs unasked once idle hand-offs leave no live
-worker (§ Watchers). Only the coordinator hibernates: the request anywhere else
-would make a second coordinator (§ Deviations). A wind-down, not an
-immediate stop.
+argument order. A request that puts the wind-down off until a later event
+— "keep going until something needs me, then hibernate" — is a wind-down
+request like any other: it starts now and launches nothing new; only the
+landings already approved keep going (step 1). It also runs unasked once
+idle hand-offs leave no live worker (§ Watchers). Only the coordinator
+hibernates: the request anywhere else would make a second coordinator
+(§ Deviations). A wind-down, not an immediate stop.
 
 **No question to the user once it starts** — from the request, or from the
 unasked start. The user has stepped away, and a question waiting on them

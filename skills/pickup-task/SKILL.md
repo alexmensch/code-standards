@@ -338,6 +338,8 @@ What changes:
   and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
   `LANDING_FIX` and `PULL_PING` as above, where a decision any of them
   raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
+  A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
+  paused: the step its result calls for goes into the handoff's `next:`.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.

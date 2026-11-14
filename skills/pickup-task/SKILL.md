@@ -263,7 +263,7 @@ What changes:
 | `PULL_WAIT` | the turn is about to end on a background command — a data pull, a long build — expected to outlast the prompt cache's one-hour lifetime, or of unknown length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
 | `PULL_ETA` | the reply to `PULL_PING`, while the command runs: `PULL_ETA <item> — ETA <time>` |
 | `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
-| `PAUSED` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `PAUSED <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
+| `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
@@ -334,10 +334,10 @@ What changes:
 - **`WIND_DOWN <item>`** → the coordinator is winding the run down and the
   requester has stepped away. From it on, § Hand off's no-question rule
   holds. Reach the next commit boundary as § Hand off step 1 says, but
-  leave a background command in a pull wait running. Push, reply `PAUSED`,
+  leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
   and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
   `LANDING_FIX` and `PULL_PING` as above, where a decision any of them
-  raises is held back and answered with `PAUSED` in place of `NEEDS_INPUT`.
+  raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.

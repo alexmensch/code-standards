@@ -840,10 +840,11 @@ run down, which is § Hibernate's trigger. Then:
 - ask each question the run state lists as unanswered, put to the user or
   held back;
 - a post-landing step may have been cut off → run it before any launch;
-- the run state is marked `WINDING DOWN` → a wind-down was cut off: § Hand-off
-  with `HIBERNATE <item>` for every live worker sent `WIND_DOWN`, then go on
-  as for `HIBERNATED`, below;
-- the run state is marked `HIBERNATED` → clear the mark, and relaunch (§ 5)
+- the run state lists live workers sent `WIND_DOWN` — kept at a stopped
+  landing, or left by a cut-off wind-down → § Hand-off with `HIBERNATE
+  <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every
+  question until then; its handoff carries them to the relaunch, which asks;
+- the run state is marked `WINDING DOWN` or `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, while a slot is free (§ 6 fill
   step).

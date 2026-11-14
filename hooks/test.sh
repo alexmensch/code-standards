@@ -228,9 +228,10 @@ default_edit() { TMPDIR="$STATE" bash "$SG" <<< "{\"session_id\": \"d\", \"tool_
 check "skill guard default rules parse" '[ -n "$(default_edit /r/a.scss)$(default_edit /r/a.py)" ]'
 
 SB_FILES="a b c d e"
+REPOS="$STATE/repos"
 g() { git -C "$repo" "$@"; }
 new_repo() {
-  repo="$STATE/sync-base/$1"
+  repo="$REPOS/$1"
   git init -q -b main "$repo"
   g config user.name t && g config user.email t@t && g config commit.gpgsign false
   put a=0 b=0 c=0 d=0 e=0
@@ -288,7 +289,7 @@ outcome() (
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
   local recipe=$1 history=$2 f s
   shift 2
-  rm -rf "$STATE/sync-base"
+  rm -rf "$REPOS"
   "$history" >/dev/null 2>&1
   cd "$repo"
   "$recipe" "$@" >/dev/null 2>&1; s=$?
@@ -380,7 +381,7 @@ if [ -n "$sync_base" ]; then
   check "sync-base: a signing failure is an error, not a conflict" '[ "$(outcome sync_unsignable h_single M)" = "error 2" ]'
   outcome sync_new h_single M >/dev/null
   check "sync-base: one commit on the lane, parents lane and main" \
-    '[ "$(git -C "$STATE/sync-base/single" log -1 --format=%P lane)" = "$(git -C "$STATE/sync-base/single" rev-parse lane@{1} main | xargs)" ]'
+    '[ "$(git -C "$REPOS/single" log -1 --format=%P lane)" = "$(git -C "$REPOS/single" rev-parse lane@{1} main | xargs)" ]'
 else
   echo "skip sync-base: pickup-task is not installed"
 fi
@@ -401,13 +402,13 @@ h_fold_resolved() { h_n; branch M main; put a=Me; on N; g merge -q M; put a=NMe;
 h_octopus() { h_n; branch X main; put b=X; branch Y main; put c=Y; on main; merge X; merge Y; on N
   g merge -q --no-edit X Y; }
 h_stacked() { new_repo sync-only; branch B; put d=B; branch N; put a=N; g tag held; on B; put e=B; on N; merge B; }
-h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on N; on main; put b=X; on N; merge main; }
+h_elsewhere() { h_n; on main; branch other; put d=O; g tag -f held; on main; put b=X; on N; merge main; }
 
 pickup_epic="$(bundle_scripts pickup-epic)"
 if [ -n "$pickup_epic" ]; then
   sync_only_says() (
     export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
-    rm -rf "$STATE/sync-base"
+    rm -rf "$REPOS"
     "$1" >/dev/null 2>&1
     cd "$repo"
     bash "$pickup_epic/sync-only.sh" "${2:-held}" N "${3:-main}" 2>/dev/null
@@ -424,7 +425,7 @@ if [ -n "$pickup_epic" ]; then
   check "sync-only: a fold over a hand-resolved pre-merge fails" '[ "$(sync_only h_fold_resolved)" = 1 ]'
   check "sync-only: a fold a plain merge cannot reproduce fails" '[ "$(sync_only h_fold_moved)" = 1 ]'
   check "sync-only: the fix is the commit it names" \
-    '[ "$(sync_only_says h_fix)" = "$(git -C "$STATE/sync-base/sync-only" rev-parse N) is not a two-parent merge
+    '[ "$(sync_only_says h_fix)" = "$(git -C "$REPOS/sync-only" rev-parse N) is not a two-parent merge
 1" ]'
   check "sync-only: an octopus merge fails" '[ "$(sync_only h_octopus)" = 1 ]'
   check "sync-only: merges of a stack member's base pass against that base" '[ "$(sync_only h_stacked held B)" = 0 ]'

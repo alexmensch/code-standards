@@ -585,8 +585,7 @@ the user which ones. The user's own items get nothing.
    every live worker not already sent it and not kept at a stopped landing,
    with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
-   A worker still waiting on the user acts on no message until its question
-   is settled. The user's own items stay listed in the run
+   The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
 3. Once every worker is removed, or kept at a stopped landing: mark the

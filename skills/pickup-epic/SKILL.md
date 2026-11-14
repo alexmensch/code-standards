@@ -711,12 +711,10 @@ and the earlier resolution stands.
 A move of #N's head from a lane's held `<old>` is **sync-only** when, after
 one `git fetch origin` per § 1,
 `bash <pickup-task's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
-exits 0: every commit between is a merge of a commit main holds, with the
-tree a plain merge of its parents gives — #N's clean `SYNC` merges, and a
-fold of a landed pre-merged head only when a plain merge reproduces it. A
-`PREMERGE` merge, an `UNMERGE` revert, a `LANDING_FIX` fix, a `SYNC` merge
-whose conflicts #N's worker resolved, or a fold over a pre-merge resolved
-by hand fails it, and so does any other exit.
+exits 0, which #N's clean `SYNC` merges pass, folding in landed
+pre-merged heads when a plain merge reproduces the fold. Any other commit —
+a `PREMERGE` merge or `UNMERGE` revert included — fails it, and so does any
+other exit.
 
 - Skip a lane whose run-state entry already has the head — sent, or `told
   the user` — or an earlier one the head moved from by a sync-only move

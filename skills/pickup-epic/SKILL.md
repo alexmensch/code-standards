@@ -29,7 +29,7 @@ on the critical path.
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
 | `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
-| `SAVED_QUESTION` notes, saved questions | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
+| `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 

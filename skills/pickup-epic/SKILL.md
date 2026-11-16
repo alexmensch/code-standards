@@ -378,7 +378,8 @@ unless the report would repeat the last one word for word.
 
 Background shells, each started with `run_in_background` so its exit
 re-invokes this session and costs no turn before it. Each script opens with
-these lines, `<watcher>` being `idle`, `remind`, `pull`, `usage` or `reset`:
+these lines, `<watcher>` being `idle`, `remind`, `pull`, `usage`, `reset` or
+`successor`:
 
 ```bash
 p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid; echo $$ > "$p"
@@ -668,17 +669,20 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
   paused worker that reaches its limit.
 - **`5h` resetting later, or `7d`** → § Hibernate, unasked, to its end.
   `7d` waits for the user. `5h` resumes by itself: right before step 3's final
-  message, start this session's successor's timer from the main checkout,
-  detached — a background shell's exit would wake this session on a cold
-  cache, so this one is never re-invoked and sits idle until the successor
-  removes it:
+  message, start the `successor` timer, detached rather than with
+  `run_in_background` — its exit would wake this session on a cold cache,
+  so this one is never re-invoked and sits idle until the successor removes
+  it. Write § Watchers' opening lines, then the reset timer's loop with
+  `<at>` being `<resets_at + 60>` and this in place of `echo reset`:
 
   ```bash
-  nohup bash -c 'until [ "$(date +%s)" -ge <resets_at + 60> ]; do sleep 60; done
-    claude --bg -n "<this session'\''s name>" --permission-mode <this session'\''s mode> \
-      "/pickup-epic <epic> — replacing <this session'\''s short id>"' >/dev/null 2>&1 &
-  echo $! > "${TMPDIR:-/tmp}/pickup-epic-<epic>-successor.pid"
+  claude --bg -n "<this session's name>" --permission-mode <this session's mode> \
+    "/pickup-epic <epic> — replacing <this session's short id>"
   ```
+
+  to `${TMPDIR:-/tmp}/pickup-epic-<epic>-successor.sh`, and from the main
+  checkout run `nohup bash <that path> >/dev/null 2>&1 &`. Removing its pid
+  file stops it, as for any watcher.
 
   The final message names the time the successor starts, in place of
   saying this session is safe to delete.
@@ -929,9 +933,8 @@ from § 1 with the run state first — unless its free text asks to wind the
 run down, which is § Hibernate's trigger. Then:
 
 - launched `— replacing <id>` → `claude stop <id>`, then `claude rm <id>`;
-  either reporting no such session is fine. Otherwise, a successor's
-  timer still running (§ Usage limits) → `kill` the pid its file holds:
-  this session replaces it. Either way, delete that pid file;
+  either reporting no such session is fine. Otherwise, remove any
+  `successor` pid file (§ Usage limits): this session replaces it;
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;

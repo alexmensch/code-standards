@@ -484,8 +484,11 @@ until [ "$(date +%s)" -ge <at> ]; do sleep 60; mine || exit 0; done; echo reset
 ```
 
 **Usage watcher.** `scripts/usage-check.sh` classifies the snapshot the
-status line writes to `~/.claude/usage.json` on every redraw — a stale one
-is accepted, and a window whose reset has passed counts as empty. `<band>`
+user's own status line script writes to `~/.claude/usage.json` on every
+redraw: `rate_limits.five_hour` and `rate_limits.seven_day`, each with
+`used_percentage` and `resets_at` in epoch seconds. A stale one is
+accepted, a window whose reset has passed counts as empty, and with no
+snapshot the run is `usage unwatched`. `<band>`
 is `high` while the run state says `usage high`, otherwise `normal`:
 
 ```bash

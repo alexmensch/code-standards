@@ -947,13 +947,12 @@ is § Hibernate's trigger. Then:
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - clear any `usage unwatched` mark, then start the watchers (§ Watchers);
-- the run state is marked `USAGE PAUSE` → ask nothing and launch nothing until
-  `reset` (§ Usage limits), which the reset timer prints within a minute
-  once its time has passed; `reset` asks what the next bullet would, and the
-  `WIND_DOWN` bullet below does not apply;
+- a post-landing step may have been cut off → run it before any launch;
+- the run state is marked `USAGE PAUSE` → nothing more here: `reset`
+  (§ Usage limits), which the reset timer prints within a minute once its
+  time has passed, carries on in place of the rest of this list;
 - ask each question the run state lists as unanswered, put to the user or
   held back;
-- a post-landing step may have been cut off → run it before any launch;
 - the run state lists live workers sent `WIND_DOWN` — kept at a stopped
   landing, or left by a cut-off wind-down → § Hand-off with `HIBERNATE
   <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every

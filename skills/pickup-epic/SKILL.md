@@ -654,9 +654,8 @@ A worker waiting on the user is timed like any other: it asks in plain text
 and ends its turn (`pickup-task` § Coordinated mode), so it is listed idle
 and reads `HIBERNATE`. One the user asked to answer in the question tool's
 dialog is not listed idle while the dialog is open, so it is never matched.
-A worker in a pull wait is never handed off: its `pulling` mark matches no
-case, so it is not timed — a hand-off would stop its command, and the pull
-timer keeps it warm instead. Per line printed:
+A worker in a pull wait is never timed — a hand-off would stop its
+command, and the pull timer keeps it warm instead. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
@@ -717,11 +716,6 @@ done
 - `usage UNWATCHED <why>` → write `usage unwatched` into the run state and
   tell the user once, with the why: the run goes on with no usage limit
   watched. § Resume clears the mark.
-
-Once the fill step launches nothing and idle hand-offs have left no live
-worker, with the landing queue empty, no landing in progress and no
-shared-resource grant running, § Hibernate runs from its step 3 unasked —
-never while the run state is marked `USAGE PAUSE`, which `reset` ends.
 
 ## Removing a worker's session
 
@@ -817,9 +811,12 @@ down so it can resume later — stepping away, pausing for the night,
 argument order. A request that puts the wind-down off until a later event
 — "keep going until something needs me, then hibernate" — is a wind-down
 request like any other: it starts now and launches nothing new; only the
-landings already approved keep going (step 1). It also runs unasked once
-idle hand-offs leave no live worker (§ Watchers), and at a usage limit
-(§ Usage limits). Only the coordinator
+landings already approved keep going (step 1). It also runs unasked: at a
+usage limit (§ Usage limits), and from its step 3 once the fill step
+launches nothing and idle hand-offs have left no live worker, with the
+landing queue empty, no landing in progress and no shared-resource grant
+running — never while the run state is marked `USAGE PAUSE`, which `reset`
+ends. Only the coordinator
 hibernates: the request anywhere else would make a second coordinator
 (§ Deviations). A wind-down, not an immediate stop.
 

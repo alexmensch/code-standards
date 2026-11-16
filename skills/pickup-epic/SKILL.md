@@ -49,6 +49,22 @@ answer a question a worker put to the user (§ 6 `QUESTION`), close the
 named epic without asking, remove a session before its checks pass, or stop
 or remove the user's own session, its worktree or its branch.
 
+## Asking the user — plain text, then end the turn
+
+Every question this session puts to the user — a preflight check, a landing
+approval, a `PLAN_CHANGE` settlement, a deviation, a question § Resume
+carries — goes as a coordinated run's question does (`pickup-task` § Asking
+about a finding), each one standing alone. Record each in the run state as
+it is asked. An event arriving before the answer is handled as § 6 says;
+the question is not asked again, unless the event makes it moot or changes
+it — then the next message to the user withdraws or replaces it by its
+letter, and the run state follows.
+
+While the question tool's dialog is open this turn has not ended, so no
+watcher exit, worker report or idle notice is read: no idle hand-off, no
+`PULL_PING`, no unasked § Hibernate, and one unanswered question stalls the
+whole run.
+
 ## The plan is just-in-time
 
 The epic is a queue re-read at every event, not a schedule fixed at the
@@ -80,9 +96,9 @@ nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
-- questions this session put to the user, or held back during a hibernate
-  (§ Hibernate), and not yet answered — a landing approval, a preflight, a
-  `PLAN_CHANGE`, a deviation — asked at § Resume;
+- questions this session put to the user, each with its letter, or held
+  back during a hibernate (§ Hibernate), and not yet answered — a landing
+  approval, a preflight, a `PLAN_CHANGE`, a deviation — asked at § Resume;
 - landing approvals given and the landing queue;
 - stacks the user chose (§ Stacks): each one's members bottom first — item,
   PR, branch — and the items the user named to land in it. A restructure
@@ -200,9 +216,8 @@ user itself.
   outcome, as a holding container has, is enough.
 
 These checks' questions, and which item takes a slot, are the only questions
-this session asks at preflight. Ask with the question tool, batched across
-the items about to launch, each question standing alone in the shape of
-`pickup-task` § Asking about a finding. Record each answer where the run
+this session asks at preflight, batched in one message across the items
+about to launch (§ Asking the user). Record each answer where the run
 reads it: a dependency in the tracker, a goal in the epic, the rest in the
 run state.
 
@@ -370,8 +385,8 @@ event. `watcher:` printed → tell the user; the watcher cannot see.
 
 At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
-waiting on the user and the user has written in this session since the last
-reminder; the pull timer while it lists a worker in a pull wait. Should run with no pid file → start it; should not → remove the
+waiting on the user or a question this session asked and the user has not
+answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind. A pull timer started
 that way first sends `PULL_PING` to each worker in a pull wait, since the
@@ -443,7 +458,8 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
 ```
 
 - `remind` → remind the user, naming each worker waiting on the user — a
-  hibernated one awaiting an owner answer included — never its question.
+  hibernated one awaiting an owner answer included — never its question;
+  and each question this session asked still unanswered, by its letter.
 - `pull` → send `PULL_PING <item>` to each worker in a pull wait. Its
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.
@@ -567,7 +583,8 @@ then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
 commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
-A worker with the question tool's dialog open — listed `waiting` in
+A worker the user asked to answer in the question tool's dialog, with the
+dialog open — listed `waiting` in
 `claude agents --json` — reads it only once the dialog closes: tell the
 user which ones. The user's own items get nothing.
 
@@ -588,7 +605,9 @@ user which ones. The user's own items get nothing.
 3. Once every worker is removed, or kept at a stopped landing: mark the
    run state `HIBERNATED` in place of `WINDING DOWN`, end the
    run (§ The coordinator field), and say in the final message that this
-   coordinator session is finished and safe to delete.
+   coordinator session is finished and safe to delete. It names each
+   question this session asked still unanswered, by its letter, as carried
+   to § Resume and answered there, never here.
 
 ## 7. Land — one at a time
 
@@ -613,9 +632,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
    **Recording the approval is one step**: write it into the run state,
    then run § Pre-merge for that PR before anything else.
 
-   When the report's `SMOKE:` line lists steps, quote them and offer only
-   "smoked, land it" and "not yet": never a plain "land it" while a manual
-   smoke is owed. A post-merge check filed as an item (`pickup-task` § 3) is
+   Ask in the shape § Asking the user gives. When the report's `SMOKE:`
+   line lists steps, quote them and offer only "smoked, land it" and "not
+   yet" as the options: never a plain "land it" while a manual smoke is
+   owed. A post-merge check filed as an item (`pickup-task` § 3) is
    not owed before the merge: offer "land it", and name that item.
 2. **Pre-merged PRs first.** For each PR M the run state lists as
    pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"

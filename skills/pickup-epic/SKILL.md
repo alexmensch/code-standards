@@ -505,7 +505,8 @@ done
 
 Once the fill step launches nothing and idle hand-offs have left no live
 worker, with the landing queue empty, no landing in progress and no
-shared-resource grant running, § Hibernate runs from its step 3 unasked.
+shared-resource grant running, § Hibernate runs from its step 3 unasked —
+never while the run state is marked `USAGE PAUSE`, which `reset` ends.
 
 ## Removing a worker's session
 

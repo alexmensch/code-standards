@@ -49,6 +49,22 @@ answer a question a worker put to the user (§ 6 `QUESTION`), close the
 named epic without asking, remove a session before its checks pass, or stop
 or remove the user's own session, its worktree or its branch.
 
+## Asking the user — plain text, then end the turn
+
+Every question this session puts to the user — a preflight check, a landing
+approval, a `PLAN_CHANGE` settlement, a deviation, a question § Resume
+carries — is plain text that ends the turn, in the plain-text shape of
+`pickup-task` § Asking about a finding: each question standing alone, its
+options numbered, several in one message lettered so the user can answer
+"A2, B1". Record each in the run state as it is asked. An event arriving
+before the answer is handled as § 6 says; the question is not asked again.
+
+Never the question tool unprompted. While its dialog is open this turn has
+not ended, so no watcher exit, worker report or idle notice is read: no idle
+hand-off, no `PULL_PING`, no unasked § Hibernate, and one unanswered
+question stalls the whole run. The user replying "ask", or the like, gets
+the questions still open in the question tool.
+
 ## The plan is just-in-time
 
 The epic is a queue re-read at every event, not a schedule fixed at the
@@ -200,9 +216,8 @@ user itself.
   outcome, as a holding container has, is enough.
 
 These checks' questions, and which item takes a slot, are the only questions
-this session asks at preflight. Ask with the question tool, batched across
-the items about to launch, each question standing alone in the shape of
-`pickup-task` § Asking about a finding. Record each answer where the run
+this session asks at preflight, batched in one message across the items
+about to launch (§ Asking the user). Record each answer where the run
 reads it: a dependency in the tracker, a goal in the epic, the rest in the
 run state.
 
@@ -567,7 +582,8 @@ then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
 commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
-A worker with the question tool's dialog open — listed `waiting` in
+A worker the user asked to answer in the question tool's dialog, with the
+dialog open — listed `waiting` in
 `claude agents --json` — reads it only once the dialog closes: tell the
 user which ones. The user's own items get nothing.
 
@@ -613,9 +629,10 @@ version files and lockfiles conflict between any two PRs that both bump them.
    **Recording the approval is one step**: write it into the run state,
    then run § Pre-merge for that PR before anything else.
 
-   When the report's `SMOKE:` line lists steps, quote them and offer only
-   "smoked, land it" and "not yet": never a plain "land it" while a manual
-   smoke is owed. A post-merge check filed as an item (`pickup-task` § 3) is
+   Ask in the shape § Asking the user gives. When the report's `SMOKE:`
+   line lists steps, quote them and offer only "smoked, land it" and "not
+   yet" as the options: never a plain "land it" while a manual smoke is
+   owed. A post-merge check filed as an item (`pickup-task` § 3) is
    not owed before the merge: offer "land it", and name that item.
 2. **Pre-merged PRs first.** For each PR M the run state lists as
    pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"

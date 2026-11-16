@@ -256,7 +256,7 @@ What changes:
   § Never decide for the requester; a later note recording their answer
   settles it. An open decision so noted does not fail § 2: it is asked, not
   refused.
-- **A `QUESTION` note with no later answer is a saved question** (§ Hand
+- **A `SAVED_QUESTION` note with no later answer is a saved question** (§ Hand
   off), on any launch, a resume or a fresh one. Ask its text as written —
   never investigate it again — `NEEDS_INPUT` first.
 - **Report every change of state as it happens**, with `SendMessage` to
@@ -381,11 +381,11 @@ held back, and asked at `CONTINUE` or by the next session on the item.
 
 **Saved questions.** Every question open to the requester — asked and not
 yet answered, or held back — goes into the item's notes, one note each,
-starting `QUESTION`: the question word for word, with its options and the
+starting `SAVED_QUESTION`: the question word for word, with its options and the
 evidence behind them, as § Asking about a finding wrote it. Only
 `WIND_DOWN`, `HIBERNATE` and `RELEASED` write them — at the message, and
 for each question held back after it — never ordinary work. A question
-already in a `QUESTION` note with no later answer is not written again.
+already in a `SAVED_QUESTION` note with no later answer is not written again.
 The answer is recorded as any is (§ Coordinated mode), and that note
 settles it.
 
@@ -409,7 +409,7 @@ settles it.
    premerged: <each #M and the head merged, from PREMERGE> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
-   question: <the first line of each unanswered `QUESTION` note> | none
+   question: <the first line of each unanswered `SAVED_QUESTION` note> | none
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 

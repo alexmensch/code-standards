@@ -530,4 +530,35 @@ else
   echo "skip watch: pr-cleanup is not installed"
 fi
 
+pickup_epic="$(bundle_scripts pickup-epic)"
+if [ -n "$pickup_epic" ]; then
+  US="$STATE/usage"; mkdir -p "$US"; later=$(( $(date +%s) + 3600 )); past=$(( $(date +%s) - 60 ))
+  # snap <5h %> <5h reset> <7d %> <7d reset>
+  snap() { jq -n --argjson h "$1" --argjson hr "$2" --argjson d "$3" --argjson dr "$4" \
+    '{rate_limits: {five_hour: {used_percentage: $h, resets_at: $hr}, seven_day: {used_percentage: $d, resets_at: $dr}}}' > "$US/u.json"; }
+  usage() { bash "$pickup_epic/usage-check.sh" "$1" "${2:-$US/u.json}"; }
+  snap 50 "$later" 50 "$later"
+  check "usage: the normal band holds quietly" '[ -z "$(usage normal)" ]'
+  check "usage: the high band reports a return to normal" '[ "$(usage high)" = NORMAL ]'
+  snap 91 "$later" 50 "$later"
+  check "usage: over 90 on 5h leaves the normal band" '[ "$(usage normal)" = HIGH ]'
+  check "usage: the high band holds quietly" '[ -z "$(usage high)" ]'
+  snap 50 "$later" 96 "$later"
+  check "usage: over 95 on 7d leaves the normal band" '[ "$(usage normal)" = HIGH ]'
+  snap 95 "$later" 50 "$later"
+  check "usage: 95 on 5h hibernates, naming the limit and its reset" '[ "$(usage normal)" = "HIBERNATE 5h $later" ]'
+  snap 95 "$later" 98 "$((later + 1))"
+  check "usage: 98 on 7d hibernates on 7d, whatever 5h says" '[ "$(usage high)" = "HIBERNATE 7d $((later + 1))" ]'
+  snap 99 "$past" 50 "$later"
+  check "usage: a window already reset counts as empty" '[ -z "$(usage normal)" ]'
+  check "usage: a missing snapshot is unwatched" '[[ "$(usage normal "$US/none.json")" == "UNWATCHED no snapshot"* ]]'
+  echo '{"rate_limits": {"five_hour": {"used_percentage": 1}}}' > "$US/u.json"
+  check "usage: a snapshot without figures is unwatched" '[[ "$(usage normal)" == "UNWATCHED no usage figures"* ]]'
+  echo 'x' > "$US/u.json"
+  check "usage: an unreadable snapshot is unwatched" '[[ "$(usage normal)" == "UNWATCHED unreadable"* ]]'
+  check "usage: an unknown band is a usage error" '! usage low >/dev/null 2>&1'
+else
+  echo "skip usage-check: pickup-epic is not installed"
+fi
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

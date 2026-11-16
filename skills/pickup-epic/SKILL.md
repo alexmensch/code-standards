@@ -482,32 +482,26 @@ mark's time in epoch seconds, and prints `reset` → § Usage limits:
 until [ "$(date +%s)" -ge <at> ]; do sleep 60; mine || exit 0; done; echo reset
 ```
 
-**Usage watcher.** Reads the snapshot the status line writes on every
-redraw — a stale one is accepted — `<band>` being `high` while the run
-state says `usage high`, otherwise `normal`:
+**Usage watcher.** `scripts/usage-check.sh` classifies the snapshot the
+status line writes to `~/.claude/usage.json` on every redraw — a stale one
+is accepted, and a window whose reset has passed counts as empty. `<band>`
+is `high` while the run state says `usage high`, otherwise `normal`:
 
 ```bash
-u=${CLAUDE_CONFIG_DIR:-$HOME/.claude}/usage.json
 while sleep 60; do
   mine || exit 0
-  v=$(jq -r --arg band <band> '.rate_limits
-    | [.five_hour.used_percentage, .seven_day.used_percentage] as [$h, $d]
-    | if ([$h, $d] | map(type) | unique) != ["number"] then "watcher: no usage figures"
-      elif $h >= 95 or $d >= 98 then "usage HIBERNATE"
-      elif $h > 90 or $d > 95 then (if $band == "normal" then "usage HIGH" else "" end)
-      elif $band == "high" then "usage NORMAL" else "" end' "$u") \
-    || { echo "watcher: $u unreadable"; exit 1; }
-  [ -z "$v" ] || { echo "$v"; exit 0; }
+  v=$(bash <this skill's folder>/scripts/usage-check.sh <band>)
+  [ -z "$v" ] || { echo "usage $v"; exit 0; }
 done
 ```
 
 - `usage HIGH` → write `usage high` into the run state; the watcher restarts
-  in the high band. From now on every § 1 also runs the `jq` command once,
-  and acts on `usage HIBERNATE` at once, so a turn that crosses the limit
-  between two passes still catches it.
+  in the high band. From now on every § 1 also runs the script once, and
+  acts on a `HIBERNATE` at once, so a turn that crosses the limit between
+  two passes still catches it.
 - `usage NORMAL` → drop `usage high`; the watcher restarts in the normal
   band.
-- `usage HIBERNATE` → § Usage limits.
+- `usage HIBERNATE <limit> <resets_at>` → § Usage limits.
 
 Once the fill step launches nothing and idle hand-offs have left no live
 worker, with the landing queue empty, no landing in progress and no
@@ -658,19 +652,17 @@ user which ones. The user's own items get nothing.
 ## Usage limits — pause or hibernate
 
 Launches never wait on usage: no slot is left empty on a forecast. Only
-`usage HIBERNATE` stops work. The limit that set it off is the 7-day one when
-its figure is at 98 or above, otherwise the 5-hour one; `resets_at` is that
-limit's, in epoch seconds.
+`usage HIBERNATE <limit> <resets_at>` stops work, `<limit>` being `5h` or
+`7d` and `<resets_at>` its reset in epoch seconds.
 
-- **The 5-hour limit, resetting less than 55 minutes from now** — inside
-  the prompt cache's one-hour lifetime — **pauses in place.** Mark the run
+- **`5h`, resetting sooner than the idle watcher's `limit` from now** —
+  inside the prompt cache's one-hour lifetime — **pauses in place.** Mark the run
   state `PAUSED until <resets_at + 60>` and run § Hibernate's opening and
   step 1 — its no-question rule and `WIND_DOWN` included — but keep every
   worker's session: no step 2 or 3. The idle watcher still hands off a
   paused worker that reaches its limit.
-- **The 5-hour limit resetting 55 minutes or more from now, or the 7-day
-  limit** → § Hibernate, unasked, to its end. The 7-day limit waits for
-  the user. The 5-hour one resumes by itself: right before step 3's final
+- **`5h` resetting later, or `7d`** → § Hibernate, unasked, to its end.
+  `7d` waits for the user. `5h` resumes by itself: right before step 3's final
   message, start this session's successor's timer from the main checkout,
   detached — a background shell's exit would wake this session on a cold
   cache, so this one is never re-invoked and sits idle until the successor

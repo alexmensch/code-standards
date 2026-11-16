@@ -656,10 +656,11 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
 `7d` and `<resets_at>` its reset in epoch seconds.
 
 - **`5h`, resetting sooner than the idle watcher's `limit` from now** —
-  inside the prompt cache's one-hour lifetime — **pauses in place.** Mark the run
-  state `USAGE PAUSE until <resets_at + 60>` and run § Hibernate's opening and
-  step 1 — its no-question rule and `WIND_DOWN` included — but keep every
-  worker's session: no step 2 or 3. The idle watcher still hands off a
+  inside the prompt cache's one-hour lifetime — **pauses in place.** Run
+  § Hibernate's opening and step 1 — its no-question rule and `WIND_DOWN`
+  included — with the run state marked `USAGE PAUSE until <resets_at + 60>`
+  in place of `WINDING DOWN`, and keep every worker's session: no step 2
+  or 3. The idle watcher still hands off a
   paused worker that reaches its limit.
 - **`5h` resetting later, or `7d`** → § Hibernate, unasked, to its end.
   `7d` waits for the user. `5h` resumes by itself: right before step 3's final

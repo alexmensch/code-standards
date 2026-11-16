@@ -22,7 +22,7 @@ stall (a worker idle on the coordinator), detects a hazard (two sessions on
 one file or one machine-wide resource), or prepares an answer before it is
 on the critical path.
 
-## One writer per thing
+## One writer per thing — and what invoking this authorises
 
 | Thing | Sole writer |
 | --- | --- |
@@ -31,19 +31,14 @@ on the critical path.
 | `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
 | `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, the dependencies and epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
 
-## What invoking this authorises — and only this
-
-For items in the tree under the named epic, and items the user brings into
-the run: file an item under the named epic for such work that has none
-(§ 5), claim them, write preflight's `UNRESOLVED` notes into them, the
-dependencies the user approves into the tracker and the goals they give
-into an epic (§ 3), launch
-workers, stop and remove a worker's session (§ Removing a worker's session),
-send the coordinator's message kinds,
-close a sub-epic once all its children are closed. Each merge still needs the
-user's answer for that PR (§ 7).
+Invoking this authorises the coordinator's rows, for items in the tree under
+the named epic and items the user brings into the run, and: filing an item
+under the named epic for such work that has none (§ 5), launching workers,
+stopping and removing their sessions (§ Removing a worker's session), and
+sending the coordinator's message kinds. Each merge still needs the user's
+answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a question a worker put to the user (§ 6 `QUESTION`), close the

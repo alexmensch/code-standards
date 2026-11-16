@@ -382,9 +382,9 @@ prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
 the age of the worker's transcript, which every model call writes — the
 user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
-run-state write: one line per live worker of this run, `<item>`, `<item>
-waiting` while it waits on the user, or `<item> pulling` while it is in a
-pull wait, even one also waiting on the user. Left out: the item landing now, a
+run-state write: one line per live worker of this run, `<item>`, or `<item>
+pulling` while it is in a pull wait, even one also waiting on the user.
+Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 
@@ -401,13 +401,13 @@ while sleep 60; do
     case "$name" in pickup-*) ;; *) continue ;; esac
     mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
     case "$mark" in
-      watch|waiting)
+      watch)
         f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit)
         if [ -z "$f" ]; then
           case "$was" in *" $name "*) out="$out$name no transcript"$'\n' ;; *) missing="$missing$name " ;; esac
         else
           age=$(( $(date +%s) - $(date -r "$f" +%s) ))
-          l=${mark#watch}; [ "$age" -lt "$limit" ] || out="$out$name idle ${age}s${l:+ $l}"$'\n'
+          [ "$age" -lt "$limit" ] || out="$out$name idle ${age}s"$'\n'
         fi ;;
     esac
   done <<< "$rows"

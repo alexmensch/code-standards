@@ -603,7 +603,9 @@ user which ones. The user's own items get nothing.
 3. Once every worker is removed, or kept at a stopped landing: mark the
    run state `HIBERNATED` in place of `WINDING DOWN`, end the
    run (§ The coordinator field), and say in the final message that this
-   coordinator session is finished and safe to delete.
+   coordinator session is finished and safe to delete. It names each
+   question this session asked still unanswered, by its letter, as carried
+   to § Resume and answered there, never here.
 
 ## 7. Land — one at a time
 

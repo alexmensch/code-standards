@@ -174,7 +174,8 @@ line, the PR is not ready to land.
 - **In a coordinated run** — a coordinated worker or the coordinator — or
   with no question tool, **in plain text, then end the turn**: one block per
   question, its options numbered so the requester can answer "2" or in a
-  sentence, several in one message lettered, answered "A2, B1". The requester
+  sentence, several in one message lettered, answered "A2, B1". Letters run
+  on across messages, never reused while a question is open. The requester
   replying "ask", or the like, gets the questions still open in the
   question tool; never otherwise.
 

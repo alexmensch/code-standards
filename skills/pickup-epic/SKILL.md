@@ -94,9 +94,9 @@ nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
-- questions this session put to the user, or held back during a hibernate
-  (§ Hibernate), and not yet answered — a landing approval, a preflight, a
-  `PLAN_CHANGE`, a deviation — asked at § Resume;
+- questions this session put to the user, each with its letter, or held
+  back during a hibernate (§ Hibernate), and not yet answered — a landing
+  approval, a preflight, a `PLAN_CHANGE`, a deviation — asked at § Resume;
 - landing approvals given and the landing queue;
 - stacks the user chose (§ Stacks): each one's members bottom first — item,
   PR, branch — and the items the user named to land in it. A restructure

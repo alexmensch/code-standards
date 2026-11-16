@@ -256,6 +256,9 @@ What changes:
   § Never decide for the requester; a later note recording their answer
   settles it. An open decision so noted does not fail § 2: it is asked, not
   refused.
+- **A `SAVED_QUESTION` note with no later answer is a saved question** (§ Hand
+  off), on any launch, a resume or a fresh one. Ask its text as written —
+  never investigate it again — `NEEDS_INPUT` first.
 - **Report every change of state as it happens**, with `SendMessage` to
   `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   The coordinator tells the user only that this session needs them, so put
@@ -348,8 +351,9 @@ What changes:
   as above without sending `READY_TO_LAND` again. The coordinator lands the
   PR, then stops and removes this session and its worktree; nothing is sent
   here first.
-- **`WIND_DOWN <item>`** → the coordinator is winding the run down and the
-  requester has stepped away. From it on, § Hand off's no-question rule
+- **`WIND_DOWN <item>`** → the coordinator is winding the run down, the
+  requester having stepped away, or pausing it at a usage limit. From it
+  on, § Hand off's no-question rule
   holds. Reach the next commit boundary as § Hand off step 1 says, but
   leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
   and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
@@ -357,6 +361,8 @@ What changes:
   raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
   A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
   paused: the step its result calls for goes into the handoff's `next:`.
+- **`CONTINUE <item>`** → the pause is over. Ask each held-back question,
+  `NEEDS_INPUT` first, then carry on with the work.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.
@@ -365,18 +371,23 @@ What changes:
 
 From `HIBERNATE` or `RELEASED`, the coordinator is about to remove this
 session; a fresh one may resume the item from what this leaves behind. From
-`WIND_DOWN`, the requester has stepped away and those messages will follow.
+`WIND_DOWN`, one of those messages follows, or `CONTINUE`.
 
 **No new question to the requester from `WIND_DOWN`, `HIBERNATE` or
 `RELEASED` on.** The
 requester has usually stepped away, and a question waiting on them holds the
 session short of the reply. A decision this session would otherwise ask is
-held back in this session until step 2 writes it into the handoff's
-`question:`, and is asked on resume.
-On `RELEASED` it goes into the item's notes too, as an `UNRESOLVED` note in
-`pickup-epic` § 3's format: a released item relaunches fresh, and preflight
-reads notes, not handoffs. A question already asked is not written into the
-notes.
+held back, and asked at `CONTINUE` or by the next session on the item.
+
+**Saved questions.** Every question open to the requester — asked and not
+yet answered, or held back — goes into the item's notes, one note each,
+starting `SAVED_QUESTION`: the question word for word, with its options and the
+evidence behind them, as § Asking about a finding wrote it. Only
+`WIND_DOWN`, `HIBERNATE` and `RELEASED` write them — at the message, and
+for each question held back after it — never ordinary work. A question
+already in a `SAVED_QUESTION` note with no later answer is not written again.
+The answer is recorded as any is (§ Coordinated mode), and that note
+settles it.
 
 1. **Reach the next commit boundary** without asking: finish the
    commit-sized chunk in progress, or the review or triage step this session
@@ -398,7 +409,7 @@ notes.
    premerged: <each #M and the head merged, from PREMERGE> | none
    done: <what is committed and pushed>
    next: <the next step, concrete enough to start on>
-   question: <each question open to the requester or held back, word for word> | none
+   question: <the first line of each unanswered `SAVED_QUESTION` note> | none
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 
@@ -431,6 +442,6 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → `NEEDS_INPUT`, then ask each again in plain text and end
-   the turn (§ Coordinated mode).
+3. A `question:` → ask each saved question (§ Coordinated mode), and end
+   the turn.
 4. Continue from `next`, in the stage `phase` names.

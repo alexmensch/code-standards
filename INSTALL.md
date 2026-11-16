@@ -37,6 +37,12 @@ monitor tools, and `pickup-epic` drives Claude Code background sessions and
 messages between them: install both only on Claude Code, and record them as
 skipped (`:-`, § 4) elsewhere.
 
+`pickup-epic`'s usage limits read a snapshot that the user's own status line
+script must write (`pickup-epic` § Watchers gives the path and fields).
+When installing `pickup-epic`, check for `~/.claude/usage.json`; if it is
+missing, tell the user that runs will go without usage limits until their
+status line writes it.
+
 Some skills run others, or their scripts: `pr-review` needs `code-craft`;
 `pickup-task` needs `pr-review`, `code-craft` and `pr-cleanup`;
 `pickup-epic` needs `pickup-task` (its sessions and its

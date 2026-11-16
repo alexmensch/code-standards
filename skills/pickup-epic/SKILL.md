@@ -28,7 +28,8 @@ on the critical path.
 | --- | --- |
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
-| `UNRESOLVED` notes (§ 3) | the coordinator at preflight; a worker on `RELEASED`, for its held-back questions |
+| `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
+| `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
@@ -109,13 +110,17 @@ nowhere else:
   dropped when that item lands, on `UNMERGED`, or on a `SYNCED` in place
   of `PREMERGED`;
 - workers sent `WIND_DOWN`, and those sent `HIBERNATE`, each until its
-  session is removed (§ Hand-off);
+  session is removed (§ Hand-off) or it is sent `CONTINUE` (§ Usage
+  limits);
 - hibernated items (§ Hand-off), each with its branch, PR, handoff phase and
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
   `idle`; § 6's fill step says which of them hold a slot under the cap;
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
+- the mark `USAGE PAUSE until <time>` from a usage pause's start until its
+  reset, `usage high` while the usage watcher runs in its high band, and
+  `usage unwatched` once it finds no usage figures to read (§ Watchers);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
 
@@ -190,8 +195,8 @@ decisions to the user. A gap is any of:
 Write each gap into the item's notes, one note each, starting `UNRESOLVED`:
 the open decision quoted, or what conflicts with what with a pointer to
 each side — item IDs, files, the owner decision's text — and no proposed
-answer. A gap already in an `UNRESOLVED` note with no later answer is not
-noted again. Launch it with
+answer. A gap already in an `UNRESOLVED` or `SAVED_QUESTION` note with no later
+answer is not noted again. Launch it with
 ` — UNRESOLVED in notes` (§ 5); the worker investigates each and asks the
 user itself.
 
@@ -344,11 +349,14 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 
 Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation, a free slot left empty. Never
-restate a worker's report.
+restate a worker's report. Never report a usage figure: the user reads it
+live in their status line. Never report that a watcher or timer expired —
+only what its exit sets off: a reminder, a hand-off, a pause, a hibernate,
+a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
-`WINDING DOWN`, this step launches nothing and reports nothing (§ Hibernate
-step 1). Otherwise, a live worker or an
+`WINDING DOWN` or `USAGE PAUSE`, this step launches nothing and reports nothing
+(§ Hibernate step 1). Otherwise, a live worker or an
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
@@ -366,11 +374,12 @@ is the fill step's result: an event that ends with a slot free or held that
 way, no launch and no report has skipped the step —
 unless the report would repeat the last one word for word.
 
-## Watchers — idle workers, open questions and pull waits
+## Watchers — idle workers, open questions, pull waits and usage
 
-Three background shells, each started with `run_in_background` so its exit
-re-invokes this session. Each script opens with these lines, `<watcher>`
-being `idle`, `remind` or `pull`:
+Background shells, each started with `run_in_background` so its exit
+re-invokes this session and costs no turn before it. Each script opens with
+these lines, `<watcher>` being `idle`, `remind`, `pull`, `usage`, `reset` or
+`successor`:
 
 ```bash
 p=${TMPDIR:-/tmp}/pickup-epic-<epic>-<watcher>.pid; echo $$ > "$p"
@@ -386,7 +395,10 @@ event. `watcher:` printed → tell the user; the watcher cannot see.
 At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user or a question this session asked and the user has not
-answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait. Should run with no pid file → start it; should not → remove the
+answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait; the usage
+watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE`,
+`HIBERNATED` and `usage unwatched`, in the band it names; the reset timer while it is marked
+`USAGE PAUSE`. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind. A pull timer started
 that way first sends `PULL_PING` to each worker in a pull wait, since the
@@ -464,9 +476,44 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.
 
+The reset timer waits for a wall-clock time, `<at>` being the `USAGE PAUSE`
+mark's time in epoch seconds, and prints `reset` → § Usage limits:
+
+```bash
+until [ "$(date +%s)" -ge <at> ]; do sleep 60; mine || exit 0; done; echo reset
+```
+
+**Usage watcher.** `scripts/usage-check.sh` classifies the snapshot the
+user's own status line script writes to `~/.claude/usage.json` on every
+redraw: `rate_limits.five_hour` and `rate_limits.seven_day`, each with
+`used_percentage` and `resets_at` in epoch seconds. A stale one is
+accepted, a window whose reset has passed counts as empty, and with no
+snapshot the run is `usage unwatched`. `<band>`
+is `high` while the run state says `usage high`, otherwise `normal`:
+
+```bash
+while sleep 60; do
+  mine || exit 0
+  v=$(bash <this skill's folder>/scripts/usage-check.sh <band>)
+  [ -z "$v" ] || { echo "usage $v"; exit 0; }
+done
+```
+
+- `usage HIGH` → write `usage high` into the run state; the watcher restarts
+  in the high band. From now on every § 1 also runs the script once, and
+  acts on a `HIBERNATE` at once, so a turn that crosses the limit between
+  two passes still catches it.
+- `usage NORMAL` → drop `usage high`; the watcher restarts in the normal
+  band.
+- `usage HIBERNATE <limit> <resets_at>` → § Usage limits.
+- `usage UNWATCHED <why>` → write `usage unwatched` into the run state and
+  tell the user once, with the why: the run goes on with no usage limit
+  watched. § Resume clears the mark.
+
 Once the fill step launches nothing and idle hand-offs have left no live
 worker, with the landing queue empty, no landing in progress and no
-shared-resource grant running, § Hibernate runs from its step 3 unasked.
+shared-resource grant running, § Hibernate runs from its step 3 unasked —
+never while the run state is marked `USAGE PAUSE`, which `reset` ends.
 
 ## Removing a worker's session
 
@@ -563,7 +610,8 @@ argument order. A request that puts the wind-down off until a later event
 — "keep going until something needs me, then hibernate" — is a wind-down
 request like any other: it starts now and launches nothing new; only the
 landings already approved keep going (step 1). It also runs unasked once
-idle hand-offs leave no live worker (§ Watchers). Only the coordinator
+idle hand-offs leave no live worker (§ Watchers), and at a usage limit
+(§ Usage limits). Only the coordinator
 hibernates: the request anywhere else would make a second coordinator
 (§ Deviations). A wind-down, not an immediate stop.
 
@@ -608,6 +656,50 @@ user which ones. The user's own items get nothing.
    coordinator session is finished and safe to delete. It names each
    question this session asked still unanswered, by its letter, as carried
    to § Resume and answered there, never here.
+
+## Usage limits — pause or hibernate
+
+Launches never wait on usage: no slot is left empty on a forecast. Only
+`usage HIBERNATE <limit> <resets_at>` stops work, `<limit>` being `5h` or
+`7d` and `<resets_at>` its reset in epoch seconds.
+
+- **`5h`, resetting sooner than the idle watcher's `limit` less 180
+  seconds from now** — so `CONTINUE`, up to two minutes after the reset,
+  reaches a worker paused at the start before its idle hand-off — **pauses
+  in place.** Run
+  § Hibernate's opening and step 1 — its no-question rule and `WIND_DOWN`
+  included — with the run state marked `USAGE PAUSE until <resets_at + 60>`
+  in place of `WINDING DOWN`, and keep every worker's session: no step 2
+  or 3. The idle watcher still hands off a
+  paused worker that reaches its limit.
+- **`5h` resetting later, or `7d`** → § Hibernate, unasked, to its end.
+  `7d` waits for the user. `5h` resumes by itself: right before step 3's final
+  message, start the `successor` timer, detached rather than with
+  `run_in_background` — its exit would wake this session on a cold cache,
+  so this one is never re-invoked and sits idle until the successor removes
+  it. Write § Watchers' opening lines, then the reset timer's loop with
+  `<at>` being `<resets_at + 60>` and this in place of `echo reset`:
+
+  ```bash
+  claude --bg -n "<this session's name>" --permission-mode <this session's mode> \
+    "/pickup-epic <epic> — replacing <this session's short id>"
+  ```
+
+  to `${TMPDIR:-/tmp}/pickup-epic-<epic>-successor.sh`, and from the main
+  checkout run `nohup bash <that path> >/dev/null 2>&1 &`. Removing its pid
+  file stops it, as for any watcher. The short id is the `id` of the
+  `claude agents --json` row named this session's name; with no such row —
+  a session `claude stop` cannot reach — leave out ` — replacing <id>`, and
+  say in the final message that this session can be closed.
+
+  The final message names the time the successor starts, in place of
+  saying this session is safe to delete.
+
+**At `reset`**, clear the `USAGE PAUSE` mark, then: `CONTINUE <item>` to each
+worker sent `WIND_DOWN` that is still live, relaunch with `resume` (§ 5)
+each one the idle watcher handed off meanwhile, start the usage watcher in
+the normal band, ask each question the run state lists as unanswered, put
+to the user or held back, and § 1.
 
 ## 7. Land — one at a time
 
@@ -844,22 +936,33 @@ end the run (§ The coordinator field).
 
 ## Resume
 
-`/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
-from § 1 with the run state first — unless its free text asks to wind the
-run down, which is § Hibernate's trigger. Then:
+`/pickup-epic <epic>` in a new session, after `claude --resume`, or the
+user writing in a coordinator session that hibernated, starts from § 1 with
+the run state first — unless its free text asks to wind the run down, which
+is § Hibernate's trigger. Then:
 
+- launched `— replacing <id>` → while the run state is still marked
+  `HIBERNATED`, `claude stop <id>`, then `claude rm <id>`; either
+  reporting no such session is fine. Not so marked, another session has
+  resumed the run: two coordinators, a deviation — change nothing.
+  Otherwise, remove any `successor` pid file (§ Usage limits): this session
+  replaces it;
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
-- start the watchers (§ Watchers);
+- clear any `usage unwatched` mark, then start the watchers (§ Watchers);
+- a post-landing step may have been cut off → run it before any launch;
+- the run state is marked `USAGE PAUSE` → nothing more here: `reset`
+  (§ Usage limits), which the reset timer prints within a minute once its
+  time has passed, carries on in place of the rest of this list;
 - ask each question the run state lists as unanswered, put to the user or
   held back;
-- a post-landing step may have been cut off → run it before any launch;
 - the run state lists live workers sent `WIND_DOWN` — kept at a stopped
   landing, or left by a cut-off wind-down → § Hand-off with `HIBERNATE
   <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every
-  question until then; its handoff carries them to the relaunch, which asks;
+  question until then; its `SAVED_QUESTION` notes carry them to the relaunch,
+  which asks;
 - the run state is marked `WINDING DOWN` or `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, while a slot is free (§ 6 fill

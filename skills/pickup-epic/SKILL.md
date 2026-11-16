@@ -119,8 +119,8 @@ nowhere else:
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
 - the mark `USAGE PAUSE until <time>` from a usage pause's start until its
-  reset, and `usage high` while the usage watcher runs in its high band
-  (§ Usage limits);
+  reset, `usage high` while the usage watcher runs in its high band, and
+  `usage unwatched` once it finds no usage figures to read (§ Watchers);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
 
@@ -395,8 +395,8 @@ At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user or a question this session asked and the user has not
 answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait; the usage
-watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE` and
-`HIBERNATED`, in the band it names; the reset timer while it is marked
+watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE`,
+`HIBERNATED` and `usage unwatched`, in the band it names; the reset timer while it is marked
 `USAGE PAUSE`. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind. A pull timer started
@@ -502,6 +502,9 @@ done
 - `usage NORMAL` → drop `usage high`; the watcher restarts in the normal
   band.
 - `usage HIBERNATE <limit> <resets_at>` → § Usage limits.
+- `usage UNWATCHED <why>` → write `usage unwatched` into the run state and
+  tell the user once, with the why: the run goes on with no usage limit
+  watched. § Resume clears the mark.
 
 Once the fill step launches nothing and idle hand-offs have left no live
 worker, with the landing queue empty, no landing in progress and no
@@ -933,7 +936,7 @@ run down, which is § Hibernate's trigger. Then:
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
-- start the watchers (§ Watchers);
+- clear any `usage unwatched` mark, then start the watchers (§ Watchers);
 - the run state is marked `USAGE PAUSE` → ask nothing and launch nothing until
   `reset` (§ Usage limits), which the reset timer prints within a minute
   once its time has passed; `reset` asks what the next bullet would, and the

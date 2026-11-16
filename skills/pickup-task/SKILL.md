@@ -168,7 +168,8 @@ line, the PR is not ready to land.
 
 Ask each such finding **in the chat, with the harness's question tool** — one
 question per finding, batched at the tool's per-call limit; without one, one
-numbered question per message — never as a list in a
+numbered question per message; coordinated, in plain text (§ Coordinated
+mode) — never as a list in a
 report the requester has to turn into answers. The requester reads only the
 question, so each one stands alone:
 
@@ -252,7 +253,7 @@ What changes:
 | Kind | Send when |
 | --- | --- |
 | `PR_OPEN` | the PR exists, draft or ready |
-| `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
+| `NEEDS_INPUT` | a question is about to go to the requester; ask it here right after, in plain text, and end the turn (below) |
 | `UNBLOCKED` | as part of recording the requester's answer (below) |
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
@@ -265,6 +266,15 @@ What changes:
 | `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
+- **Ask in plain text, then end the turn** — never with the question tool
+  unprompted. Each question is a numbered block in § Asking about a
+  finding's shape, its options numbered too, so the requester can answer
+  "2" or in a sentence; several go in one message. While the tool's dialog
+  is open the turn has not ended: this session reads no message and is
+  never idle, so the coordinator can neither hand it off nor keep its
+  prompt cache warm. The requester replying "ask", or the like, gets the
+  questions still open in the question tool. The answer arrives as a later
+  message in this session.
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
   written without the message is not recorded.
@@ -386,7 +396,8 @@ reads notes, not handoffs. One already asked stays as it is.
    ```
 
    A question this session is blocked on goes in `question:` word for word
-   too.
+   too, and so does one already asked and still unanswered, with `phase:
+   awaiting owner answer` when `next` depends on it.
 3. **Reply `HIBERNATED <item>`** and end the turn.
 
 ### Resuming from a handoff
@@ -414,5 +425,6 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → `NEEDS_INPUT`, then ask each with the question tool.
+3. A `question:` → `NEEDS_INPUT`, then ask each again in plain text and end
+   the turn (§ Coordinated mode).
 4. Continue from `next`, in the stage `phase` names.

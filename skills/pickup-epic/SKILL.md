@@ -53,17 +53,15 @@ or remove the user's own session, its worktree or its branch.
 
 Every question this session puts to the user — a preflight check, a landing
 approval, a `PLAN_CHANGE` settlement, a deviation, a question § Resume
-carries — is plain text that ends the turn, in the plain-text shape of
-`pickup-task` § Asking about a finding: each question standing alone, its
-options numbered, several in one message lettered so the user can answer
-"A2, B1". Record each in the run state as it is asked. An event arriving
-before the answer is handled as § 6 says; the question is not asked again.
+carries — goes as a coordinated run's question does (`pickup-task` § Asking
+about a finding), each one standing alone. Record each in the run state as
+it is asked. An event arriving before the answer is handled as § 6 says;
+the question is not asked again.
 
-Never the question tool unprompted. While its dialog is open this turn has
-not ended, so no watcher exit, worker report or idle notice is read: no idle
-hand-off, no `PULL_PING`, no unasked § Hibernate, and one unanswered
-question stalls the whole run. The user replying "ask", or the like, gets
-the questions still open in the question tool.
+While the question tool's dialog is open this turn has not ended, so no
+watcher exit, worker report or idle notice is read: no idle hand-off, no
+`PULL_PING`, no unasked § Hibernate, and one unanswered question stalls the
+whole run.
 
 ## The plan is just-in-time
 

@@ -167,10 +167,12 @@ line, the PR is not ready to land.
 ### Asking about a finding
 
 Ask each such finding **in the chat, with the harness's question tool** — one
-question per finding, batched at the tool's per-call limit; without one, one
-numbered question per message — never as a list in a
-report the requester has to turn into answers. The requester reads only the
-question, so each one stands alone:
+question per finding, batched at the tool's per-call limit — or, without
+one and in coordinated mode (§ Coordinated mode), **in plain text**: one
+block per finding, its options numbered so the requester can answer "2" or
+in a sentence, and several findings in one message, lettered, answered
+"A2, B1". Never as a list in a report the requester has to turn into
+answers. The requester reads only the question, so each one stands alone:
 
 - **What the code does now**, in plain words: the mechanism, not the
   reviewer's label for it. Name the file only as a pointer.
@@ -252,7 +254,7 @@ What changes:
 | Kind | Send when |
 | --- | --- |
 | `PR_OPEN` | the PR exists, draft or ready |
-| `NEEDS_INPUT` | a question is about to go to the requester; ask it here, with the question tool, right after |
+| `NEEDS_INPUT` | a question is about to go to the requester; ask it here right after, in plain text, and end the turn (below) |
 | `UNBLOCKED` | as part of recording the requester's answer (below) |
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
@@ -265,6 +267,13 @@ What changes:
 | `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
+- **Ask in plain text, then end the turn** — never with the question tool
+  unprompted; § Asking about a finding gives the shape. While the tool's
+  dialog is open the turn has not ended: this session reads no message and is
+  never idle, so the coordinator can neither hand it off nor keep its
+  prompt cache warm. The requester replying "ask", or the like, gets the
+  questions still open in the question tool. The answer arrives as a later
+  message in this session.
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
   written without the message is not recorded.
@@ -356,10 +365,10 @@ requester has usually stepped away, and a question waiting on them holds the
 session short of the reply. A decision this session would otherwise ask is
 held back in this session until step 2 writes it into the handoff's
 `question:`, and is asked on resume.
-One that `next` depends on sets `phase: awaiting owner answer`.
 On `RELEASED` it goes into the item's notes too, as an `UNRESOLVED` note in
 `pickup-epic` § 3's format: a released item relaunches fresh, and preflight
-reads notes, not handoffs. One already asked stays as it is.
+reads notes, not handoffs. A question already asked is not written into the
+notes.
 
 1. **Reach the next commit boundary** without asking: finish the
    commit-sized chunk in progress, or the review or triage step this session
@@ -385,8 +394,8 @@ reads notes, not handoffs. One already asked stays as it is.
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 
-   A question this session is blocked on goes in `question:` word for word
-   too.
+   A question in `question:` that `next` depends on sets `phase: awaiting
+   owner answer`.
 3. **Reply `HIBERNATED <item>`** and end the turn.
 
 ### Resuming from a handoff
@@ -414,5 +423,6 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → `NEEDS_INPUT`, then ask each with the question tool.
+3. A `question:` → `NEEDS_INPUT`, then ask each again in plain text and end
+   the turn (§ Coordinated mode).
 4. Continue from `next`, in the stage `phase` names.

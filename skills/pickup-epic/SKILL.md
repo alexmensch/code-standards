@@ -382,10 +382,9 @@ prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
 the age of the worker's transcript, which every model call writes — the
 user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
-run-state write: one line per live worker of this run, `<item>`, `<item>
-waiting` while it waits on the user, or `<item> pulling` while it is in a
-pull wait, even one also waiting on the user — a dismissed question must
-not hand off a worker whose command still runs. Left out: the item landing now, a
+run-state write: one line per live worker of this run, `<item>`, or `<item>
+pulling` while it is in a pull wait, even one also waiting on the user.
+Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
 
@@ -402,7 +401,6 @@ while sleep 60; do
     case "$name" in pickup-*) ;; *) continue ;; esac
     mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
     case "$mark" in
-      waiting) out="$out$name dismissed"$'\n' ;;
       watch)
         f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit)
         if [ -z "$f" ]; then
@@ -417,15 +415,15 @@ while sleep 60; do
 done
 ```
 
-The idle watcher never hands off a worker waiting on the user: it reads no
-message until its question is settled, and once answered it works on with
-the answer. Nor one in a pull wait: its `pulling` mark matches no case, so it
-is neither timed nor dismissed — a hand-off would stop its command, and the
-pull timer keeps it warm instead. Per line printed:
+A worker waiting on the user is timed like any other: it asks in plain text
+and ends its turn (`pickup-task` § Coordinated mode), so it is listed idle
+and reads `HIBERNATE`. One the user asked to answer in the question tool's
+dialog is not listed idle while the dialog is open, so it is never matched.
+A worker in a pull wait is never handed off: its `pulling` mark matches no
+case, so it is not timed — a hand-off would stop its command, and the pull
+timer keeps it warm instead. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
-- `dismissed` — the user dismissed its question, so its turn ended → the
-  same, now. No event if it has sent `UNBLOCKED` since.
 - `no transcript` (two passes running) → ask the user to look at that worker.
 
 An idle hand-off records what relaunches the item:
@@ -445,8 +443,7 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
 ```
 
 - `remind` → remind the user, naming each worker waiting on the user — a
-  hibernated one whose question was dismissed included — never its
-  question.
+  hibernated one awaiting an owner answer included — never its question.
 - `pull` → send `PULL_PING <item>` to each worker in a pull wait. Its
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.
@@ -570,9 +567,9 @@ then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
 commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
-A worker recorded "waiting on the user", or `blocked` in `claude agents
---json`, reads it only once its question is answered or dismissed: tell
-the user which ones. The user's own items get nothing.
+A worker with the question tool's dialog open — listed `waiting` in
+`claude agents --json` — reads it only once the dialog closes: tell the
+user which ones. The user's own items get nothing.
 
 1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
    fix it is part of its landing. Finish landing every PR already approved,

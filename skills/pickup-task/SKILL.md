@@ -348,8 +348,9 @@ What changes:
   as above without sending `READY_TO_LAND` again. The coordinator lands the
   PR, then stops and removes this session and its worktree; nothing is sent
   here first.
-- **`WIND_DOWN <item>`** → the coordinator is winding the run down and the
-  requester has stepped away. From it on, § Hand off's no-question rule
+- **`WIND_DOWN <item>`** → the coordinator is winding the run down, the
+  requester having stepped away, or pausing it at a usage limit. From it
+  on, § Hand off's no-question rule
   holds. Reach the next commit boundary as § Hand off step 1 says, but
   leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
   and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
@@ -357,6 +358,8 @@ What changes:
   raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
   A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
   paused: the step its result calls for goes into the handoff's `next:`.
+- **`CONTINUE <item>`** → the pause is over. Ask each held-back question,
+  `NEEDS_INPUT` first, then carry on with the work.
 - **`HIBERNATE <item>`**, with or without `— parked on <X>`, or
   **`RELEASED <item>`** (the coordinator's answer to `ABANDONED`: the claim
   will be released) → § Hand off.
@@ -365,7 +368,7 @@ What changes:
 
 From `HIBERNATE` or `RELEASED`, the coordinator is about to remove this
 session; a fresh one may resume the item from what this leaves behind. From
-`WIND_DOWN`, the requester has stepped away and those messages will follow.
+`WIND_DOWN`, one of those messages follows, or `CONTINUE`.
 
 **No new question to the requester from `WIND_DOWN`, `HIBERNATE` or
 `RELEASED` on.** The

@@ -28,7 +28,8 @@ on the critical path.
 | --- | --- |
 | An item's code, branch, worktree, PR, handoff | its worker |
 | Findings and new items filed mid-work | the worker that found them |
-| `UNRESOLVED` notes (§ 3) | the coordinator at preflight; a worker on `RELEASED`, for its held-back questions |
+| `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
+| `QUESTION` notes, saved questions | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
 
@@ -194,8 +195,8 @@ decisions to the user. A gap is any of:
 Write each gap into the item's notes, one note each, starting `UNRESOLVED`:
 the open decision quoted, or what conflicts with what with a pointer to
 each side — item IDs, files, the owner decision's text — and no proposed
-answer. A gap already in an `UNRESOLVED` note with no later answer is not
-noted again. Launch it with
+answer. A gap already in an `UNRESOLVED` or `QUESTION` note with no later
+answer is not noted again. Launch it with
 ` — UNRESOLVED in notes` (§ 5); the worker investigates each and asks the
 user itself.
 
@@ -949,7 +950,8 @@ run down, which is § Hibernate's trigger. Then:
 - the run state lists live workers sent `WIND_DOWN` — kept at a stopped
   landing, or left by a cut-off wind-down → § Hand-off with `HIBERNATE
   <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every
-  question until then; its handoff carries them to the relaunch, which asks;
+  question until then; its `QUESTION` notes carry them to the relaunch,
+  which asks;
 - the run state is marked `WINDING DOWN` or `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, while a slot is free (§ 6 fill

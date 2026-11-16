@@ -118,7 +118,7 @@ nowhere else:
   `idle`; § 6's fill step says which of them hold a slot under the cap;
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
-- the mark `PAUSED until <time>` from a usage pause's start until its
+- the mark `USAGE PAUSE until <time>` from a usage pause's start until its
   reset, and `usage high` while the usage watcher runs in its high band
   (§ Usage limits);
 - a landing in progress, and its step;
@@ -355,7 +355,7 @@ only what its exit sets off: a reminder, a hand-off, a pause, a hibernate,
 a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
-`WINDING DOWN` or `PAUSED`, this step launches nothing and reports nothing
+`WINDING DOWN` or `USAGE PAUSE`, this step launches nothing and reports nothing
 (§ Hibernate step 1). Otherwise, a live worker or an
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
@@ -395,9 +395,9 @@ At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user or a question this session asked and the user has not
 answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait; the usage
-watcher while the run state is marked none of `WINDING DOWN`, `PAUSED` and
+watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE` and
 `HIBERNATED`, in the band it names; the reset timer while it is marked
-`PAUSED`. Should run with no pid file → start it; should not → remove the
+`USAGE PAUSE`. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind. A pull timer started
 that way first sends `PULL_PING` to each worker in a pull wait, since the
@@ -475,7 +475,7 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.
 
-The reset timer waits for a wall-clock time, `<at>` being the `PAUSED`
+The reset timer waits for a wall-clock time, `<at>` being the `USAGE PAUSE`
 mark's time in epoch seconds, and prints `reset` → § Usage limits:
 
 ```bash
@@ -657,7 +657,7 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
 
 - **`5h`, resetting sooner than the idle watcher's `limit` from now** —
   inside the prompt cache's one-hour lifetime — **pauses in place.** Mark the run
-  state `PAUSED until <resets_at + 60>` and run § Hibernate's opening and
+  state `USAGE PAUSE until <resets_at + 60>` and run § Hibernate's opening and
   step 1 — its no-question rule and `WIND_DOWN` included — but keep every
   worker's session: no step 2 or 3. The idle watcher still hands off a
   paused worker that reaches its limit.
@@ -678,7 +678,7 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
   The final message names the time the successor starts, in place of
   saying this session is safe to delete.
 
-**At `reset`**, clear the `PAUSED` mark, then: `CONTINUE <item>` to each
+**At `reset`**, clear the `USAGE PAUSE` mark, then: `CONTINUE <item>` to each
 worker sent `WIND_DOWN` that is still live, relaunch with `resume` (§ 5)
 each one the idle watcher handed off meanwhile, start the usage watcher in
 the normal band, ask each question the run state lists as unanswered, put
@@ -932,7 +932,7 @@ run down, which is § Hibernate's trigger. Then:
   with the new name, and set the field to it;
 - subscribe to each live worker's idle notice once;
 - start the watchers (§ Watchers);
-- the run state is marked `PAUSED` → ask nothing and launch nothing until
+- the run state is marked `USAGE PAUSE` → ask nothing and launch nothing until
   `reset` (§ Usage limits), which the reset timer prints within a minute
   once its time has passed; `reset` asks what the next bullet would, and the
   `WIND_DOWN` bullet below does not apply;

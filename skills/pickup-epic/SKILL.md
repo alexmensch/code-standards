@@ -668,9 +668,22 @@ limit's, in epoch seconds.
   worker's session: no step 2 or 3. The idle watcher still hands off a
   paused worker that reaches its limit.
 - **The 5-hour limit resetting 55 minutes or more from now, or the 7-day
-  limit** → § Hibernate, unasked, to its end. This session never waits out
-  an hour or more alive: its own cache would go cold. The 7-day limit
-  waits for the user.
+  limit** → § Hibernate, unasked, to its end. The 7-day limit waits for
+  the user. The 5-hour one resumes by itself: right before step 3's final
+  message, start this session's successor's timer from the main checkout,
+  detached — a background shell's exit would wake this session on a cold
+  cache, so this one is never re-invoked and sits idle until the successor
+  removes it:
+
+  ```bash
+  nohup bash -c 'until [ "$(date +%s)" -ge <resets_at + 60> ]; do sleep 60; done
+    claude --bg -n "<this session'\''s name>" --permission-mode <this session'\''s mode> \
+      "/pickup-epic <epic> — replacing <this session'\''s short id>"' >/dev/null 2>&1 &
+  echo $! > "${TMPDIR:-/tmp}/pickup-epic-<epic>-successor.pid"
+  ```
+
+  The final message names the time the successor starts, in place of
+  saying this session is safe to delete.
 
 **At `reset`**, clear the `PAUSED` mark, then: `CONTINUE <item>` to each
 worker sent `WIND_DOWN` that is still live, relaunch with `resume` (§ 5)
@@ -917,6 +930,10 @@ end the run (§ The coordinator field).
 from § 1 with the run state first — unless its free text asks to wind the
 run down, which is § Hibernate's trigger. Then:
 
+- launched `— replacing <id>` → `claude stop <id>`, then `claude rm <id>`;
+  either reporting no such session is fine. Otherwise, a successor's
+  timer still running (§ Usage limits) → `kill` the pid its file holds:
+  this session replaces it. Either way, delete that pid file;
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;

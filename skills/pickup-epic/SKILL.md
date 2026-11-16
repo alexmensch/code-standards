@@ -61,25 +61,20 @@ watcher exit, worker report or idle notice is read: no idle hand-off, no
 `PULL_PING`, no unasked § Hibernate, and one unanswered question stalls the
 whole run.
 
-## The plan is just-in-time
-
-The epic is a queue re-read at every event, not a schedule fixed at the
-start. Items change as work lands: workers file new ones, a finding rewrites
-another item's premise, a dependency appears.
-
-- **State lives in the tracker, the PRs, the session list and the run state —
-  never only in this conversation.** Every replan re-reads them (§ 1).
-- **Preflight an item right before it launches, never earlier.** A gap
-  noted now for an item five landings away misses what those landings
-  change.
-- **Lanes are measured, not forecast**, from real diffs as workers push.
-  Never predict a merge conflict; report one only when git does.
-
 ## The run state — written at every event
 
-One record on the named epic, **replaced** (not appended) after every event
-that changes it — the tracker skill maps the operation. It holds what exists
-nowhere else:
+The epic is a queue re-read at every event, not a schedule fixed at the
+start: workers file new items, a finding rewrites another item's premise, a
+dependency appears. State lives in the tracker, the PRs, the session list
+and the run state — never only in this conversation — and every replan
+re-reads them (§ 1). Anything only this conversation knows is lost at a
+resume and may be lost at a compaction: write it here first. After a
+compaction summary, re-run § 1 before acting on anything, and restart the
+watchers (§ Watchers).
+
+The run state is one record on the named epic, **replaced** (not appended)
+after every event that changes it — the tracker skill maps the operation. It
+holds what exists nowhere else:
 
 - items in the run from outside the tree, and why;
 - items whose work is in another repo, each with that repo's main checkout,
@@ -92,9 +87,9 @@ nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
-- questions this session put to the user, each with its letter, or held
-  back during a hibernate (§ Hibernate), and not yet answered — a landing
-  approval, a preflight, a `PLAN_CHANGE`, a deviation — asked at § Resume;
+- questions this session put to the user (§ Asking the user), each with its
+  letter, or held back during a hibernate (§ Hibernate), and not yet
+  answered;
 - landing approvals given and the landing queue;
 - stacks the user chose (§ Stacks): each one's members bottom first — item,
   PR, branch — and the items the user named to land in it. A restructure
@@ -118,9 +113,6 @@ nowhere else:
   `usage unwatched` once it finds no usage figures to read (§ Watchers);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
-
-Anything only this conversation knows is lost at a resume and may be lost at
-a compaction. Write it here first.
 
 ## The coordinator field
 
@@ -171,7 +163,9 @@ Among items with no open blocker (§ 1 says which count as satisfied):
 
 ## 3. Preflight — per item, at launch time
 
-Read the item in full, with its notes and parent chain.
+Read the item in full, with its notes and parent chain — right before it
+launches, never earlier: a gap noted for an item five landings away misses
+what those landings change.
 
 **Identify gaps; never resolve them.** The worker reads all the code the
 item touches; this session reads the item and a little of it, so an option
@@ -254,7 +248,9 @@ else
 fi
 ```
 
-A shared file is a hazard to sequence, not a conflict to predict. A lane
+A shared file is a hazard to sequence, not a conflict to predict: lanes are
+measured from real diffs as workers push, and a merge conflict is reported
+only when git reports one. A lane
 the run state lists as holding an unlanded pre-merge shows that PR's files
 as its own: take its files from `git diff --no-renames --name-only <the
 pre-merged head>...origin/<its branch>` instead. A stack member's worktree
@@ -268,10 +264,6 @@ their preflight questions, any outside blockers, and the parallel cap
 (default 5; the user's attention is the limit). Start on their answer: set
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
-
-**Compaction.** The run state makes compaction safe at any moment. After a
-compaction summary, re-run § 1 before acting on anything, and restart the
-watchers (§ Watchers).
 
 ## 5. Launch
 

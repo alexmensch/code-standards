@@ -167,11 +167,12 @@ line, the PR is not ready to land.
 ### Asking about a finding
 
 Ask each such finding **in the chat, with the harness's question tool** — one
-question per finding, batched at the tool's per-call limit; without one, one
-numbered question per message; coordinated, in plain text (§ Coordinated
-mode) — never as a list in a
-report the requester has to turn into answers. The requester reads only the
-question, so each one stands alone:
+question per finding, batched at the tool's per-call limit — or, without
+one and in coordinated mode (§ Coordinated mode), **in plain text**: one
+block per finding, its options numbered so the requester can answer "2" or
+in a sentence, and several findings in one message, lettered, answered
+"A2, B1". Never as a list in a report the requester has to turn into
+answers. The requester reads only the question, so each one stands alone:
 
 - **What the code does now**, in plain words: the mechanism, not the
   reviewer's label for it. Name the file only as a pointer.
@@ -267,10 +268,8 @@ What changes:
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Ask in plain text, then end the turn** — never with the question tool
-  unprompted. Each question is a block in § Asking about a finding's
-  shape, its options numbered, so the requester can answer "2" or in a
-  sentence; several go in one message, lettered, answered "A2, B1". While the tool's dialog
-  is open the turn has not ended: this session reads no message and is
+  unprompted; § Asking about a finding gives the shape. While the tool's
+  dialog is open the turn has not ended: this session reads no message and is
   never idle, so the coordinator can neither hand it off nor keep its
   prompt cache warm. The requester replying "ask", or the like, gets the
   questions still open in the question tool. The answer arrives as a later

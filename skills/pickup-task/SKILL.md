@@ -366,10 +366,10 @@ requester has usually stepped away, and a question waiting on them holds the
 session short of the reply. A decision this session would otherwise ask is
 held back in this session until step 2 writes it into the handoff's
 `question:`, and is asked on resume.
-One that `next` depends on sets `phase: awaiting owner answer`.
 On `RELEASED` it goes into the item's notes too, as an `UNRESOLVED` note in
 `pickup-epic` § 3's format: a released item relaunches fresh, and preflight
-reads notes, not handoffs. One already asked stays as it is.
+reads notes, not handoffs. A question already asked is not written into the
+notes.
 
 1. **Reach the next commit boundary** without asking: finish the
    commit-sized chunk in progress, or the review or triage step this session
@@ -395,9 +395,8 @@ reads notes, not handoffs. One already asked stays as it is.
    findings: <each review finding: number, one line, fixed in <sha> | awaiting answer | deferred to <id>> | none
    ```
 
-   A question this session is blocked on goes in `question:` word for word
-   too, and so does one already asked and still unanswered, with `phase:
-   awaiting owner answer` when `next` depends on it.
+   A question in `question:` that `next` depends on sets `phase: awaiting
+   owner answer`.
 3. **Reply `HIBERNATED <item>`** and end the turn.
 
 ### Resuming from a handoff

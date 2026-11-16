@@ -307,9 +307,6 @@ fallback for a worker that stops without reporting, never a status feed, so
 never re-subscribe to a busy worker. Message workers by name: `ListAgents`
 shows a different ID for a session than `claude agents` does.
 
-The worker enters its own worktree under the always-on rules, so the
-project's worktree seeding applies.
-
 ## 6. React — replan on every event
 
 On every report, idle notice, landing or user answer: § 1 again, then:
@@ -746,12 +743,7 @@ worktree list`):
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting.
-   `claude stop`'s success message is discarded; its exit status catches a
-   failed stop. Exit 0 and empty output: the session's process has exited,
-   nothing is uncommitted, and no background shell, task, subagent or other
-   process has its working directory or a file open under the worktree.
-   Any output →
-   stop and ask; the session stays stopped and is never removed. `lsof`
+   Any output → stop and ask; the session stays stopped and is never removed. `lsof`
    exits 1 whether or not it finds anything, so its output decides.
 2. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
@@ -798,11 +790,9 @@ session. A later worker starts fresh from that record (§ 5).
 
 ## Hibernate
 
-With many workers running, an owner stepping away leaves sessions whose
-prompt caches go cold, and resuming each later reloads its whole transcript
-uncached. Hibernating removes every session instead; resume launches fresh
-workers that load only their item, handoff and branch. Never resume old
-workers with `claude --resume`.
+Hibernating removes every session; resume launches fresh workers that load
+only their item, handoff and branch. Never resume old workers with `claude
+--resume`: each would reload its whole transcript on a cold cache.
 
 Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,

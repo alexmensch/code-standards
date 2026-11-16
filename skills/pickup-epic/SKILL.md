@@ -568,9 +568,9 @@ then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
 commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
-A worker with the question tool's dialog open — listed neither busy nor
-idle in `claude agents --json` — reads it only once the dialog closes: tell
-the user which ones. The user's own items get nothing.
+A worker with the question tool's dialog open — listed `waiting` in
+`claude agents --json` — reads it only once the dialog closes: tell the
+user which ones. The user's own items get nothing.
 
 1. Launch nothing new — § 7.2's relaunch of a hibernated lane to sync or
    fix it is part of its landing. Finish landing every PR already approved,

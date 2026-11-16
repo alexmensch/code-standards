@@ -931,13 +931,17 @@ end the run (§ The coordinator field).
 
 ## Resume
 
-`/pickup-epic <epic>` in a new session, or after `claude --resume`, starts
-from § 1 with the run state first — unless its free text asks to wind the
-run down, which is § Hibernate's trigger. Then:
+`/pickup-epic <epic>` in a new session, after `claude --resume`, or the
+user writing in a coordinator session that hibernated, starts from § 1 with
+the run state first — unless its free text asks to wind the run down, which
+is § Hibernate's trigger. Then:
 
-- launched `— replacing <id>` → `claude stop <id>`, then `claude rm <id>`;
-  either reporting no such session is fine. Otherwise, remove any
-  `successor` pid file (§ Usage limits): this session replaces it;
+- launched `— replacing <id>` → while the run state is still marked
+  `HIBERNATED`, `claude stop <id>`, then `claude rm <id>`; either
+  reporting no such session is fine. Not so marked, another session has
+  resumed the run: two coordinators, a deviation — change nothing.
+  Otherwise, remove any `successor` pid file (§ Usage limits): this session
+  replaces it;
 - this session's name differs from the coordinator field → if that name is
   another live session, it is a deviation; otherwise `NOTE` every live worker
   with the new name, and set the field to it;

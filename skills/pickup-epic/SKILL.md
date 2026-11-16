@@ -348,7 +348,10 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 
 Report to the user only what changes what they do next: a question, a
 landing to approve, a hold, a deviation, a free slot left empty. Never
-restate a worker's report.
+restate a worker's report. Never report a usage figure: the user reads it
+live in their status line. Never report that a watcher or timer expired —
+only what its exit sets off: a reminder, a hand-off, a pause, a hibernate,
+a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
 `WINDING DOWN` or `PAUSED`, this step launches nothing and reports nothing

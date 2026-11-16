@@ -56,7 +56,9 @@ approval, a `PLAN_CHANGE` settlement, a deviation, a question § Resume
 carries — goes as a coordinated run's question does (`pickup-task` § Asking
 about a finding), each one standing alone. Record each in the run state as
 it is asked. An event arriving before the answer is handled as § 6 says;
-the question is not asked again.
+the question is not asked again, unless the event makes it moot or changes
+it — then the next message to the user withdraws or replaces it by its
+letter, and the run state follows.
 
 While the question tool's dialog is open this turn has not ended, so no
 watcher exit, worker report or idle notice is read: no idle hand-off, no

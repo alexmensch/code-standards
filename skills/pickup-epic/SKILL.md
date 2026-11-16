@@ -326,7 +326,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `PULL_DONE` | clear the pull wait |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
-| `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
+| `READY_TO_LAND` | § 7.1 now; on approval, queue it |
 | A report that the item now waits on another item, X, to land | X's PR approved and unlanded → § Pre-merge sends it X's head instead. Otherwise park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `WOUND_DOWN` | its detail names a question held back → the item's landing needs the user (§ Hibernate) |
@@ -462,8 +462,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    A failed or cancelled check, or an unresolved review thread (the subagent
    has disarmed the merge) → `LANDING_FIX #N <them>` to the worker, and
    the PR goes to the back of the queue, and every lane holding a pre-merge
-   of it goes back behind it. A failed removal check → ask the
-   user; the session stays stopped.
+   of it goes back behind it.
 
    One of the user's own items, or a hibernated item: skip sub-step 3. Landing
    never stops or removes the user's session, its worktree or its branch.
@@ -475,7 +474,9 @@ version files and lockfiles conflict between any two PRs that both bump them.
 5. **Update the run state**, start the project's post-landing step on the
    new main with `run_in_background`, so its exit re-invokes this session,
    then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
-   deviation.
+   deviation. Run it without a pipe on its output, or with `set -o
+   pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
+   build's.
 
 **Pre-merge.** Once the user approves a PR at step 1, its content is final;
 its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
@@ -523,10 +524,6 @@ other exit.
 - A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
   For one of the user's own items, tell the user instead, and record `told
   the user` for that head.
-
-Run the project's post-landing step without a pipe on its output, or with
-`set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
-build's.
 
 ## Stacks — a dependent chain landed as one
 

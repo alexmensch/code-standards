@@ -423,8 +423,7 @@ A worker in a pull wait is never handed off: its `pulling` mark matches no
 case, so it is not timed — a hand-off would stop its command, and the pull
 timer keeps it warm instead. Per line printed:
 
-- `idle` → § Hand-off with `HIBERNATE <item>`. Ending `waiting`, its handoff
-  phase is `awaiting owner answer`.
+- `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
 
 An idle hand-off records what relaunches the item:

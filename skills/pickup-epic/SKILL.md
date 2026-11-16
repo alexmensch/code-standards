@@ -682,7 +682,10 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
 
   to `${TMPDIR:-/tmp}/pickup-epic-<epic>-successor.sh`, and from the main
   checkout run `nohup bash <that path> >/dev/null 2>&1 &`. Removing its pid
-  file stops it, as for any watcher.
+  file stops it, as for any watcher. The short id is the `id` of the
+  `claude agents --json` row named this session's name; with no such row —
+  a session `claude stop` cannot reach — leave out ` — replacing <id>`, and
+  say in the final message that this session can be closed.
 
   The final message names the time the successor starts, in place of
   saying this session is safe to delete.

@@ -267,9 +267,9 @@ What changes:
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Ask in plain text, then end the turn** — never with the question tool
-  unprompted. Each question is a numbered block in § Asking about a
-  finding's shape, its options numbered too, so the requester can answer
-  "2" or in a sentence; several go in one message. While the tool's dialog
+  unprompted. Each question is a block in § Asking about a finding's
+  shape, its options numbered, so the requester can answer "2" or in a
+  sentence; several go in one message, lettered, answered "A2, B1". While the tool's dialog
   is open the turn has not ended: this session reads no message and is
   never idle, so the coordinator can neither hand it off nor keep its
   prompt cache warm. The requester replying "ask", or the like, gets the

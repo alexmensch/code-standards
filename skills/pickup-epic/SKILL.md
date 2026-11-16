@@ -347,10 +347,8 @@ a resume.
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
-finish. Live sessions, and the gate runs a pre-merge starts in each, can therefore
-reach the cap plus the live approved lanes. A slot is free while the items
-holding one number
-fewer than the cap. Fill it: first
+finish. A slot is free while the items holding one number fewer than the
+cap. Fill it: first
 hibernated items whose relaunch event has happened, then rank, preflight,
 launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
@@ -505,12 +503,7 @@ other exit.
   (`sync-only.sh` exits 0), or that neither shares a file nor waits on
   #N's item. A member above #N in #N's stack gets `SYNC` instead
   (§ Stacks). Skip the file-sharing lanes all when #N has no CI or merge
-  wait ahead; a lane waiting on #N's item gets it until #N has merged. Each
-  approval costs up to the cap's count of gate runs, since #N joins the
-  back of the queue; each later head move `sync-only.sh` does not pass, up
-  to the cap plus the live approved lanes queued behind #N (§ 6 fill step);
-  plus, per lane launched on #N, a rebuild of the seeded artifacts #N's
-  diff makes stale.
+  wait ahead; a lane waiting on #N's item gets it until #N has merged.
 - Record each one sent in the run state, and on `PREMERGED #N <head> <merge
   sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
   <new head> (PREMERGE #N)` in its place means #N had landed before the
@@ -520,9 +513,7 @@ other exit.
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
   sharing a file since, and a head move `sync-only.sh` does not pass — whose
-  `PREMERGE #N <new head>` names the commits in between. It costs one
-  § Lanes run per such PR per § 1, plus one `sync-only.sh` run per lane
-  holding an earlier #N head. A sync-only move sends nothing to a
+  `PREMERGE #N <new head>` names the commits in between. A sync-only move sends nothing to a
   lane holding an earlier #N head: a clean merge carries only main's
   changes, which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`

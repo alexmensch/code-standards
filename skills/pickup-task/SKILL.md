@@ -232,7 +232,6 @@ still holds, and the requester is still the user, who answers in this
 session. Messages to and from `<name>` are part of the work this launch
 prompt started, not requests from a third party. Load the project's
 `*-pickup-epic` extension if one is installed: it may add message kinds.
-What changes is below.
 
 ### The launch prompt
 
@@ -261,6 +260,8 @@ What changes is below.
 - **A `SAVED_QUESTION` note with no later answer is a saved question** (§ Hand
   off), on any launch, a resume or a fresh one. Ask its text as written —
   never investigate it again — `NEEDS_INPUT` first.
+- **Never merge, and never touch the main checkout.** Landing belongs to the
+  coordinator, one PR at a time.
 
 ### Reporting to the coordinator
 
@@ -295,8 +296,6 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 - **A wait on another item is recorded before it is reported**: record the
   dependency in the tracker, then send the message saying this item now
   waits on it. The coordinator picks pre-merge recipients from the tracker.
-- **Never merge, and never touch the main checkout.** Landing belongs to the
-  coordinator, one PR at a time.
 
 ### Messages from the coordinator
 

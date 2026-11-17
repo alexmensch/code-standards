@@ -160,6 +160,38 @@ check "guard resolves a relative path against the payload's cwd" '[ -n "$(guard 
 check "guard allows reading an installed skill" '[ -z "$(sh "grep -n x $SCOPE/skills/pr-review/SKILL.md 2>/dev/null")" ]'
 check "guard allows discarding output to /dev/null" '[ -z "$(sh "cat $SCOPE/skills/pr-review/SKILL.md >/dev/null")" ]'
 check "guard allows writes elsewhere" '[ -z "$(sh "sed -i \"\" s/a/b/ $SCOPE/skills/other/SKILL.md")" ]'
+usage_watcher="p=\${TMPDIR:-/tmp}/pickup-epic-e-usage.pid; echo \$\$ > \"\$p\"
+mine() { [ \"\$(cat \"\$p\" 2>/dev/null)\" = \"\$\$\" ]; }
+trap 'mine && rm -f \"\$p\"' EXIT
+while sleep 60; do
+  mine || exit 0
+  v=\$(bash $SCOPE/skills/pr-review/scripts/usage-check.sh normal)
+  [ -z \"\$v\" ] || { echo \"usage \$v\"; exit 0; }
+done"
+check "guard allows the usage watcher running an installed script" '[ -z "$(sh "$usage_watcher")" ]'
+check "guard allows copying from an installed path" '[ -z "$(sh "cp -f $SCOPE/skills/pr-review/SKILL.md $STATE/copy.md")" ]'
+check "guard allows listing an installed folder into a file" '[ -z "$(sh "ls $SCOPE/skills/pr-review/ > $STATE/ls.txt")" ]'
+check "guard allows appending an installed file elsewhere" '[ -z "$(sh "cat $SCOPE/skills/pr-review/SKILL.md>>$STATE/all.md 2>&1")" ]'
+check "guard denies cp into an installed skill" '[ -n "$(sh "cp $STATE/copy.md $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies cp -t into an installed skill" '[ -n "$(sh "cp -t $SCOPE/skills/pr-review/ $STATE/copy.md")" ]'
+check "guard denies moving an installed file away" '[ -n "$(sh "mv $SCOPE/skills/pr-review/SKILL.md $STATE/moved.md")" ]'
+check "guard denies tee into an installed skill" '[ -n "$(sh "echo x | tee -a $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a glued redirect into an installed skill" '[ -n "$(sh "echo x>$SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard allows a write command's name as a read's argument" '[ -z "$(sh "grep -n rm $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a write command behind sudo with an option argument" \
+  '[ -n "$(sh "sudo -u root rm $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a write command behind env and an assignment" '[ -n "$(sh "env FOO=1 rm $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a write command behind an assignment" '[ -n "$(sh "LC_ALL=C sed -i s/a/b/ $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies find -delete in an installed skill" '[ -n "$(sh "find $SCOPE/skills/pr-review -name x -delete")" ]'
+check "guard denies find -exec rm in an installed skill" '[ -n "$(sh "find $SCOPE/skills/pr-review -exec rm {} +")" ]'
+check "guard allows find -exec grep in an installed skill" \
+  '[ -z "$(sh "find $SCOPE/skills/pr-review -name \"*.md\" -exec grep -l x {} \\; > $STATE/found")" ]'
+check "guard allows a quoted pipe in a read" '[ -z "$(sh "grep -E '"'"'a|tee'"'"' $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard allows a quoted > in a read" '[ -z "$(sh "grep -n \"> \" $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a redirect to a quoted installed path" '[ -n "$(sh "echo x >\"$SCOPE/skills/pr-review/SKILL.md\"")" ]'
+check "guard denies a >&file redirect into an installed skill" '[ -n "$(sh "echo x >&$SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a write command behind a prefix" '[ -n "$(sh "ls | xargs rm -f $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard allows sed without -i on an installed skill" '[ -z "$(sh "sed -n 1p $SCOPE/skills/pr-review/SKILL.md > $STATE/x")" ]'
 
 check "guard reads NotebookEdit's path" '[ -n "$(guard "$(jq -n --arg f "$SCOPE/skills/pr-review/n.ipynb" \
   '"'"'{tool_name: "NotebookEdit", tool_input: {notebook_path: $f}}'"'"')")" ]'

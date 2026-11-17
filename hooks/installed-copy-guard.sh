@@ -9,14 +9,95 @@ set -uo pipefail
 BEGIN='<!-- code-standards:begin'
 END='<!-- code-standards:end -->'
 
-WRITES='(^|[^0-9&])>|sed[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*i|perl[[:space:]]+-[[:alnum:]]*i|(^|[^[:alnum:]_-])(tee|cp|mv|rm|install|ln|rsync|truncate)([[:space:]]|$)'
+is_writer() { [[ "$1" =~ ^(tee|cp|mv|rm|install|ln|rsync|truncate|sed|perl|find)$ ]]; }
+
+# writer_operands <writer> <word>... — the paths one write command writes, given the words after it.
+writer_operands() {
+  local writer="$1" w in_place="" next_is_target="" ops=() takes_target="" last="" in_roots=1 writes=""
+  shift
+  if [ "$writer" = find ]; then
+    for w; do
+      [[ "$w" == [-!]* ]] && in_roots=""
+      [ -z "$in_roots" ] || ops+=("$w")
+      if [ "$w" = -delete ] || { [[ "$last" =~ ^-(exec|execdir|ok|okdir)$ ]] && is_writer "${w##*/}"; }; then writes=1; fi
+      last="$w"
+    done
+    [ -z "$writes" ] || [ ${#ops[@]} -eq 0 ] || printf '%s\n' "${ops[@]}"
+    return 0
+  fi
+  case "$writer" in cp | mv | install | ln) takes_target=1 ;; esac
+  for w; do
+    if [ -n "$next_is_target" ]; then echo "$w"; next_is_target=""; continue; fi
+    if [[ "$w" != -* ]]; then
+      ops+=("$w")
+    elif [[ "$writer" =~ ^(sed|perl)$ && "$w" =~ ^(-[A-Za-z]*i|--in-place) ]]; then
+      in_place=1
+    elif [ -n "$takes_target" ] && [[ "$w" == --target-directory=* ]]; then
+      echo "${w#*=}"
+    elif [ -n "$takes_target" ] && [[ "$w" =~ ^(-[A-Za-z]*t|--target-directory)$ ]]; then
+      next_is_target=1
+    fi
+  done
+  [ ${#ops[@]} -gt 0 ] || return 0
+  case "$writer" in
+    sed | perl) [ -z "$in_place" ] || printf '%s\n' "${ops[@]}" ;;
+    tee | rm | truncate | mv) printf '%s\n' "${ops[@]}" ;;
+    cp | install | ln | rsync) echo "${ops[${#ops[@]} - 1]}" ;;
+  esac
+}
+
+# unquote — stdin with quotes and backslashes removed, and the shell operators they protect dropped.
+unquote() {
+  awk 'BEGIN { q = "" }
+    { out = ""
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        if (q == "" && c == "\\") { i++; c = substr($0, i, 1); out = out (index("<>|;&()", c) ? "" : c); continue }
+        if (q == "" && (c == "\047" || c == "\"")) { q = c; continue }
+        if (q != "" && c == q) { q = ""; continue }
+        out = out ((q != "" && index("<>|;&()", c)) ? "" : c)
+      }
+      print out }'
+}
+
+write_targets() {
+  local seg i w words rest prev
+  while IFS= read -r seg; do
+    read -ra words <<< "$seg"
+    rest=()
+    for ((i = 0; i < ${#words[@]}; i++)); do
+      if [ "${words[i]}" = ">" ]; then
+        i=$((i + 1))
+        [ "$i" -lt "${#words[@]}" ] && echo "${words[i]}"
+      else
+        rest+=("${words[i]}")
+      fi
+    done
+    prev=""
+    for ((i = 0; i < ${#rest[@]}; i++)); do
+      w="${rest[i]##*/}"
+      if is_writer "$w"; then
+        writer_operands "$w" "${rest[@]:i+1}"
+        break
+      fi
+      case "$w" in
+        sudo | doas | env | xargs | command | exec | nice | nohup | time | timeout | stdbuf) prev="" ;;
+        -* | [0-9]* | [A-Za-z_]*=*) prev="$w" ;;
+        *) [[ "$prev" =~ ^-[A-Za-z]$ ]] || break; prev="" ;;
+      esac
+    done
+  done < <(unquote <<< "$1" \
+    | sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?[|&]?# > #g' \
+    | tr ';|&()<' '\n\n\n\n\n ')
+}
 
 command -v jq >/dev/null || exit 0
 input="$(cat)"
 cmd="$(jq -r 'select(.tool_name == "Bash") | .tool_input.command // empty' <<< "$input" 2>/dev/null)"
 file="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<< "$input" 2>/dev/null)"
 if [ -n "$cmd" ]; then
-  sed -E 's#[0-9&]?>+[[:space:]]*/dev/null##g' <<< "$cmd" | grep -qE "$WRITES" || exit 0
+  targets="$(write_targets "$cmd")"
+  [ -n "$targets" ] || exit 0
 elif [ -z "$file" ]; then
   exit 0
 fi
@@ -92,7 +173,7 @@ if [ -n "$cmd" ]; then
     t="$(canon "$tok")"
     deny_guarded "$t"
     [ "$t" = "$rules" ] && deny "AGENTS.md.fragment"
-  done < <(tr -s " \t;|&<>()\"'" '\n' <<< "$cmd")
+  done <<< "$targets"
   exit 0
 fi
 

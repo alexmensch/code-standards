@@ -68,13 +68,20 @@ on:
   block (markers count only at the start of a line). Edits elsewhere in that
   file pass, including ones that use a marker line as their anchor.
 
-It also denies a `Bash` command that contains a known write form (a redirect
-other than to `/dev/null`, `sed -i`, `perl -i`, `tee`, `cp`, `mv`, `rm`,
-`install`, `ln`, `rsync`, `truncate`) and names one of those paths, or the
-rules file as a whole — each path-like word, with `~`, `$HOME` and the
-payload's `cwd` resolved, goes through the same path check. Commands without a
-write form pass, so reads are never blocked; a write tool not on that list
-passes too.
+It also denies a `Bash` command that writes to one of those paths, or to the
+rules file as a whole. The written paths are, per simple command: a redirect's
+target other than `/dev/null`; every operand of `sed -i`, `perl -i`, `tee`,
+`rm`, `truncate` and `mv` (whose sources are removed); the destination of
+`cp`, `install`, `ln` and `rsync` — the last operand, or `-t` /
+`--target-directory`; the starting folders of a `find` that carries `-delete`
+or runs one of those commands through `-exec` / `-execdir` / `-ok`. A write command counts only where a command runs: first,
+after `NAME=value` assignments, or after a prefix command (`sudo`, `env`,
+`xargs`, `timeout`, …) and its options; a write command's name as another
+command's argument (`grep rm`) is not one.
+Each path-like one, with `~`, `$HOME` and the payload's `cwd` resolved, goes
+through the same path check. A guarded path that is only read — a script run,
+`cp`'s source, an `ls` argument — passes beside an unrelated write; a write
+tool not on that list passes too.
 
 The denial names the bundle path and the source repo (the marker's
 `source=`), so the agent makes the change there and opens a PR, then syncs

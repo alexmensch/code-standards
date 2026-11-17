@@ -26,6 +26,7 @@ operations, never commands. In a bd project:
 | Read an item and its parent chain | `bd show <id>`; repeat on its `PARENT` line to the root |
 | Ready items under an epic, any depth | `bd ready --parent <epic> --exclude-type epic --limit 0` |
 | The whole tree under an epic | `bd list --all --json --limit 0`, walked down the `parent` key from the epic ([never by ID](#a-hierarchical-id-never-follows-a-reparent--read-the-parent-not-the-id)) |
+| Search items by text — every field, closed included | the `bd list --json \| jq` command in [Text search](#text-search--bd-search-misses-descriptions-notes-and-closed-beads) |
 | What an item waits on · what waits on it | `bd dep list <id>` · `bd dep list <id> --direction=up` |
 | Record a dependency | `bd dep add <blocked> <blocker>`, then verify ([order](#dependencies--argument-order-is-the-trap)) |
 | Claim · release | `bd update <id> --claim` · `bd update <id> -s open -a ""` |

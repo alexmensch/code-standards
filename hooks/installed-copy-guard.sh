@@ -49,7 +49,7 @@ unquote() {
 }
 
 write_targets() {
-  local seg i w words rest
+  local seg i w words rest prev
   while IFS= read -r seg; do
     read -ra words <<< "$seg"
     rest=()
@@ -61,12 +61,16 @@ write_targets() {
         rest+=("${words[i]}")
       fi
     done
+    prev=""
     for ((i = 0; i < ${#rest[@]}; i++)); do
       w="${rest[i]##*/}"
       case "$w" in
         tee | cp | mv | rm | install | ln | rsync | truncate | sed | perl)
           writer_operands "$w" "${rest[@]:i+1}"
           break ;;
+        sudo | doas | env | xargs | command | exec | nice | nohup | time | timeout | stdbuf) prev="" ;;
+        -* | [0-9]* | [A-Za-z_]*=*) prev="$w" ;;
+        *) [[ "$prev" =~ ^-[A-Za-z]$ ]] || break; prev="" ;;
       esac
     done
   done < <(unquote <<< "$1" \

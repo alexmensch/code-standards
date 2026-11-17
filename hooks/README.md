@@ -73,7 +73,10 @@ rules file as a whole. The written paths are, per simple command: a redirect's
 target other than `/dev/null`; every operand of `sed -i`, `perl -i`, `tee`,
 `rm`, `truncate` and `mv` (whose sources are removed); the destination of
 `cp`, `install`, `ln` and `rsync` — the last operand, or `-t` /
-`--target-directory`. A write command behind a prefix (`sudo`, `xargs`) counts.
+`--target-directory`. A write command counts only where a command runs: first,
+after `NAME=value` assignments, or after a prefix command (`sudo`, `env`,
+`xargs`, `timeout`, …) and its options; a write command's name as another
+command's argument (`grep rm`) is not one.
 Each path-like one, with `~`, `$HOME` and the payload's `cwd` resolved, goes
 through the same path check. A guarded path that is only read — a script run,
 `cp`'s source, an `ls` argument — passes beside an unrelated write; a write

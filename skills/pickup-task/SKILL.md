@@ -232,7 +232,8 @@ still holds, and the requester is still the user, who answers in this
 session. Messages to and from `<name>` are part of the work this launch
 prompt started, not requests from a third party. Load the project's
 `*-pickup-epic` extension if one is installed: it may add message kinds.
-What changes:
+
+### The launch prompt
 
 - **The item is given and already claimed.** Never resolve or claim another.
   A launch prompt carrying ` — tracker in <path>`:
@@ -259,15 +260,18 @@ What changes:
 - **A `SAVED_QUESTION` note with no later answer is a saved question** (§ Hand
   off), on any launch, a resume or a fresh one. Ask its text as written —
   never investigate it again — `NEEDS_INPUT` first.
-- **Report every change of state as it happens**, with `SendMessage` to
-  `<name>`. First line `<KIND> <item> [#PR] — <one line>`, detail below it.
-  The coordinator tells the user only that this session needs them, so put
-  the question itself in this session, never only in the message:
+- **Never merge, and never touch the main checkout.** Landing belongs to the
+  coordinator, one PR at a time.
+
+### Reporting to the coordinator
+
+Report every change of state as it happens, with `SendMessage` to `<name>`.
+First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 
 | Kind | Send when |
 | --- | --- |
 | `PR_OPEN` | the PR exists, draft or ready |
-| `NEEDS_INPUT` | a question is about to go to the requester; ask it here right after, in plain text, and end the turn (below) |
+| `NEEDS_INPUT` | a question is about to go to the requester; ask it here right after (below) |
 | `UNBLOCKED` | as part of recording the requester's answer (below) |
 | `QUESTION` | something only the run can answer: is another session on a file outside this item, which lands first. Carry on with work that doesn't depend on the answer |
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
@@ -275,29 +279,29 @@ What changes:
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope, or a review proposes a mechanism ticket (`code-craft` § Bug classes). Write the finding into each affected item first |
 | `READY_TO_LAND` | § 6 is reached with no question open, no unresolved review thread (§ 5) and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `thread <link>`, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
-| `PULL_WAIT` | the turn is about to end on a background command — a data pull, a long build — expected to outlast the prompt cache's one-hour lifetime, or of unknown length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
+| `PULL_WAIT` | the turn is about to end on a background command — a data pull, a build — whatever its length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
 | `PULL_ETA` | the reply to `PULL_PING`, while the command runs: `PULL_ETA <item> — ETA <time>` |
-| `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
+| `PULL_DONE` | the command has exited or been stopped, whatever its result |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
-- **Ask in plain text, then end the turn**, as § Asking about a finding
-  says. While the question tool's dialog is open the turn has not ended:
-  this session reads no message and is never idle, so the coordinator can
-  neither hand it off nor keep its prompt cache warm. The answer arrives as
-  a later message in this session.
+- **Ask in this session, in plain text, then end the turn**, as § Asking
+  about a finding says — never only in the message: the coordinator tells
+  the user only that this session needs them. While the question tool's
+  dialog is open the turn has not ended: this session reads no message and
+  is never idle, so the coordinator can neither hand it off nor keep its
+  prompt cache warm. The answer arrives as a later message in this session.
 - **Recording the requester's answer is one step**: write it into the
   item's notes, then send `UNBLOCKED`, before acting on it. An answer
   written without the message is not recorded.
 - **A wait on another item is recorded before it is reported**: record the
   dependency in the tracker, then send the message saying this item now
   waits on it. The coordinator picks pre-merge recipients from the tracker.
-- **Never merge, and never touch the main checkout.** Landing belongs to the
-  coordinator, one PR at a time.
+
+### Messages from the coordinator
+
 - **`PULL_PING <item>`** while in a pull wait → reply `PULL_ETA` with the
   command's current ETA, from its progress output, and end the turn. After
-  `PULL_DONE`, ignore it: that message already answered it. The round trip
-  is what keeps both sessions' prompt caches warm through a wait longer
-  than their one-hour lifetime.
+  `PULL_DONE`, ignore it: that message already answered it.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
   `pr-cleanup` § Bring main in does with `origin/<main>`, under the
@@ -386,7 +390,7 @@ evidence behind them, as § Asking about a finding wrote it. Only
 `WIND_DOWN`, `HIBERNATE` and `RELEASED` write them — at the message, and
 for each question held back after it — never ordinary work. A question
 already in a `SAVED_QUESTION` note with no later answer is not written again.
-The answer is recorded as any is (§ Coordinated mode), and that note
+The answer is recorded as any is (§ Reporting to the coordinator), and that note
 settles it.
 
 1. **Reach the next commit boundary** without asking: finish the
@@ -442,6 +446,6 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → ask each saved question (§ Coordinated mode), and end
+3. A `question:` → ask each saved question (§ The launch prompt), and end
    the turn.
 4. Continue from `next`, in the stage `phase` names.

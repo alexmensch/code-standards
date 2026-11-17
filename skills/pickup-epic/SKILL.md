@@ -22,7 +22,7 @@ stall (a worker idle on the coordinator), detects a hazard (two sessions on
 one file or one machine-wide resource), or prepares an answer before it is
 on the critical path.
 
-## One writer per thing
+## One writer per thing — and what invoking this authorises, only this
 
 | Thing | Sole writer |
 | --- | --- |
@@ -31,19 +31,14 @@ on the critical path.
 | `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
 | `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, an epic's goals given at preflight, closing sub-epics, the run state, the coordinator field | the coordinator |
+| Claims, the dependencies the user approves and the epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
 
-## What invoking this authorises — and only this
-
-For items in the tree under the named epic, and items the user brings into
-the run: file an item under the named epic for such work that has none
-(§ 5), claim them, write preflight's `UNRESOLVED` notes into them, the
-dependencies the user approves into the tracker and the goals they give
-into an epic (§ 3), launch
-workers, stop and remove a worker's session (§ Removing a worker's session),
-send the coordinator's message kinds,
-close a sub-epic once all its children are closed. Each merge still needs the
-user's answer for that PR (§ 7).
+Invoking this authorises only the coordinator's rows, for items in the tree under
+the named epic and items the user brings into the run, and: filing an item
+under the named epic for such work that has none (§ 5), launching workers,
+stopping and removing their sessions (§ Removing a worker's session), and
+sending the coordinator's message kinds. Each merge still needs the user's
+answer for that PR (§ 7).
 
 Never: merge without that answer, edit code, write in a worker's worktree,
 answer a question a worker put to the user (§ 6 `QUESTION`), close the
@@ -66,25 +61,20 @@ watcher exit, worker report or idle notice is read: no idle hand-off, no
 `PULL_PING`, no unasked § Hibernate, and one unanswered question stalls the
 whole run.
 
-## The plan is just-in-time
-
-The epic is a queue re-read at every event, not a schedule fixed at the
-start. Items change as work lands: workers file new ones, a finding rewrites
-another item's premise, a dependency appears.
-
-- **State lives in the tracker, the PRs, the session list and the run state —
-  never only in this conversation.** Every replan re-reads them (§ 1).
-- **Preflight an item right before it launches, never earlier.** A gap
-  noted now for an item five landings away misses what those landings
-  change.
-- **Lanes are measured, not forecast**, from real diffs as workers push.
-  Never predict a merge conflict; report one only when git does.
-
 ## The run state — written at every event
 
-One record on the named epic, **replaced** (not appended) after every event
-that changes it — the tracker skill maps the operation. It holds what exists
-nowhere else:
+The epic is a queue re-read at every event, not a schedule fixed at the
+start: workers file new items, a finding rewrites another item's premise, a
+dependency appears. State lives in the tracker, the PRs, the session list
+and the run state — never only in this conversation — and every replan
+re-reads them (§ 1). Anything only this conversation knows is lost at a
+resume and may be lost at a compaction: write it here first. After a
+compaction summary, re-run § 1 before acting on anything, and restart the
+watchers (§ Watchers).
+
+The run state is one record on the named epic, **replaced** (not appended)
+after every event that changes it — the tracker skill maps the operation. It
+holds what exists nowhere else:
 
 - items in the run from outside the tree, and why;
 - items whose work is in another repo, each with that repo's main checkout,
@@ -97,9 +87,9 @@ nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
-- questions this session put to the user, each with its letter, or held
-  back during a hibernate (§ Hibernate), and not yet answered — a landing
-  approval, a preflight, a `PLAN_CHANGE`, a deviation — asked at § Resume;
+- questions this session put to the user (§ Asking the user), each with its
+  letter, or held back during a hibernate (§ Hibernate), and not yet
+  answered;
 - landing approvals given and the landing queue;
 - stacks the user chose (§ Stacks): each one's members bottom first — item,
   PR, branch — and the items the user named to land in it. A restructure
@@ -123,9 +113,6 @@ nowhere else:
   `usage unwatched` once it finds no usage figures to read (§ Watchers);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
-
-Anything only this conversation knows is lost at a resume and may be lost at
-a compaction. Write it here first.
 
 ## The coordinator field
 
@@ -176,7 +163,9 @@ Among items with no open blocker (§ 1 says which count as satisfied):
 
 ## 3. Preflight — per item, at launch time
 
-Read the item in full, with its notes and parent chain.
+Read the item in full, with its notes and parent chain — right before it
+launches, never earlier: a gap noted for an item five landings away misses
+what those landings change.
 
 **Identify gaps; never resolve them.** The worker reads all the code the
 item touches; this session reads the item and a little of it, so an option
@@ -259,10 +248,12 @@ else
 fi
 ```
 
-A shared file is a hazard to sequence, not a conflict to predict. A lane
-the run state lists as holding an unlanded pre-merge shows that PR's files
-as its own: take its files from `git diff --no-renames --name-only <the
-pre-merged head>...origin/<its branch>` instead. A stack member's worktree
+A shared file is a hazard to sequence, not a conflict to predict: lanes are
+measured from real diffs as workers push, and a merge conflict is reported
+only when git reports one. A lane the run state lists as holding an
+unlanded pre-merge shows that PR's files as its own: take its files from
+`git diff --no-renames --name-only <the pre-merged head>...origin/<its
+branch>` instead. A stack member's worktree
 and branch lines show every member below it as its own the same way: take
 them from `origin/<its base branch>...` in place of `origin/<main>...`.
 
@@ -273,10 +264,6 @@ their preflight questions, any outside blockers, and the parallel cap
 (default 5; the user's attention is the limit). Start on their answer: set
 the coordinator field first, unless it names another live session (§ The
 coordinator field) — a deviation.
-
-**Compaction.** The run state makes compaction safe at any moment. After a
-compaction summary, re-run § 1 before acting on anything, and restart the
-watchers (§ Watchers).
 
 ## 5. Launch
 
@@ -320,9 +307,6 @@ fallback for a worker that stops without reporting, never a status feed, so
 never re-subscribe to a busy worker. Message workers by name: `ListAgents`
 shows a different ID for a session than `claude agents` does.
 
-The worker enters its own worktree under the always-on rules, so the
-project's worktree seeding applies.
-
 ## 6. React — replan on every event
 
 On every report, idle notice, landing or user answer: § 1 again, then:
@@ -339,7 +323,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `PULL_DONE` | clear the pull wait |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
-| `READY_TO_LAND` | ask the user now (§ 7.1); on approval, pre-merge in the same step (§ 7 Pre-merge); queue it |
+| `READY_TO_LAND` | § 7.1 now; on approval, queue it |
 | A report that the item now waits on another item, X, to land | X's PR approved and unlanded → § Pre-merge sends it X's head instead. Otherwise park it: § Hand-off with `HIBERNATE <item> — parked on <X>` |
 | `ABANDONED` | § Hand-off with `RELEASED <item>`; tell the user, naming any PR it left open |
 | `WOUND_DOWN` | its detail names a question held back → the item's landing needs the user (§ Hibernate) |
@@ -360,19 +344,240 @@ a resume.
 idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
-finish. Live sessions, and the gate runs a pre-merge starts in each, can therefore
-reach the cap plus the live approved lanes. A slot is free while the items
-holding one number
-fewer than the cap. Fill it: first
-hibernated items whose relaunch event has happened, then rank, preflight,
-launch. A slot still free with nothing launching → tell the user each
+finish. A slot is free while the items holding one number fewer than the
+cap. Fill it: first hibernated items whose relaunch event has happened,
+then rank, preflight, launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
 outside it that would unblock it, for the user to bring in. Every slot held
 by an idle-hibernated item → name each and what relaunches it. That report
 is the fill step's result: an event that ends with a slot free or held that
 way, no launch and no report has skipped the step —
-unless the report would repeat the last one word for word.
+unless the report would repeat the last one word for word. Nothing launched
+and no live worker left → check § Hibernate's unasked start.
+
+## 7. Land — one at a time
+
+Every landing moves the default branch, and the next PR must sync onto it;
+version files and lockfiles conflict between any two PRs that both bump them.
+
+1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
+   then ready when its turn comes. First check the review covers the PR
+   head, from the main checkout:
+
+   ```bash
+   git fetch -q origin pull/<N>/head
+   r=<the REVIEWED sha>; h=<the PR's headRefOid>
+   git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
+   git log --first-parent --format=%H "$r..$h"
+   ```
+
+   An ancestor line, or a printed sha that no commit listed under
+   `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
+   § 5 again, and ask nothing yet.
+
+   **Recording the approval is one step**: write it into the run state,
+   then run § Pre-merge for that PR before anything else.
+
+   Ask in the shape § Asking the user gives. When the report's `SMOKE:`
+   line lists steps, quote them and offer only "smoked, land it" and "not
+   yet" as the options: never a plain "land it" while a manual smoke is
+   owed. A post-merge check filed as an item (`pickup-task` § 3) is
+   not owed before the merge: offer "land it", and name that item.
+2. **Pre-merged PRs first.** For each PR M the run state lists as
+   pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
+   = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
+   behind M in the queue.
+
+   **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
+   rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
+   `SYNC #N` to its worker — `SYNC #N base <head>...` when a PR pre-merged
+   into it has landed since, with every one of the lane's landed pre-merged
+   heads (`pickup-task` § Messages from the coordinator defines them, the lane's head as
+   `HEAD`) — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
+   sync merge, to the lane's `REVIEWED:` list. For one of the user's own
+   items, tell the user it is behind instead, and add the sync merge once
+   they report it pushed.
+
+   A hibernated item has no worktree: count with `git rev-list --count
+   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it
+   (§ 5), then `SYNC`. A `LANDING_FIX` for it: relaunch it, then
+   `LANDING_FIX`.
+3. **Arm the merge here, never in the subagent** — this session holds the
+   user's approval and the review check. A stack, which cannot be armed,
+   pins its heads here instead (§ Stacks). From the main checkout, re-run
+   step 1's check with `h` the PR's current `headRefOid`; it fails → as in
+   step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
+   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
+   branch rule not `true` → ask the user, as for any deviation. Then its
+   § The signature trap's check and § Merge's stack check and
+   `mergeStateStatus` table, with this one command in place of its merge,
+   for `CLEAN` and `BLOCKED` alike; every other row as the table says,
+   except `BEHIND` / `DIRTY` → back to step 2:
+
+   ```bash
+   gh pr merge <N> --squash --auto --match-head-commit <h>
+   ```
+
+   GitHub merges once the required checks pass, at once if they already
+   have; never wait on CI here. Any `pr-cleanup` deviation, the re-sign
+   included (it would write the worker's branch), or a refused command →
+   ask the user.
+4. **Land through a subagent**, so the merge wait and the cleanup stay out
+   of this context. Spawn a fresh agent on Sonnet (`model: "sonnet"` on
+   the Agent call), never a fork, which ignores `model`. Its brief: run
+   `pr-cleanup` for #N from the main checkout; auto-merge is armed at `<h>`;
+   worker `pickup-<item>` (its short id from `claude agents --json`) owns
+   the worktree — for one of the user's own items, the user's session does;
+   never run `gh pr merge` except to disarm; skip the project extension's
+   post-landing step (the coordinator runs it after the landing, step 5).
+   In order:
+   1. `pr-cleanup`'s route for a caller-armed merge, waiting in foreground
+      calls of at most ten minutes each.
+   2. § Close the tickets.
+   3. Remove the session: § Removing a worker's session, copied into the
+      brief, with § Worktree, branches, main's three landing checks as its
+      gate. A failed check → stop and return it.
+   4. From the main checkout: `git fetch --prune`, `git pull --ff-only` on
+      `<main>`, and `gh repo view --json deleteBranchOnMerge -q
+      .deleteBranchOnMerge` — `false` → report the remote branch left
+      behind. `claude rm` already deleted the local branch.
+   5. Return `merged`, `LANDING_FIX <failed checks | unresolved threads>`,
+      the check that failed, or the deviation `pr-cleanup` stopped on.
+
+   **Hold.** The brief also gives the subagent its reply to the
+   coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
+   then run nothing local — gates, builds, tests, worktree or session removal
+   — until `RESUME`; a merge already armed on the host may complete, and a
+   stack's `gh stack merge` not yet issued waits for `RESUME`, then for a
+   fresh `STACK GREEN` from the watch run again; reply with the step it
+   stopped at. A message reaches the subagent only between
+   its tool calls, so `HOLD` takes effect up to one call late — one merge
+   wait of at most ten minutes. That wait polls the host and is not local
+   work. A project extension maps its own pauses onto this.
+
+   A failed or cancelled check, or an unresolved review thread (the subagent
+   has disarmed the merge) → `LANDING_FIX #N <them>` to the worker, and
+   the PR goes to the back of the queue, and every lane holding a pre-merge
+   of it goes back behind it.
+
+   One of the user's own items, or a hibernated item: skip sub-step 3. Landing
+   never stops or removes the user's session, its worktree or its branch.
+
+   A landing cut off resumes at step 5 when the session is gone from
+   `claude agents --json --all` and its worktree is gone — `claude rm` ran;
+   otherwise at step 4 when the PR is merged or its `autoMergeRequest` is
+   set, or a stack's landing subagent is running; otherwise at step 3.
+5. **Update the run state**, start the project's post-landing step on the
+   new main with `run_in_background`, so its exit re-invokes this session,
+   then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
+   deviation. Run it without a pipe on its output, or with `set -o
+   pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
+   build's.
+
+**Pre-merge.** Once the user approves a PR at step 1, its content is final;
+its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
+reverts and `LANDING_FIX` fixes. Every other worker's lane that lands after
+#N — later in the landing queue or not yet in it, at any stage from
+implementing to approved — gets `PREMERGE #N <head>`, the head from
+`gh pr view <N> --json headRefOid`, when § Lanes' command with `n=<N>`
+lists it or its item waits on #N's item (§ 1). Its worker merges that head
+in at its next commit boundary while #N's CI and merge wait run, so
+conflict resolution leaves the critical path. #N lands as a squash, which
+git does not see as the commits the lane merged, so that lane's later
+`SYNC` names #N's final head among its landed pre-merged heads (step 2),
+and the earlier resolution stands.
+
+A move of #N's head from a lane's held `<old>` is **sync-only** when, after
+one `git fetch origin` per § 1,
+`bash <pickup-task's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
+exits 0, which #N's clean `SYNC` merges pass, folding in landed
+pre-merged heads when a plain merge reproduces the fold. Any other commit —
+a `PREMERGE` merge or `UNMERGE` revert included — fails it, and so does any
+other exit.
+
+- Skip a lane whose run-state entry already has the head — sent, or `told
+  the user` — or an earlier one the head moved from by a sync-only move
+  (`sync-only.sh` exits 0), or that neither shares a file nor waits on
+  #N's item. A member above #N in #N's stack gets `SYNC` instead
+  (§ Stacks). Skip the file-sharing lanes all when #N has no CI or merge
+  wait ahead; a lane waiting on #N's item gets it until #N has merged.
+- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
+  sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
+  <new head> (PREMERGE #N)` in its place means #N had landed before the
+  worker acted, and it synced instead: add the reply's new head to that
+  lane's `REVIEWED:` list and drop the pre-merge entry.
+- At every § 1, run this procedure again for each unlanded approved PR, at
+  its current `headRefOid`; the skip rule above picks the lanes. That
+  catches an approval whose pre-merge was missed, a lane that has started
+  sharing a file since, and a head move `sync-only.sh` does not pass — whose
+  `PREMERGE #N <new head>` names the commits in between. A sync-only move
+  sends nothing to a lane holding an earlier #N head: a clean merge carries
+  only main's changes, which the lane folds in at its own `SYNC`.
+- If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
+  to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
+  whose item waits on #N's item then waits on an unapproved blocker:
+  § Hand-off with `HIBERNATE <item> — parked on <#N's item>`.
+- A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
+  For one of the user's own items, tell the user instead, and record `told
+  the user` for that head.
+
+## Stacks — a dependent chain landed as one
+
+A chain of items lands as a GitHub stack only when the user chooses it; the
+run state records the stack and the items they named to land in it. The
+`gh-stack` skill carries `gh stack`'s mechanics — load it, or stop and ask
+before any stack step when it is not installed. Everything else in this
+skill holds, except:
+
+- **Launch.** A member launches with ` — stacked on #<M>` after any
+  ` — tracker in` suffix, `#<M>` being the member directly below it — the
+  stack's top at launch, or the PR it starts from. The worker builds on #M's
+  branch and links its PR above #M (`pickup-task` § The launch prompt).
+- **No pre-merge inside a stack.** A member is built on every member below
+  it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
+  member #N sends `SYNC #<member>` to each member above it whose branch
+  lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
+  branch>` fails), bottom up, each once the one below replied `SYNCED` or
+  was skipped; each new head joins that member's `REVIEWED:` list. Skip a
+  member when `sync-only.sh` passes from its newest #N commit (`git
+  merge-base origin/<#N's branch> origin/<its branch>`) to #N's head, with
+  `origin/<#N's base branch>` as the main ref, for § Pre-merge's reason.
+  Lanes outside the stack get `PREMERGE` as usual.
+- **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
+  held. A stack lands whole: it takes one place in the landing queue once
+  the user has named every open member and each is approved, and lands every
+  one of them; none lands alone.
+- **Landing**, in place of § 7.2–7.4; a § 7 reference to its steps 2, 3
+  and 4 means this landing's steps 1, 2 and 3:
+  1. § 7.2 for each member, bottom up — its pre-merged PRs first, then
+     `SYNC` when behind its base (`git rev-list --count
+     origin/<branch>..origin/<base branch>`), waiting for `SYNCED` before
+     the member above, since each merges the branch below.
+  2. Pin the heads. From the main checkout, for each member at its current
+     `headRefOid`: § 7.1's review check, and § 7.3's `pr-cleanup` checks
+     with the stack check naming this stack. A failure → as in § 7.3, for
+     that member. Then `pr-cleanup`'s `scripts/stack-pins.sh` with every
+     member's `<N>=<head>`, bottom first: a difference other than a moved
+     head — an open member not named or not approved — is a deviation.
+  3. The landing subagent, briefed as § 7.4 with these changes: run
+     `pr-cleanup` for "a stack lands at pinned heads `<N>=<sha>`…",
+     bottom first, with the heads pinned in step 2; it issues `gh stack
+     merge` itself, and only on the watch's `STACK GREEN`; sub-steps 2–3
+     run for every member. It returns `merged`, or the watch's exit — a
+     moved head → back to step 1; a failed check, a required check never
+     reported (`missing checks`: a member linked after it opened has no run
+     on its head) or a thread → `LANDING_FIX` to that member's worker, and
+     the stack goes to the back of the queue.
+  4. § 7.5 once, for the whole stack.
+
+## 8. Finish
+
+When every item under the epic is closed: close each sub-epic whose children
+are all closed, bottom up, and ask before closing the named epic (it may be
+standing open on purpose). Report: landed PRs → items · items still open, and
+why (held, outside blocker, abandoned) · items filed during the run. Then
+end the run (§ The coordinator field).
 
 ## Watchers — idle workers, open questions, pull waits and usage
 
@@ -443,12 +648,11 @@ done
 ```
 
 A worker waiting on the user is timed like any other: it asks in plain text
-and ends its turn (`pickup-task` § Coordinated mode), so it is listed idle
+and ends its turn (`pickup-task` § Reporting to the coordinator), so it is listed idle
 and reads `HIBERNATE`. One the user asked to answer in the question tool's
 dialog is not listed idle while the dialog is open, so it is never matched.
-A worker in a pull wait is never handed off: its `pulling` mark matches no
-case, so it is not timed — a hand-off would stop its command, and the pull
-timer keeps it warm instead. Per line printed:
+A worker in a pull wait is never timed — a hand-off would stop its
+command, and the pull timer keeps it warm instead. Per line printed:
 
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
@@ -510,11 +714,6 @@ done
   tell the user once, with the why: the run goes on with no usage limit
   watched. § Resume clears the mark.
 
-Once the fill step launches nothing and idle hand-offs have left no live
-worker, with the landing queue empty, no landing in progress and no
-shared-resource grant running, § Hibernate runs from its step 3 unasked —
-never while the run state is marked `USAGE PAUSE`, which `reset` ends.
-
 ## Removing a worker's session
 
 Stop, check, remove — in that order, so nothing of the worker can still be
@@ -544,13 +743,9 @@ worktree list`):
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting.
-   `claude stop`'s success message is discarded; its exit status catches a
-   failed stop. Exit 0 and empty output: the session's process has exited,
-   nothing is uncommitted, and no background shell, task, subagent or other
-   process has its working directory or a file open under the worktree.
-   Any output →
-   stop and ask; the session stays stopped and is never removed. `lsof`
-   exits 1 whether or not it finds anything, so its output decides.
+   Any output → stop and ask; the session stays stopped and is never
+   removed. `lsof` exits 1 whether or not it finds anything, so its output
+   decides.
 2. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 
@@ -596,11 +791,10 @@ session. A later worker starts fresh from that record (§ 5).
 
 ## Hibernate
 
-With many workers running, an owner stepping away leaves sessions whose
-prompt caches go cold, and resuming each later reloads its whole transcript
-uncached. Hibernating removes every session instead; resume launches fresh
-workers that load only their item, handoff and branch. Never resume old
-workers with `claude --resume`.
+A session woken after its prompt cache expires reloads its whole transcript
+uncached. Hibernating removes every session; resume launches fresh workers
+that load only their item, handoff and branch. Never resume old workers
+with `claude --resume`.
 
 Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,
@@ -609,16 +803,19 @@ down so it can resume later — stepping away, pausing for the night,
 argument order. A request that puts the wind-down off until a later event
 — "keep going until something needs me, then hibernate" — is a wind-down
 request like any other: it starts now and launches nothing new; only the
-landings already approved keep going (step 1). It also runs unasked once
-idle hand-offs leave no live worker (§ Watchers), and at a usage limit
-(§ Usage limits). Only the coordinator
+landings already approved keep going (step 1). It also runs unasked: at a
+usage limit (§ Usage limits), and from its step 3 once the fill step
+launches nothing and idle hand-offs have left no live worker, with the
+landing queue empty, no landing in progress and no shared-resource grant
+running — never while the run state is marked `USAGE PAUSE`, which `reset`
+ends. Only the coordinator
 hibernates: the request anywhere else would make a second coordinator
 (§ Deviations). A wind-down, not an immediate stop.
 
 **No question to the user once it starts** — from the request, or from the
 unasked start. The user has stepped away, and a question waiting on them
 holds the run open short of step 3. A decision this skill would otherwise
-ask, of any kind § The run state lists, goes into the run state as held
+ask, of any kind § Asking the user lists, goes into the run state as held
 back, and § Resume asks it. An approved PR whose landing needs the user — a
 deviation, or a question open or held back on its item — stops at a safe
 point and is recorded, not asked: its merge disarmed (`gh pr merge <N>
@@ -630,7 +827,7 @@ step, no longer the landing in progress.
 then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
-commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
+commit boundary and replies `WOUND_DOWN` (`pickup-task` § Messages from the coordinator).
 A worker the user asked to answer in the question tool's dialog, with the
 dialog open — listed `waiting` in
 `claude agents --json` — reads it only once the dialog closes: tell the
@@ -698,241 +895,8 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
 **At `reset`**, clear the `USAGE PAUSE` mark, then: `CONTINUE <item>` to each
 worker sent `WIND_DOWN` that is still live, relaunch with `resume` (§ 5)
 each one the idle watcher handed off meanwhile, start the usage watcher in
-the normal band, ask each question the run state lists as unanswered, put
-to the user or held back, and § 1.
-
-## 7. Land — one at a time
-
-Every landing moves the default branch, and the next PR must sync onto it;
-version files and lockfiles conflict between any two PRs that both bump them.
-
-1. **Ask at `READY_TO_LAND`**, not at the head of the queue — the approval is
-   then ready when its turn comes. First check the review covers the PR
-   head, from the main checkout:
-
-   ```bash
-   git fetch -q origin pull/<N>/head
-   r=<the REVIEWED sha>; h=<the PR's headRefOid>
-   git merge-base --is-ancestor "$r" "$h" || echo "$r is not an ancestor of $h"
-   git log --first-parent --format=%H "$r..$h"
-   ```
-
-   An ancestor line, or a printed sha that no commit listed under
-   `REVIEWED:` is a prefix of → tell the worker to run `pickup-task` § 4 and
-   § 5 again, and ask nothing yet.
-
-   **Recording the approval is one step**: write it into the run state,
-   then run § Pre-merge for that PR before anything else.
-
-   Ask in the shape § Asking the user gives. When the report's `SMOKE:`
-   line lists steps, quote them and offer only "smoked, land it" and "not
-   yet" as the options: never a plain "land it" while a manual smoke is
-   owed. A post-merge check filed as an item (`pickup-task` § 3) is
-   not owed before the merge: offer "land it", and name that item.
-2. **Pre-merged PRs first.** For each PR M the run state lists as
-   pre-merged into this lane, `[ "$(gh pr view <M> --json state -q .state)"
-   = MERGED ] || echo "#<M> not merged"`. Any output → the lane waits
-   behind M in the queue.
-
-   **Sync only if behind.** `git fetch origin`, then `git -C <worktree>
-   rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
-   `SYNC #N` to its worker — `SYNC #N base <head>...` when a PR pre-merged
-   into it has landed since, with every one of the lane's landed pre-merged
-   heads (`pickup-task` § Coordinated mode defines them, the lane's head as
-   `HEAD`) — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
-   sync merge, to the lane's `REVIEWED:` list. For one of the user's own
-   items, tell the user it is behind instead, and add the sync merge once
-   they report it pushed.
-
-   A hibernated item has no worktree: count with `git rev-list --count
-   origin/<branch>..origin/<main>`. Zero → step 3. Otherwise relaunch it
-   (§ 5), then `SYNC`. A `LANDING_FIX` for it: relaunch it, then
-   `LANDING_FIX`.
-3. **Arm the merge here, never in the subagent** — this session holds the
-   user's approval and the review check. A stack, which cannot be armed,
-   pins its heads here instead (§ Stacks). From the main checkout, re-run
-   step 1's check with `h` the PR's current `headRefOid`; it fails → as in
-   step 1. Then `pr-cleanup` § Review threads' checks — a thread line → arm
-   nothing; `LANDING_FIX #N <threads>` as for step 4's failed check; the
-   branch rule not `true` → ask the user, as for any deviation. Then its
-   § The signature trap's check and § Merge's stack check and
-   `mergeStateStatus` table, with this one command in place of its merge,
-   for `CLEAN` and `BLOCKED` alike; every other row as the table says,
-   except `BEHIND` / `DIRTY` → back to step 2:
-
-   ```bash
-   gh pr merge <N> --squash --auto --match-head-commit <h>
-   ```
-
-   GitHub merges once the required checks pass, at once if they already
-   have; never wait on CI here. Any `pr-cleanup` deviation, the re-sign
-   included (it would write the worker's branch), or a refused command →
-   ask the user.
-4. **Land through a subagent**, so the merge wait and the cleanup stay out
-   of this context. Spawn a fresh agent on Sonnet (`model: "sonnet"` on
-   the Agent call), never a fork, which ignores `model`. Its brief: run
-   `pr-cleanup` for #N from the main checkout; auto-merge is armed at `<h>`;
-   worker `pickup-<item>` (its short id from `claude agents --json`) owns
-   the worktree — for one of the user's own items, the user's session does;
-   never run `gh pr merge` except to disarm; skip the project extension's
-   post-landing step (the coordinator runs it after the landing, step 5).
-   In order:
-   1. `pr-cleanup`'s route for a caller-armed merge, waiting in foreground
-      calls of at most ten minutes each.
-   2. § Close the tickets.
-   3. Remove the session: § Removing a worker's session, copied into the
-      brief, with § Worktree, branches, main's three landing checks as its
-      gate. A failed check → stop and return it.
-   4. From the main checkout: `git fetch --prune`, `git pull --ff-only` on
-      `<main>`, and `gh repo view --json deleteBranchOnMerge -q
-      .deleteBranchOnMerge` — `false` → report the remote branch left
-      behind. `claude rm` already deleted the local branch.
-   5. Return `merged`, `LANDING_FIX <failed checks | unresolved threads>`,
-      the check that failed, or the deviation `pr-cleanup` stopped on.
-
-   **Hold.** The brief also gives the subagent its reply to the
-   coordinator's `HOLD` and `RESUME`: on `HOLD`, finish the current command,
-   then run nothing local — gates, builds, tests, worktree or session removal
-   — until `RESUME`; a merge already armed on the host may complete, and a
-   stack's `gh stack merge` not yet issued waits for `RESUME`, then for a
-   fresh `STACK GREEN` from the watch run again; reply with the step it
-   stopped at. A message reaches the subagent only between
-   its tool calls, so `HOLD` takes effect up to one call late — one merge
-   wait of at most ten minutes. That wait polls the host and is not local
-   work. A project extension maps its own pauses onto this.
-
-   A failed or cancelled check, or an unresolved review thread (the subagent
-   has disarmed the merge) → `LANDING_FIX #N <them>` to the worker, and
-   the PR goes to the back of the queue, and every lane holding a pre-merge
-   of it goes back behind it. A failed removal check → ask the
-   user; the session stays stopped.
-
-   One of the user's own items, or a hibernated item: skip sub-step 3. Landing
-   never stops or removes the user's session, its worktree or its branch.
-
-   A landing cut off resumes at step 5 when the session is gone from
-   `claude agents --json --all` and its worktree is gone — `claude rm` ran;
-   otherwise at step 4 when the PR is merged or its `autoMergeRequest` is
-   set, or a stack's landing subagent is running; otherwise at step 3.
-5. **Update the run state**, start the project's post-landing step on the
-   new main with `run_in_background`, so its exit re-invokes this session,
-   then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
-   deviation.
-
-**Pre-merge.** Once the user approves a PR at step 1, its content is final;
-its head moves only by `SYNC` merges, `PREMERGE` merges, `UNMERGE`
-reverts and `LANDING_FIX` fixes. Every other worker's lane that lands after
-#N — later in the landing queue or not yet in it, at any stage from
-implementing to approved — gets `PREMERGE #N <head>`, the head from
-`gh pr view <N> --json headRefOid`, when § Lanes' command with `n=<N>`
-lists it or its item waits on #N's item (§ 1). Its worker merges that head
-in at its next commit boundary while #N's CI and merge wait run, so
-conflict resolution leaves the critical path. #N lands as a squash, which
-git does not see as the commits the lane merged, so that lane's later
-`SYNC` names #N's final head among its landed pre-merged heads (step 2),
-and the earlier resolution stands.
-
-A move of #N's head from a lane's held `<old>` is **sync-only** when, after
-one `git fetch origin` per § 1,
-`bash <pickup-task's folder>/scripts/sync-only.sh <old> <head> origin/<main>`
-exits 0, which #N's clean `SYNC` merges pass, folding in landed
-pre-merged heads when a plain merge reproduces the fold. Any other commit —
-a `PREMERGE` merge or `UNMERGE` revert included — fails it, and so does any
-other exit.
-
-- Skip a lane whose run-state entry already has the head — sent, or `told
-  the user` — or an earlier one the head moved from by a sync-only move
-  (`sync-only.sh` exits 0), or that neither shares a file nor waits on
-  #N's item. A member above #N in #N's stack gets `SYNC` instead
-  (§ Stacks). Skip the file-sharing lanes all when #N has no CI or merge
-  wait ahead; a lane waiting on #N's item gets it until #N has merged. Each
-  approval costs up to the cap's count of gate runs, since #N joins the
-  back of the queue; each later head move `sync-only.sh` does not pass, up
-  to the cap plus the live approved lanes queued behind #N (§ 6 fill step);
-  plus, per lane launched on #N, a rebuild of the seeded artifacts #N's
-  diff makes stale.
-- Record each one sent in the run state, and on `PREMERGED #N <head> <merge
-  sha>` add the merge commit to that lane's `REVIEWED:` list. `SYNCED #<lane>
-  <new head> (PREMERGE #N)` in its place means #N had landed before the
-  worker acted, and it synced instead: add the reply's new head to that
-  lane's `REVIEWED:` list and drop the pre-merge entry.
-- At every § 1, run this procedure again for each unlanded approved PR, at
-  its current `headRefOid`; the skip rule above picks the lanes. That
-  catches an approval whose pre-merge was missed, a lane that has started
-  sharing a file since, and a head move `sync-only.sh` does not pass — whose
-  `PREMERGE #N <new head>` names the commits in between. It costs one
-  § Lanes run per such PR per § 1, plus one `sync-only.sh` run per lane
-  holding an earlier #N head. A sync-only move sends nothing to a
-  lane holding an earlier #N head: a clean merge carries only main's
-  changes, which the lane folds in at its own `SYNC`.
-- If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
-  to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
-  whose item waits on #N's item then waits on an unapproved blocker:
-  § Hand-off with `HIBERNATE <item> — parked on <#N's item>`.
-- A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
-  For one of the user's own items, tell the user instead, and record `told
-  the user` for that head.
-
-Run the project's post-landing step without a pipe on its output, or with
-`set -o pipefail`: a pipe into `tail` reports `tail`'s exit code, not the
-build's.
-
-## Stacks — a dependent chain landed as one
-
-A chain of items lands as a GitHub stack only when the user chooses it; the
-run state records the stack and the items they named to land in it. The
-`gh-stack` skill carries `gh stack`'s mechanics — load it, or stop and ask
-before any stack step when it is not installed. Everything else in this
-skill holds, except:
-
-- **Launch.** A member launches with ` — stacked on #<M>` after any
-  ` — tracker in` suffix, `#<M>` being the member directly below it — the
-  stack's top at launch, or the PR it starts from. The worker builds on #M's
-  branch and links its PR above #M (`pickup-task` § Coordinated mode).
-- **No pre-merge inside a stack.** A member is built on every member below
-  it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
-  member #N sends `SYNC #<member>` to each member above it whose branch
-  lacks #N's head (`git merge-base --is-ancestor <head> origin/<its
-  branch>` fails), bottom up, each once the one below replied `SYNCED` or
-  was skipped; each new head joins that member's `REVIEWED:` list. Skip a
-  member when `sync-only.sh` passes from its newest #N commit (`git
-  merge-base origin/<#N's branch> origin/<its branch>`) to #N's head, with
-  `origin/<#N's base branch>` as the main ref, for § Pre-merge's reason.
-  Lanes outside the stack get `PREMERGE` as usual.
-- **Approval.** Each member is asked at its `READY_TO_LAND` (§ 7.1) and
-  held. A stack lands whole: it takes one place in the landing queue once
-  the user has named every open member and each is approved, and lands every
-  one of them; none lands alone.
-- **Landing**, in place of § 7.2–7.4; a § 7 reference to its steps 2, 3
-  and 4 means this landing's steps 1, 2 and 3:
-  1. § 7.2 for each member, bottom up — its pre-merged PRs first, then
-     `SYNC` when behind its base (`git rev-list --count
-     origin/<branch>..origin/<base branch>`), waiting for `SYNCED` before
-     the member above, since each merges the branch below.
-  2. Pin the heads. From the main checkout, for each member at its current
-     `headRefOid`: § 7.1's review check, and § 7.3's `pr-cleanup` checks
-     with the stack check naming this stack. A failure → as in § 7.3, for
-     that member. Then `pr-cleanup`'s `scripts/stack-pins.sh` with every
-     member's `<N>=<head>`, bottom first: a difference other than a moved
-     head — an open member not named or not approved — is a deviation.
-  3. The landing subagent, briefed as § 7.4 with these changes: run
-     `pr-cleanup` for "a stack lands at pinned heads `<N>=<sha>`…",
-     bottom first, with the heads pinned in step 2; it issues `gh stack
-     merge` itself, and only on the watch's `STACK GREEN`; sub-steps 2–3
-     run for every member. It returns `merged`, or the watch's exit — a
-     moved head → back to step 1; a failed check, a required check never
-     reported (`missing checks`: a member linked after it opened has no run
-     on its head) or a thread → `LANDING_FIX` to that member's worker, and
-     the stack goes to the back of the queue.
-  4. § 7.5 once, for the whole stack.
-
-## 8. Finish
-
-When every item under the epic is closed: close each sub-epic whose children
-are all closed, bottom up, and ask before closing the named epic (it may be
-standing open on purpose). Report: landed PRs → items · items still open, and
-why (held, outside blocker, abandoned) · items filed during the run. Then
-end the run (§ The coordinator field).
+the normal band, ask the questions as § Resume's question step does, and
+§ 1.
 
 ## Resume
 

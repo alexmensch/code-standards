@@ -26,6 +26,7 @@ operations, never commands. In a bd project:
 | Read an item and its parent chain | `bd show <id>`; repeat on its `PARENT` line to the root |
 | Ready items under an epic, any depth | `bd ready --parent <epic> --exclude-type epic --limit 0` |
 | The whole tree under an epic | `bd list --all --json --limit 0`, walked down the `parent` key from the epic ([never by ID](#a-hierarchical-id-never-follows-a-reparent--read-the-parent-not-the-id)) |
+| Search items by text — every field, closed included | the `bd list --json \| jq` command in [Text search](#text-search--bd-search-misses-descriptions-notes-and-closed-beads) |
 | What an item waits on · what waits on it | `bd dep list <id>` · `bd dep list <id> --direction=up` |
 | Record a dependency | `bd dep add <blocked> <blocker>`, then verify ([order](#dependencies--argument-order-is-the-trap)) |
 | Claim · release | `bd update <id> --claim` · `bd update <id> -s open -a ""` |
@@ -157,6 +158,21 @@ Pass `--limit <n>` well above the expected count whenever the answer is
 "which / how many", rather than a glance at the top of the queue. On a mature
 graph a high limit can run long — background it rather than raising the tool
 timeout.
+
+## Text search — `bd search` misses descriptions, notes and closed beads
+
+A `bd search` text query reads titles and IDs only, skips closed beads unless
+given `--status all`, and stops at 50. The `bd list` field filters
+(`--title-contains`, `--desc-contains`, `--notes-contains`) AND together and
+none of them reads `design`, `acceptance_criteria` or `close_reason`. So "no
+match" means nothing until every text field of every bead was read:
+
+```bash
+bd list --all --limit 0 --json | jq -r --arg s '<s>' '.[] | select([.title,.description,.notes,.design,.acceptance_criteria,.close_reason] | map(. // "" | ascii_downcase) | join("\n") | contains($s|ascii_downcase)) | "\(.id)\t\(.status)\t\(.title)"'
+```
+
+Case-insensitive substring. An empty field is absent from the JSON, hence
+`// ""`.
 
 ## Dependencies — argument order is the trap
 

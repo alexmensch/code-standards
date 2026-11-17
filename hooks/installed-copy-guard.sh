@@ -9,14 +9,64 @@ set -uo pipefail
 BEGIN='<!-- code-standards:begin'
 END='<!-- code-standards:end -->'
 
-WRITES='(^|[^0-9&])>|sed[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[[:alnum:]]*i|perl[[:space:]]+-[[:alnum:]]*i|(^|[^[:alnum:]_-])(tee|cp|mv|rm|install|ln|rsync|truncate)([[:space:]]|$)'
+# writer_operands <writer> <word>... — the paths one write command writes, given the words after it.
+writer_operands() {
+  local writer="$1" w in_place="" next_is_target="" ops=() takes_target=""
+  shift
+  case "$writer" in cp | mv | install | ln) takes_target=1 ;; esac
+  for w; do
+    if [ -n "$next_is_target" ]; then echo "$w"; next_is_target=""; continue; fi
+    if [[ "$w" != -* ]]; then
+      ops+=("$w")
+    elif [[ "$writer" =~ ^(sed|perl)$ && "$w" =~ ^(-[A-Za-z]*i|--in-place) ]]; then
+      in_place=1
+    elif [ -n "$takes_target" ] && [[ "$w" == --target-directory=* ]]; then
+      echo "${w#*=}"
+    elif [ -n "$takes_target" ] && [[ "$w" =~ ^(-[A-Za-z]*t|--target-directory)$ ]]; then
+      next_is_target=1
+    fi
+  done
+  [ ${#ops[@]} -gt 0 ] || return 0
+  case "$writer" in
+    sed | perl) [ -z "$in_place" ] || printf '%s\n' "${ops[@]}" ;;
+    tee | rm | truncate | mv) printf '%s\n' "${ops[@]}" ;;
+    cp | install | ln | rsync) echo "${ops[${#ops[@]} - 1]}" ;;
+  esac
+}
+
+# write_targets <command> — the words a shell command writes to: redirect targets and write-command operands.
+write_targets() {
+  local seg i w words rest
+  while IFS= read -r seg; do
+    read -ra words <<< "$seg"
+    rest=()
+    for ((i = 0; i < ${#words[@]}; i++)); do
+      if [ "${words[i]}" = ">" ]; then
+        i=$((i + 1))
+        [ "$i" -lt "${#words[@]}" ] && echo "${words[i]}"
+      else
+        rest+=("${words[i]}")
+      fi
+    done
+    for ((i = 0; i < ${#rest[@]}; i++)); do
+      w="${rest[i]##*/}"
+      case "$w" in
+        tee | cp | mv | rm | install | ln | rsync | truncate | sed | perl)
+          writer_operands "$w" "${rest[@]:i+1}"
+          break ;;
+      esac
+    done
+  done < <(sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?\|?# > #g' <<< "$1" \
+    | tr -d "\"'\\\\" | tr ';|&()<' '\n\n\n\n\n ')
+}
 
 command -v jq >/dev/null || exit 0
 input="$(cat)"
 cmd="$(jq -r 'select(.tool_name == "Bash") | .tool_input.command // empty' <<< "$input" 2>/dev/null)"
 file="$(jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' <<< "$input" 2>/dev/null)"
 if [ -n "$cmd" ]; then
-  sed -E 's#[0-9&]?>+[[:space:]]*/dev/null##g' <<< "$cmd" | grep -qE "$WRITES" || exit 0
+  targets="$(write_targets "$cmd")"
+  [ -n "$targets" ] || exit 0
 elif [ -z "$file" ]; then
   exit 0
 fi
@@ -92,7 +142,7 @@ if [ -n "$cmd" ]; then
     t="$(canon "$tok")"
     deny_guarded "$t"
     [ "$t" = "$rules" ] && deny "AGENTS.md.fragment"
-  done < <(tr -s " \t;|&<>()\"'" '\n' <<< "$cmd")
+  done <<< "$targets"
   exit 0
 fi
 

@@ -250,10 +250,10 @@ fi
 
 A shared file is a hazard to sequence, not a conflict to predict: lanes are
 measured from real diffs as workers push, and a merge conflict is reported
-only when git reports one. A lane
-the run state lists as holding an unlanded pre-merge shows that PR's files
-as its own: take its files from `git diff --no-renames --name-only <the
-pre-merged head>...origin/<its branch>` instead. A stack member's worktree
+only when git reports one. A lane the run state lists as holding an
+unlanded pre-merge shows that PR's files as its own: take its files from
+`git diff --no-renames --name-only <the pre-merged head>...origin/<its
+branch>` instead. A stack member's worktree
 and branch lines show every member below it as its own the same way: take
 them from `origin/<its base branch>...` in place of `origin/<main>...`.
 
@@ -345,9 +345,8 @@ idle-hibernated item holds a slot under the cap until its PR is approved
 (§ 7.1). From approval until it lands it holds none, whatever it still
 owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to the user is its to
 finish. A slot is free while the items holding one number fewer than the
-cap. Fill it: first
-hibernated items whose relaunch event has happened, then rank, preflight,
-launch. A slot still free with nothing launching → tell the user each
+cap. Fill it: first hibernated items whose relaunch event has happened,
+then rank, preflight, launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
 outside it that would unblock it, for the user to bring in. Every slot held
@@ -511,9 +510,9 @@ other exit.
   its current `headRefOid`; the skip rule above picks the lanes. That
   catches an approval whose pre-merge was missed, a lane that has started
   sharing a file since, and a head move `sync-only.sh` does not pass — whose
-  `PREMERGE #N <new head>` names the commits in between. A sync-only move sends nothing to a
-  lane holding an earlier #N head: a clean merge carries only main's
-  changes, which the lane folds in at its own `SYNC`.
+  `PREMERGE #N <new head>` names the commits in between. A sync-only move
+  sends nothing to a lane holding an earlier #N head: a clean merge carries
+  only main's changes, which the lane folds in at its own `SYNC`.
 - If #N leaves the run unlanded — released (§ Hand-off) — send `UNMERGE #N`
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:
@@ -743,8 +742,9 @@ worktree list`):
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting.
-   Any output → stop and ask; the session stays stopped and is never removed. `lsof`
-   exits 1 whether or not it finds anything, so its output decides.
+   Any output → stop and ask; the session stays stopped and is never
+   removed. `lsof` exits 1 whether or not it finds anything, so its output
+   decides.
 2. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 

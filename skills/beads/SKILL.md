@@ -158,18 +158,20 @@ Pass `--limit <n>` well above the expected count whenever the answer is
 graph a high limit can run long — background it rather than raising the tool
 timeout.
 
-## `bd search` matches titles only
+## Text search — `bd search` misses descriptions, notes and closed beads
 
-A text query to `bd search` reads titles (and IDs), never descriptions or
-notes, so "no match" does not mean "not filed". Text search:
+A `bd search` text query reads titles and IDs only, skips closed beads unless
+given `--status all`, and stops at 50. The `bd list` field filters
+(`--title-contains`, `--desc-contains`, `--notes-contains`) AND together and
+none of them reads `design`, `acceptance_criteria` or `close_reason`. So "no
+match" means nothing until every text field of every bead was read:
 
 ```bash
-bd list --all --limit 0 --desc-contains <s>    # descriptions
-bd list --all --limit 0 --notes-contains <s>   # notes
+bd list --all --limit 0 --json | jq -r --arg s '<s>' '.[] | select([.title,.description,.notes,.design,.acceptance_criteria,.close_reason] | map(. // "" | ascii_downcase) | join("\n") | contains($s|ascii_downcase)) | "\(.id)\t\(.status)\t\(.title)"'
 ```
 
-`--all` includes closed beads, where a mechanism's close reason often lives.
-Before filing, search all three fields.
+Case-insensitive substring. An empty field is absent from the JSON, hence
+`// ""`.
 
 ## Dependencies — argument order is the trap
 

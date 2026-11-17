@@ -390,7 +390,7 @@ evidence behind them, as § Asking about a finding wrote it. Only
 `WIND_DOWN`, `HIBERNATE` and `RELEASED` write them — at the message, and
 for each question held back after it — never ordinary work. A question
 already in a `SAVED_QUESTION` note with no later answer is not written again.
-The answer is recorded as any is (§ Coordinated mode), and that note
+The answer is recorded as any is (§ Reporting to the coordinator), and that note
 settles it.
 
 1. **Reach the next commit boundary** without asking: finish the
@@ -446,6 +446,6 @@ check passed. Never
    ```
 
    No `on pushed head` → stop and ask.
-3. A `question:` → ask each saved question (§ Coordinated mode), and end
+3. A `question:` → ask each saved question (§ The launch prompt), and end
    the turn.
 4. Continue from `next`, in the stage `phase` names.

@@ -393,7 +393,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    rev-list --count HEAD..origin/<main>`. Zero → go to step 3. Otherwise
    `SYNC #N` to its worker — `SYNC #N base <head>...` when a PR pre-merged
    into it has landed since, with every one of the lane's landed pre-merged
-   heads (`pickup-task` § Coordinated mode defines them, the lane's head as
+   heads (`pickup-task` § Messages from the coordinator defines them, the lane's head as
    `HEAD`) — and wait for `SYNCED #N`, then add the PR's new `headRefOid`, the
    sync merge, to the lane's `REVIEWED:` list. For one of the user's own
    items, tell the user it is behind instead, and add the sync merge once
@@ -533,7 +533,7 @@ skill holds, except:
 - **Launch.** A member launches with ` — stacked on #<M>` after any
   ` — tracker in` suffix, `#<M>` being the member directly below it — the
   stack's top at launch, or the PR it starts from. The worker builds on #M's
-  branch and links its PR above #M (`pickup-task` § Coordinated mode).
+  branch and links its PR above #M (`pickup-task` § The launch prompt).
 - **No pre-merge inside a stack.** A member is built on every member below
   it. In place of `PREMERGE`, § Pre-merge's procedure for an approved
   member #N sends `SYNC #<member>` to each member above it whose branch
@@ -648,7 +648,7 @@ done
 ```
 
 A worker waiting on the user is timed like any other: it asks in plain text
-and ends its turn (`pickup-task` § Coordinated mode), so it is listed idle
+and ends its turn (`pickup-task` § Reporting to the coordinator), so it is listed idle
 and reads `HIBERNATE`. One the user asked to answer in the question tool's
 dialog is not listed idle while the dialog is open, so it is never matched.
 A worker in a pull wait is never timed — a hand-off would stop its
@@ -826,7 +826,7 @@ step, no longer the landing in progress.
 then send `WIND_DOWN <item>` to every live worker, and to each one § 7.2
 relaunches during the wind-down right after its launch: it asks the user
 nothing more, holds each question for its handoff, pauses at its next
-commit boundary and replies `WOUND_DOWN` (`pickup-task` § Coordinated mode).
+commit boundary and replies `WOUND_DOWN` (`pickup-task` § Messages from the coordinator).
 A worker the user asked to answer in the question tool's dialog, with the
 dialog open — listed `waiting` in
 `claude agents --json` — reads it only once the dialog closes: tell the

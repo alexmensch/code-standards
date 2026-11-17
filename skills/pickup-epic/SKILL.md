@@ -790,9 +790,10 @@ session. A later worker starts fresh from that record (§ 5).
 
 ## Hibernate
 
-Hibernating removes every session; resume launches fresh workers that load
-only their item, handoff and branch. Never resume old workers with `claude
---resume`: each would reload its whole transcript on a cold cache.
+A session woken after its prompt cache expires reloads its whole transcript
+uncached. Hibernating removes every session; resume launches fresh workers
+that load only their item, handoff and branch. Never resume old workers
+with `claude --resume`.
 
 Triggered by any request from the user, in plain words, to wind the run
 down so it can resume later — stepping away, pausing for the night,

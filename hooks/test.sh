@@ -177,6 +177,7 @@ check "guard denies cp -t into an installed skill" '[ -n "$(sh "cp -t $SCOPE/ski
 check "guard denies moving an installed file away" '[ -n "$(sh "mv $SCOPE/skills/pr-review/SKILL.md $STATE/moved.md")" ]'
 check "guard denies tee into an installed skill" '[ -n "$(sh "echo x | tee -a $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard denies a glued redirect into an installed skill" '[ -n "$(sh "echo x>$SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies a >&file redirect into an installed skill" '[ -n "$(sh "echo x >&$SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard denies a write command behind a prefix" '[ -n "$(sh "ls | xargs rm -f $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard allows sed without -i on an installed skill" '[ -z "$(sh "sed -n 1p $SCOPE/skills/pr-review/SKILL.md > $STATE/x")" ]'
 

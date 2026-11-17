@@ -55,7 +55,7 @@ write_targets() {
           break ;;
       esac
     done
-  done < <(sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?\|?# > #g' <<< "$1" \
+  done < <(sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?[|&]?# > #g' <<< "$1" \
     | tr -d "\"'\\\\" | tr ';|&()<' '\n\n\n\n\n ')
 }
 

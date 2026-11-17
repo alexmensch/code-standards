@@ -34,6 +34,20 @@ writer_operands() {
   esac
 }
 
+# unquote — stdin with quotes and backslashes removed, and the shell operators they protect dropped.
+unquote() {
+  awk 'BEGIN { q = "" }
+    { out = ""
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        if (q == "" && c == "\\") { i++; c = substr($0, i, 1); out = out (index("<>|;&()", c) ? "" : c); continue }
+        if (q == "" && (c == "\047" || c == "\"")) { q = c; continue }
+        if (q != "" && c == q) { q = ""; continue }
+        out = out ((q != "" && index("<>|;&()", c)) ? "" : c)
+      }
+      print out }'
+}
+
 write_targets() {
   local seg i w words rest
   while IFS= read -r seg; do
@@ -55,8 +69,9 @@ write_targets() {
           break ;;
       esac
     done
-  done < <(sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?[|&]?# > #g' <<< "$1" \
-    | tr -d "\"'\\\\" | tr ';|&()<' '\n\n\n\n\n ')
+  done < <(unquote <<< "$1" \
+    | sed -E -e 's#[0-9&]?>+[[:space:]]*/dev/null##g' -e 's#[0-9]*>&[0-9-]+##g' -e 's#[0-9]*&?>>?[|&]?# > #g' \
+    | tr ';|&()<' '\n\n\n\n\n ')
 }
 
 command -v jq >/dev/null || exit 0

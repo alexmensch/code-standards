@@ -813,7 +813,7 @@ hibernates: the request anywhere else would make a second coordinator
 **No question to the user once it starts** — from the request, or from the
 unasked start. The user has stepped away, and a question waiting on them
 holds the run open short of step 3. A decision this skill would otherwise
-ask, of any kind § The run state lists, goes into the run state as held
+ask, of any kind § Asking the user lists, goes into the run state as held
 back, and § Resume asks it. An approved PR whose landing needs the user — a
 deviation, or a question open or held back on its item — stops at a safe
 point and is recorded, not asked: its merge disarmed (`gh pr merge <N>

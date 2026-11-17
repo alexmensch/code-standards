@@ -34,7 +34,6 @@ writer_operands() {
   esac
 }
 
-# write_targets <command> — the words a shell command writes to: redirect targets and write-command operands.
 write_targets() {
   local seg i w words rest
   while IFS= read -r seg; do

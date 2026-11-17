@@ -353,7 +353,8 @@ outside it that would unblock it, for the user to bring in. Every slot held
 by an idle-hibernated item → name each and what relaunches it. That report
 is the fill step's result: an event that ends with a slot free or held that
 way, no launch and no report has skipped the step —
-unless the report would repeat the last one word for word.
+unless the report would repeat the last one word for word. Nothing launched
+and no live worker left → check § Hibernate's unasked start.
 
 ## 7. Land — one at a time
 

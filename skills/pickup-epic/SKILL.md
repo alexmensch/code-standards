@@ -31,7 +31,7 @@ on the critical path.
 | `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
 | `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
 | The main checkout, merges, post-landing steps | the coordinator |
-| Claims, the dependencies and epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
+| Claims, the dependencies the user approves and the epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
 
 Invoking this authorises only the coordinator's rows, for items in the tree under
 the named epic and items the user brings into the run, and: filing an item

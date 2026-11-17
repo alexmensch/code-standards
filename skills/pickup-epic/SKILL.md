@@ -22,7 +22,7 @@ stall (a worker idle on the coordinator), detects a hazard (two sessions on
 one file or one machine-wide resource), or prepares an answer before it is
 on the critical path.
 
-## One writer per thing — and what invoking this authorises
+## One writer per thing — and what invoking this authorises, only this
 
 | Thing | Sole writer |
 | --- | --- |
@@ -33,7 +33,7 @@ on the critical path.
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, the dependencies and epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
 
-Invoking this authorises the coordinator's rows, for items in the tree under
+Invoking this authorises only the coordinator's rows, for items in the tree under
 the named epic and items the user brings into the run, and: filing an item
 under the named epic for such work that has none (§ 5), launching workers,
 stopping and removing their sessions (§ Removing a worker's session), and

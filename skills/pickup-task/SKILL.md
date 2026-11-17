@@ -281,7 +281,7 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 | `PULL_WAIT` | the turn is about to end on a background command — a data pull, a build — whatever its length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
 | `PULL_ETA` | the reply to `PULL_PING`, while the command runs: `PULL_ETA <item> — ETA <time>` |
-| `PULL_DONE` | the command has exited, whatever its result, and the work resumes |
+| `PULL_DONE` | the command has exited or been stopped, whatever its result |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Ask in this session, in plain text, then end the turn**, as § Asking

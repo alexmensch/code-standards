@@ -895,8 +895,8 @@ Launches never wait on usage: no slot is left empty on a forecast. Only
 **At `reset`**, clear the `USAGE PAUSE` mark, then: `CONTINUE <item>` to each
 worker sent `WIND_DOWN` that is still live, relaunch with `resume` (§ 5)
 each one the idle watcher handed off meanwhile, start the usage watcher in
-the normal band, ask each question the run state lists as unanswered, put
-to the user or held back, and § 1.
+the normal band, ask the questions as § Resume's question step does, and
+§ 1.
 
 ## Resume
 

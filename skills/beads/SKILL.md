@@ -158,6 +158,19 @@ Pass `--limit <n>` well above the expected count whenever the answer is
 graph a high limit can run long — background it rather than raising the tool
 timeout.
 
+## `bd search` matches titles only
+
+A text query to `bd search` reads titles (and IDs), never descriptions or
+notes, so "no match" does not mean "not filed". Text search:
+
+```bash
+bd list --all --limit 0 --desc-contains <s>    # descriptions
+bd list --all --limit 0 --notes-contains <s>   # notes
+```
+
+`--all` includes closed beads, where a mechanism's close reason often lives.
+Before filing, search all three fields.
+
 ## Dependencies — argument order is the trap
 
 ```bash

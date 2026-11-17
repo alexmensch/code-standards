@@ -73,7 +73,8 @@ rules file as a whole. The written paths are, per simple command: a redirect's
 target other than `/dev/null`; every operand of `sed -i`, `perl -i`, `tee`,
 `rm`, `truncate` and `mv` (whose sources are removed); the destination of
 `cp`, `install`, `ln` and `rsync` — the last operand, or `-t` /
-`--target-directory`. A write command counts only where a command runs: first,
+`--target-directory`; the starting folders of a `find` that carries `-delete`
+or runs one of those commands through `-exec` / `-execdir` / `-ok`. A write command counts only where a command runs: first,
 after `NAME=value` assignments, or after a prefix command (`sudo`, `env`,
 `xargs`, `timeout`, …) and its options; a write command's name as another
 command's argument (`grep rm`) is not one.

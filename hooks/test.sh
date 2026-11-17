@@ -182,6 +182,10 @@ check "guard denies a write command behind sudo with an option argument" \
   '[ -n "$(sh "sudo -u root rm $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard denies a write command behind env and an assignment" '[ -n "$(sh "env FOO=1 rm $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard denies a write command behind an assignment" '[ -n "$(sh "LC_ALL=C sed -i s/a/b/ $SCOPE/skills/pr-review/SKILL.md")" ]'
+check "guard denies find -delete in an installed skill" '[ -n "$(sh "find $SCOPE/skills/pr-review -name x -delete")" ]'
+check "guard denies find -exec rm in an installed skill" '[ -n "$(sh "find $SCOPE/skills/pr-review -exec rm {} +")" ]'
+check "guard allows find -exec grep in an installed skill" \
+  '[ -z "$(sh "find $SCOPE/skills/pr-review -name \"*.md\" -exec grep -l x {} \\; > $STATE/found")" ]'
 check "guard allows a quoted pipe in a read" '[ -z "$(sh "grep -E '"'"'a|tee'"'"' $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard allows a quoted > in a read" '[ -z "$(sh "grep -n \"> \" $SCOPE/skills/pr-review/SKILL.md")" ]'
 check "guard denies a redirect to a quoted installed path" '[ -n "$(sh "echo x >\"$SCOPE/skills/pr-review/SKILL.md\"")" ]'

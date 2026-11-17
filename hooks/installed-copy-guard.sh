@@ -9,10 +9,22 @@ set -uo pipefail
 BEGIN='<!-- code-standards:begin'
 END='<!-- code-standards:end -->'
 
+is_writer() { [[ "$1" =~ ^(tee|cp|mv|rm|install|ln|rsync|truncate|sed|perl|find)$ ]]; }
+
 # writer_operands <writer> <word>... — the paths one write command writes, given the words after it.
 writer_operands() {
-  local writer="$1" w in_place="" next_is_target="" ops=() takes_target=""
+  local writer="$1" w in_place="" next_is_target="" ops=() takes_target="" last="" in_roots=1 writes=""
   shift
+  if [ "$writer" = find ]; then
+    for w; do
+      [[ "$w" == [-!]* ]] && in_roots=""
+      [ -z "$in_roots" ] || ops+=("$w")
+      if [ "$w" = -delete ] || { [[ "$last" =~ ^-(exec|execdir|ok|okdir)$ ]] && is_writer "${w##*/}"; }; then writes=1; fi
+      last="$w"
+    done
+    [ -z "$writes" ] || [ ${#ops[@]} -eq 0 ] || printf '%s\n' "${ops[@]}"
+    return 0
+  fi
   case "$writer" in cp | mv | install | ln) takes_target=1 ;; esac
   for w; do
     if [ -n "$next_is_target" ]; then echo "$w"; next_is_target=""; continue; fi
@@ -64,10 +76,11 @@ write_targets() {
     prev=""
     for ((i = 0; i < ${#rest[@]}; i++)); do
       w="${rest[i]##*/}"
+      if is_writer "$w"; then
+        writer_operands "$w" "${rest[@]:i+1}"
+        break
+      fi
       case "$w" in
-        tee | cp | mv | rm | install | ln | rsync | truncate | sed | perl)
-          writer_operands "$w" "${rest[@]:i+1}"
-          break ;;
         sudo | doas | env | xargs | command | exec | nice | nohup | time | timeout | stdbuf) prev="" ;;
         -* | [0-9]* | [A-Za-z_]*=*) prev="$w" ;;
         *) [[ "$prev" =~ ^-[A-Za-z]$ ]] || break; prev="" ;;

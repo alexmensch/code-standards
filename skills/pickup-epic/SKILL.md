@@ -351,14 +351,15 @@ a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
 `WINDING DOWN` or `USAGE PAUSE`, this step launches nothing and reports nothing
-(§ Hibernate step 1). Otherwise, a live worker or an
-idle-hibernated item holds a slot under the cap until it is awaiting smoke
-or its PR is approved (§ 7.1). From then until it lands it holds none,
-whatever it still owes — a `LANDING_FIX` or a `SYNC` whose conflict goes to
-the user is its to finish — unless a smoke turns up a fix (§ Smoke wait). A
-slot is free while the items holding one number fewer than the cap. Fill
-it: first items whose smoke turned up a fix and hibernated items whose
-relaunch event has happened, then rank, preflight, launch. A slot still free with nothing launching → tell the user each
+(§ Hibernate step 1). Otherwise, a slot is held by work a worker drives
+itself — implementing, review, triage and fixes, a pull or build it runs,
+and a question it waits on mid-work. A live worker or an idle-hibernated
+item holds one under the cap until it is awaiting smoke or its PR is
+approved (§ 7.1). From then until it lands its pace is the user's, and it
+holds none, whatever it still owes — a smoke's fix, a `LANDING_FIX`, a
+`SYNC` whose conflict goes to the user. A slot is free while the items
+holding one number fewer than the cap. Fill it: first hibernated items
+whose relaunch event has happened, then rank, preflight, launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
 hold, parked on X. Nothing in the tree launchable → also propose the items
 outside it that would unblock it, for the user to bring in. Every slot held
@@ -834,12 +835,15 @@ coordinator).
 - **Queue its messages.** A `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`
   owed to a stopped one goes into its run-state entry, in order; § 5 sends
   them right after its relaunch.
-- **Relaunch in place** on the user's answer — "smoked, land it" at once,
-  holding no slot; "not yet" with a fix at the next free slot, ahead of new
-  work, holding one until its next `READY_TO_LAND`. § 5 launches a fresh
-  session with ` — in worktree <path>`; `EnterWorktree` with a path enters
-  the worktree although the stopped session still holds git's lock on it.
-  Clear `stopped`. A plain "not yet" leaves it stopped.
+- **Relaunch in place** at once on "smoked, land it", or on "not yet" with
+  a fix, holding no slot (§ 6 fill step). § 5 launches a fresh session with
+  ` — in worktree <path>`; `EnterWorktree` with a path enters the worktree
+  although the stopped session still holds git's lock on it. Clear
+  `stopped`. A plain "not yet" leaves it stopped.
+- **A fix is the user's to describe, in the worker's session.** On "not
+  yet" with a fix, tell the user only that `pickup-<item>` needs them for
+  it, live or relaunched — never relay or summarise the fix. The item stays
+  awaiting smoke until its next `READY_TO_LAND` and the user's answer.
 - **Remove at landing or release**, every session listed on it, as
   § Removing a worker's session says for a kept worktree.
 

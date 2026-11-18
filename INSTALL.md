@@ -46,14 +46,16 @@ status line writes it.
 Some skills run others, or their scripts: `pr-review` needs `code-craft`;
 `pickup-task` needs `pr-review`, `code-craft` and `pr-cleanup`;
 `pickup-epic` needs `pickup-task` (its sessions and its
-`scripts/sync-only.sh`), `pr-cleanup` and `pr-review`. Install a skill only
+`scripts/sync-only.sh`), `pr-cleanup`, `pr-review` and `dream`; `dream` needs
+`beads`, `pickup-task` and `code-craft`. Install a skill only
 together with what it needs; skipping a needed skill skips every skill that
 needs it.
 
 `beads` is the command reference for one ticket tracker, `bd`. Install it only
 when the project in scope (or, for a user install, any project the user works
 in) has a `.beads/` folder or `bd` on the `PATH`; ask if unsure. Otherwise
-record it as skipped.
+record it as skipped. `dream` reads `bd` and `gh` and runs Python 3: skipping
+`beads` skips it.
 
 A project install is written into the working tree; it is not committed unless
 the user asks.
@@ -83,7 +85,8 @@ copies, never in this repository:
 - the skill's folder name and its frontmatter `name:`
 - references in the other skills (`pr-review` loads `code-craft` and points at
   `code-craft/references/…`; `pickup-task` names both and `pr-cleanup`;
-  `pickup-epic` names `pickup-task`, `pr-cleanup` and `pr-review`; both
+  `pickup-epic` names `pickup-task`, `pr-cleanup`, `pr-review` and `dream`;
+  `dream` names `beads`, `pickup-task` and `code-craft`; both
   pickup skills and `beads` name each other, and `beads` names `pr-review`
   and `code-craft`)
 - the rules block's § Code structure trigger and its mentions of both skills

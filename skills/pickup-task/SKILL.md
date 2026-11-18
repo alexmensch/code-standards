@@ -300,6 +300,10 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 
 ### Messages from the coordinator
 
+- **`NOTE <item> — the dream changed this item: <what>`** → re-read the
+  item and carry on under it as it now reads. A change that conflicts with
+  work already done is a question for the requester (§ Asking about a
+  finding).
 - **`PULL_PING <item>`** → in a pull wait, reply `PULL_ETA` with the
   command's current ETA, from its progress output; awaiting smoke with no
   command running, `PULL_ETA <item> — awaiting smoke`. End the turn.

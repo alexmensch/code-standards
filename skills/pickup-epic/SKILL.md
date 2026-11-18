@@ -30,12 +30,14 @@ on the critical path.
 | Findings and new items filed mid-work | the worker that found them |
 | `UNRESOLVED` notes (§ 3) | the coordinator at preflight |
 | `SAVED_QUESTION` notes | the worker, on `WIND_DOWN`, `HIBERNATE` or `RELEASED` (`pickup-task` § Hand off) |
+| A dream's ticket edits, the tickets it files, its record | the dream session (`dream` § 4–5) |
 | The main checkout, merges, post-landing steps | the coordinator |
 | Claims, the dependencies the user approves and the epic goals the user gives at preflight (§ 3), closing a sub-epic once all its children are closed, the run state, the coordinator field | the coordinator |
 
 Invoking this authorises only the coordinator's rows, for items in the tree under
 the named epic and items the user brings into the run, and: filing an item
-under the named epic for such work that has none (§ 5), launching workers,
+under the named epic for such work that has none (§ 5), launching workers
+and dream sessions (§ Dream),
 stopping and removing their sessions (§ Removing a worker's session), and
 sending the coordinator's message kinds. Each merge still needs the user's
 answer for that PR (§ 7).
@@ -120,6 +122,10 @@ holds what exists nowhere else:
 - the mark `USAGE PAUSE until <time>` from a usage pause's start until its
   reset, `usage high` while the usage watcher runs in its high band, and
   `usage unwatched` once it finds no usage figures to read (§ Watchers);
+- the PRs landed since the last dream, in landing order (§ Dream);
+- the mark `DREAM PAUSE — <its window's PR numbers>` from a dream's launch
+  until the user says it is done, and the reports that arrived meanwhile and
+  wait for its end (§ Dream);
 - a landing in progress, and its step;
 - the last commit main's post-landing step ran on.
 
@@ -291,8 +297,8 @@ claude --bg -n pickup-<item> --permission-mode <this session's mode> \
   "/pickup-task <item> — coordinated by \"<this session's name>\""
 ```
 
-Every session this skill launches runs this command — never a freeform
-prompt, which gets none of `pickup-task`'s review, triage, messages or
+Every session this skill launches runs this command, except a dream's
+(§ Dream) — never a freeform prompt, which gets none of `pickup-task`'s review, triage, messages or
 landing flow. Work with no item, such as a change in another repo, gets one
 first: file it under the named epic, shovel-ready by `pickup-task` § 2, and
 launch it by that ID. An item whose work is in another repo launches from
@@ -322,7 +328,12 @@ shows a different ID for a session than `claude agents` does.
 
 ## 6. React — replan on every event
 
-On every report, idle notice, landing or user answer: § 1 again, then:
+On every report, idle notice, landing or user answer: § 1 again, then the
+table below. While the run state is marked `DREAM PAUSE`, act only on the
+rows that keep a worker's record current — `PR_OPEN`, `NEEDS_INPUT`,
+`UNBLOCKED`, the `PULL_` kinds, `IDLE`, `WOUND_DOWN`, `HIBERNATED` and the
+idle notice — and record every other report in the run state for the
+dream's end (§ Dream).
 
 | Event | Coordinator |
 | --- | --- |
@@ -353,7 +364,7 @@ only what its exit sets off: a reminder, a hand-off, a pause, a hibernate,
 a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
-`WINDING DOWN` or `USAGE PAUSE`, this step launches nothing and reports nothing
+`WINDING DOWN`, `USAGE PAUSE` or `DREAM PAUSE`, this step launches nothing and reports nothing
 (§ Hibernate step 1). Otherwise, a live worker or an idle-hibernated item
 holds a slot under the cap while it drives its own work — implementing,
 review, triage and fixes, a pull or build it runs, a question it waits on
@@ -486,7 +497,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    `claude agents --json --all` and its worktree is gone — `claude rm` ran;
    otherwise at step 4 when the PR is merged or its `autoMergeRequest` is
    set, or a stack's landing subagent is running; otherwise at step 3.
-5. **Update the run state**, start the project's post-landing step on the
+5. **Update the run state**, the PR joining the landings since the last
+   dream, start the project's post-landing step on the
    new main with `run_in_background`, so its exit re-invokes this session,
    then § 1. Launches wait only while it runs (§ 5); a non-zero exit is a
    deviation. Run it without a pipe on its output, or with `set -o
@@ -598,6 +610,50 @@ are all closed, bottom up, and ask before closing the named epic (it may be
 standing open on purpose). Report: landed PRs → items · items still open, and
 why (held, outside blocker, abandoned) · items filed during the run. Then
 end the run (§ The coordinator field).
+
+## Dream — a step back every 10 landings
+
+A dream starts at the first § 1 that finds ten or more PRs on the run
+state's list of landings since the last dream, no post-landing step
+running, and none of `WINDING DOWN`, `USAGE PAUSE`, `HIBERNATED` and `DREAM
+PAUSE` marked. A stack's members count one each.
+
+1. Mark the run state `DREAM PAUSE — <the listed PR numbers>` and empty the
+   list: the next window starts after this one.
+2. From the main checkout:
+
+   ```bash
+   claude --bg -n dream-<epic> --permission-mode <this session's mode> "/dream <the PR numbers>"
+   ```
+
+3. Tell the user the dream is ready in `dream-<epic>`, and that the run is
+   paused until they tell this session it is done.
+
+**Paused.** Launch nothing, land nothing, replan nothing; § 6 says which
+reports are acted on. Workers keep working and the watchers keep running.
+The idle watcher never times `dream-<epic>`: the user's attention, not a
+cache, paces it.
+
+**Done** — the user says so in this session:
+
+1. Read the dream record on the kaizen epic the project's `*-dream`
+   extension names; load it if installed. No extension, or a record whose
+   window is not this pause's → ask the user which tickets the dream filed
+   and wrote.
+2. Remove `dream-<epic>` (§ Removing a worker's session): the check runs on
+   its worktree if `git worktree list` shows one, otherwise on the main
+   checkout.
+3. Bring each ticket it filed into the run as an item from outside the tree,
+   filed by the dream; it ranks with the rest (§ 2).
+4. For each ticket it wrote that a live worker holds: `NOTE <item> — the
+   dream changed this item: <what the record says>`.
+5. Clear `DREAM PAUSE`, act on the recorded reports, then § 1.
+
+**Hibernated while paused**, by request or a usage limit: § Hibernate step 2
+also removes `dream-<epic>` (§ Removing a worker's session), and the run
+state keeps `DREAM PAUSE`. § Resume then reads the record: written for this
+window → **Done** from its step 3; otherwise relaunch the dream over the same
+window (step 2 above) and tell the user (step 3).
 
 ## Watchers — idle workers, open questions, pull waits and usage
 
@@ -894,7 +950,7 @@ usage limit (§ Usage limits), and from its step 3 once the fill step
 launches nothing and idle hand-offs have left no live worker, with the
 landing queue empty, no landing in progress and no shared-resource grant
 running — never while the run state is marked `USAGE PAUSE`, which `reset`
-ends. Only the coordinator
+ends, or `DREAM PAUSE`, which the user's word ends. Only the coordinator
 hibernates: the request anywhere else would make a second coordinator
 (§ Deviations). A wind-down, not an immediate stop.
 
@@ -928,7 +984,7 @@ user which ones. The user's own items get nothing.
    is done when every approved PR has landed or stopped that way.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
    every live worker not already sent it and not kept at a stopped landing,
-   with `HIBERNATE <item>`. Each reaches
+   with `HIBERNATE <item>`, and remove a running dream's session (§ Dream). Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
@@ -1013,6 +1069,8 @@ is § Hibernate's trigger. Then:
   <item>` for each, never mid-landing or mid-`SYNC`. Each holds back every
   question until then; its `SAVED_QUESTION` notes carry them to the relaunch,
   which asks;
+- the run state is marked `DREAM PAUSE` and `claude agents --json` lists no
+  `dream-<epic>` → § Dream's hibernated-while-paused step;
 - the run state is marked `WINDING DOWN` or `HIBERNATED` → clear the mark, and relaunch (§ 5)
   each item hibernated with `resume`, and each whose relaunch event
   happened meanwhile, ahead of new items, while a slot is free (§ 6 fill

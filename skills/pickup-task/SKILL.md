@@ -304,10 +304,11 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   command's current ETA, from its progress output; awaiting smoke with no
   command running, `PULL_ETA <item> — awaiting smoke`. End the turn.
   Neither → ignore it: `PULL_DONE` already answered it.
-- **`STATE_CHECK <item>`** → this session is idle with a command it
-  started still running, and no `PULL_WAIT` stands. Waiting on it → send
-  the `PULL_WAIT` the turn's end owed. Otherwise reply `IDLE`. End the
-  turn.
+- **`STATE_CHECK <item>`** → the coordinator saw this session idle with a
+  command it started still running, and no `PULL_WAIT` from it. In a pull
+  wait already → ignore it: the `PULL_WAIT` crossed it. Waiting on a
+  command → send the `PULL_WAIT` the turn's end owed. Otherwise reply
+  `IDLE`. End the turn.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
   `pr-cleanup` § Bring main in does with `origin/<main>`, under the

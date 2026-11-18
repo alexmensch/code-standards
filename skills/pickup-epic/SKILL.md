@@ -616,8 +616,8 @@ event. `watcher:` printed → tell the user; the watcher cannot see.
 
 At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
-waiting on the user or a question this session asked and the user has not
-answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker kept warm; the usage
+waiting on the user or kept warm awaiting smoke, or a question this session
+asked and the user has not answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker kept warm; the usage
 watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE`,
 `HIBERNATED` and `usage unwatched`, in the band it names; the reset timer while it is marked
 `USAGE PAUSE`. Should run with no pid file → start it; should not → remove the
@@ -694,7 +694,8 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
 
 - `remind` → remind the user, naming each worker waiting on the user — a
   hibernated one awaiting an owner answer included — never its question;
-  and each question this session asked still unanswered, by its letter.
+  each worker kept warm awaiting smoke; and each question this session
+  asked still unanswered, by its letter.
 - `pull` → send `PULL_PING <item>` to each worker kept warm. Its
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.

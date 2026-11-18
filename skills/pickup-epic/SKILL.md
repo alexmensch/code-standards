@@ -86,9 +86,11 @@ holds what exists nowhere else:
 - holds, each with its reason and what lifts it;
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
-  `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`,
-  and workers kept warm awaiting smoke (§ Smoke wait), each as `pulling —
-  awaiting smoke`;
+  `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
+- workers awaiting smoke that the user asked to keep warm (§ Smoke wait),
+  each as `kept warm — awaiting smoke`. A worker in a pull wait or on this
+  list is **kept warm**: the pull timer pings it and the idle watcher never
+  times it;
 - questions this session put to the user (§ Asking the user), each with its
   letter, or held back during a hibernate (§ Hibernate), and not yet
   answered;
@@ -325,7 +327,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `QUESTION` | answer what the run's state answers (lanes, who owns what, order) by `SendMessage`; anything else → tell the worker to ask the user, even when a written rule seems to settle it |
 | `NOTE` | read; act only if it changes the run state |
 | `PULL_WAIT` | record the pull wait |
-| `PULL_ETA` | update that worker's ETA in the run state; ignored once `PULL_DONE` has cleared its pull wait |
+| `PULL_ETA` | update that worker's ETA in the run state — an `— awaiting smoke` reply changes nothing; ignored once the worker is no longer kept warm |
 | `PULL_DONE` | clear the pull wait |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
@@ -612,13 +614,13 @@ event. `watcher:` printed → tell the user; the watcher cannot see.
 At every § 1, match each to its condition — the idle watcher runs while this
 run has a live worker; the reminder timer while the run state lists a worker
 waiting on the user or a question this session asked and the user has not
-answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker in a pull wait; the usage
+answered, and the user has written in this session since the last reminder; the pull timer while it lists a worker kept warm; the usage
 watcher while the run state is marked none of `WINDING DOWN`, `USAGE PAUSE`,
 `HIBERNATED` and `usage unwatched`, in the band it names; the reset timer while it is marked
 `USAGE PAUSE`. Should run with no pid file → start it; should not → remove the
 file. After a compaction and at § Resume, start each that should run even
 with a pid file: a shell that died leaves one behind. A pull timer started
-that way first sends `PULL_PING` to each worker in a pull wait, since the
+that way first sends `PULL_PING` to each worker kept warm, since the
 restart resets its count while the worker's cache clock runs on.
 
 **Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
@@ -627,7 +629,7 @@ the age of the worker's transcript, which every model call writes — the
 user typing in the worker's session included; `claude agents --json`
 carries no idle timestamp. It reads a file this session rewrites with every
 run-state write: one line per live worker of this run, `<item>`, or `<item>
-pulling` while it is in a pull wait, even one also waiting on the user.
+warm` while it is kept warm, even one also waiting on the user.
 Left out: the item landing now, a
 worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
 sent `HIBERNATE`, one already reported with no transcript.
@@ -690,7 +692,7 @@ for i in $(seq <minutes>); do sleep 60; mine || exit 0; done; echo <watcher>
 - `remind` → remind the user, naming each worker waiting on the user — a
   hibernated one awaiting an owner answer included — never its question;
   and each question this session asked still unanswered, by its letter.
-- `pull` → send `PULL_PING <item>` to each worker in a pull wait. Its
+- `pull` → send `PULL_PING <item>` to each worker kept warm. Its
   `PULL_ETA` reply, and this exit, keep both sessions' prompt caches inside
   their one-hour lifetime.
 
@@ -801,7 +803,7 @@ session. A later worker starts fresh from that record (§ 5).
 
    The branch stays on origin; for a released item, report it to the user —
    deleting a remote branch is theirs.
-3. **Run state**: any pull wait of the item is cleared. A hibernated or
+3. **Run state**: any pull wait or kept-warm record of the item is cleared. A hibernated or
    parked item joins the hibernated list, with what relaunches it (§ The
    run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
@@ -824,9 +826,9 @@ worker, and `claude rm` cannot remove a worktree's creator while keeping
 the worktree.
 
 - **Kept warm** while the user's latest § 7.1 answer is "not yet — keep it
-  warm", or they ask for it later: the run state records it as `pulling —
-  awaiting smoke`, so the idle watcher skips it and the pull timer pings
-  it, and its worktree stays for the user's dev server. Their next § 7.1
+  warm", or they ask for it later: the run state records it as `kept warm —
+  awaiting smoke` (§ The run state), and its worktree stays for the user's
+  dev server. Their next § 7.1
   answer, or a fix starting, clears the record.
 - **Handed off** otherwise, at its idle watcher line, the user's word or
   § Hibernate step 2: § Hand-off with `HIBERNATE <item>`, as for any worker.

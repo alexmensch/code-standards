@@ -832,8 +832,7 @@ the worktree.
 - **Kept warm** while the user's latest § 7.1 answer is "not yet — keep it
   warm", or they ask for it later: the run state records it as `kept warm —
   awaiting smoke` (§ The run state), and its worktree stays for the user's
-  dev server. Their next § 7.1
-  answer, or a fix starting, clears the record.
+  dev server. Their next § 7.1 answer clears the record.
 - **Handed off** otherwise, at its idle watcher line, the user's word or
   § Hibernate step 2: § Hand-off with `HIBERNATE <item>`, as for any worker.
   The removal deletes the worktree under any dev server running there.

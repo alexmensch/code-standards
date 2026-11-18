@@ -134,7 +134,7 @@ A coordinator killed mid-run cannot clear it, so the field may outlive its
 session: a reader never trusts it alone. A session outside the run finds a
 live coordinator by listing epics with the field set and confirming the name
 in `ListAgents` on a row that is busy, idle or waiting — a stopped session
-stays listed as `offline`. A name missing or offline means no coordinator.
+is not listed, or listed as `offline`. A name missing or offline means no coordinator.
 The tracker skill maps all three operations.
 
 ## 1. Read the state

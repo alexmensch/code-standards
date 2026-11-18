@@ -626,4 +626,77 @@ else
   echo "skip usage-check: pickup-epic is not installed"
 fi
 
+dream="$(bundle_scripts dream)"
+if [ -n "$dream" ]; then
+  DS="$STATE/dream"; mkdir -p "$DS/bin" "$DS/d"
+  repo="$DS/repo"; git init -q -b main "$repo"
+  g config user.name t && g config user.email t@t && g config commit.gpgsign false
+  printf 'Uses `oldTerm` and `keptTerm`.\n' > "$repo/README.md"; g add -A && g commit -qm base
+  echo x > "$repo/a.ts"; g add -A && g commit -qm one; one=$(g rev-parse HEAD)
+  printf 'Uses `keptTerm`.\n' > "$repo/README.md"; g add -A && g commit -qm two; two=$(g rev-parse HEAD)
+  # pr <n> <mergedAt|""> <merge oid> <files...>
+  pr() { jq -n --argjson n "$1" --arg m "$2" --arg o "$3" '$ARGS.positional as $f | {number: $n, title: "PR \($n)",
+    body: "## Follow-ups\nfile hooj.9", additions: 1, deletions: 0, files: [$f[] | {path: .}],
+    mergedAt: (if $m == "" then null else $m end), mergeCommit: (if $o == "" then null else {oid: $o} end)}' \
+    --args "${@:4}" > "$DS/d/pr-$1.json"; }
+  pr 1 2026-01-02T00:00:00Z "$one" a.ts README.md
+  pr 2 2026-01-03T00:00:00Z "$two" README.md
+  pr 3 2026-01-01T00:00:00Z "$one" a.ts
+  pr 4 "" "" a.ts
+  jq -s '[.[] | {number, mergedAt}]' "$DS/d"/pr-[123].json > "$DS/d/list.json"
+  cat > "$DS/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "pr list") cat "$DREAM_STUB/list.json" ;;
+  "pr view") cat "$DREAM_STUB/pr-$3.json" ;;
+esac
+EOF
+  # bead <id> <parent> <P> <created> <closed|""> <text> [notes] [deps json]
+  bead() { jq -cn --arg i "$1" --arg p "$2" --argjson P "$3" --arg c "$4" --arg x "$5" --arg t "$6" --arg n "${7:-}" \
+    --argjson d "${8:-[]}" '{id: $i, parent: $p, priority: $P, issue_type: "task", created_at: $c, title: $t,
+    status: (if $x == "" then "open" else "closed" end), closed_at: (if $x == "" then null else $x end),
+    notes: $n, dependencies: $d}'; }
+  w=2026-01-02T12:00:00Z
+  {
+    bead t-ep.1 t-ep 2 "$w" "" "HIP 27989 drawn twice; see t-a3f8" "2026-01-02 OWNER K1: keep HIP 27989
+2025-06-01 OWNER Z9: an answer from before the window" \
+      '[{"type": "caused-by", "depends_on_id": "t-mech"}]'
+    bead t-ep.2 t-ep 2 2025-01-01T00:00:00Z "" "HIP 27989 again, t-a3f8 and K1" "2026-01-03 CORRECTION: was false"
+    bead t-other.1 t-other 3 2025-01-01T00:00:00Z "" "HIP 27989 in another epic, cites \`oldTerm\`, t-a3f8 and K1"
+    bead t-mech t-other 3 2025-01-01T00:00:00Z "" "the mechanism"
+    bead t-k.1 t-k 2 2025-01-01T00:00:00Z "" "a kaizen item" "2025-12-01 DREAM #1..#2 KAIZEN CHECK: no change"
+    bead t-k.2 t-k 2 2025-01-01T00:00:00Z 2025-12-01T00:00:00Z "a closed kaizen item"
+    jq -cn '{id: "t-k", parent: "", priority: 3, issue_type: "epic", created_at: "2025-01-01T00:00:00Z",
+      status: "open", title: "kaizen", metadata: {dream_record: "DREAM #0: rejected X"}}'
+  } | jq -s . > "$DS/d/beads.json"
+  printf '#!/usr/bin/env bash\ncat "$DREAM_STUB/beads.json"\n' > "$DS/bin/bd"
+  chmod +x "$DS/bin/gh" "$DS/bin/bd"
+  digest() (cd "$repo" && PATH="$DS/bin:$PATH" DREAM_STUB="$DS/d" python3 -I "$dream/digest.py" "$@" 2>&1)
+  in_section() { awk -v h="## $1" 'index($0, h) == 1 {on = 1; next} /^## / {on = 0} on' <<< "$2"; }
+
+  out=$(digest --kaizen t-k last 2)
+  check "dream: last N takes the latest merges, in merge order" '[[ "$out" == *"2 PRs #1..#2"* ]]'
+  check "dream: a range takes the merged PRs inside it" '[[ "$(digest 2..3)" == *"2 PRs #3..#2"* ]]'
+  check "dream: an unmerged PR is refused" '[[ "$(digest 1 4)" == *"not merged: #4"* ]]'
+  check "dream: no window is a usage error" '[[ "$(digest)" == usage:* ]]'
+  ids=$(in_section "Recurring identifiers" "$out")
+  check "dream: an identifier in 3 beads under 2 parents recurs" '[[ "$ids" == "HIP 27989 (3 beads, 2 parents)"* ]]'
+  check "dream: bead IDs and answer letters are no identifiers" '[[ "$ids" != *a3f8* && "$ids" != *K1* ]]'
+  check "dream: decision lines come from the window only" \
+    '[[ "$out" == *"OWNER K1: keep"* && "$out" != *"OWNER Z9"* ]]'
+  check "dream: a correction counts as a revision" \
+    '[[ "$(in_section Revisions "$out")" == *"t-ep.2: CORRECTION"* ]]'
+  check "dream: an instance outranking its mechanism is an inversion" '[[ "$out" == *"t-ep.1 P2 -> mechanism t-mech P3"* ]]'
+  retired=$(in_section "Retired vocabulary" "$out")
+  check "dream: a term gone from the tree is retired, one still in it is not" \
+    '[[ "$retired" == *oldTerm* && "$retired" != *keptTerm* ]]'
+  check "dream: an open bead citing a retired term is listed" '[[ "$retired" == *"t-other.1 P3 [oldTerm]"* ]]'
+  check "dream: the previous record is read" '[[ "$out" == *"DREAM #0: rejected X"* ]]'
+  check "dream: open kaizen beads with their checks, closed ones left out" \
+    '[[ "$(in_section "Open kaizen" "$out")" == *"t-k.1 | P2 | 1 |"* && "$out" != *t-k.2* ]]'
+  check "dream: an unknown kaizen epic is refused" '[[ "$(digest --kaizen t-none last 2)" == *"t-none not found"* ]]'
+else
+  echo "skip dream: dream is not installed"
+fi
+
 [ "$failures" -eq 0 ] && echo "all passed" || { echo "$failures failed"; exit 1; }

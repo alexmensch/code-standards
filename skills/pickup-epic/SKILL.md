@@ -680,7 +680,7 @@ An idle hand-off records what relaunches the item:
 
 | Handoff phase | Relaunched by |
 | --- | --- |
-| `ready to land` | its landing turn — § 7.2 relaunches it only to sync or fix CI |
+| `ready to land`, or `awaiting smoke` once approved | its landing turn — § 7.2 relaunches it only to sync or fix CI |
 | `awaiting owner answer` | the user saying, in this session, that they will answer it |
 | anything else | `resume`: the user's word, or § Resume |
 

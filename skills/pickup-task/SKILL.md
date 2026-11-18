@@ -277,10 +277,10 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 | `NOTE` | anything else the coordinator should know: a correction, a retraction, a fact about shared state |
 | `FILED` | new work was filed under the epic — each ID with one line, and whether this item now waits on it |
 | `PLAN_CHANGE` | the work shows the plan is wrong beyond this item: another item's premise, order or scope, or a review proposes a mechanism ticket (`code-craft` § Bug classes). Write the finding into each affected item first |
-| `READY_TO_LAND` | § 6 is reached with no question open, no unresolved review thread (§ 5) and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `thread <link>`, `CI`, or `sync`. A `SMOKE:` line listing steps → write the handoff (§ Hand off step 2) first, `phase: awaiting smoke` |
+| `READY_TO_LAND` | § 6 is reached with no question open, no unresolved review thread (§ 5) and every precondition met. Its detail always carries a `SMOKE:` line — the manual steps owed, or `none (why)` (§ 3) — and a `REVIEWED: <sha>` line, the last reviewed head, followed by each later commit with its finding number, `thread <link>`, `CI`, or `sync` |
 | `ABANDONED` | stopping with no PR worth landing; the reason goes in the item's notes first |
 | `PULL_WAIT` | the turn is about to end on a background command — a data pull, a build — whatever its length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
-| `PULL_ETA` | the reply to `PULL_PING`, while the command runs: `PULL_ETA <item> — ETA <time>` |
+| `PULL_ETA` | the reply to `PULL_PING`: while the command runs, `PULL_ETA <item> — ETA <time>`; awaiting smoke with none running, `PULL_ETA <item> — awaiting smoke` |
 | `PULL_DONE` | the command has exited or been stopped, whatever its result |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
@@ -299,9 +299,10 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 
 ### Messages from the coordinator
 
-- **`PULL_PING <item>`** while in a pull wait → reply `PULL_ETA` with the
-  command's current ETA, from its progress output, and end the turn. After
-  `PULL_DONE`, ignore it: that message already answered it.
+- **`PULL_PING <item>`** → in a pull wait, reply `PULL_ETA` with the
+  command's current ETA, from its progress output; awaiting smoke with no
+  command running, `PULL_ETA <item> — awaiting smoke`. End the turn.
+  Neither → ignore it: `PULL_DONE` already answered it.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
   `pr-cleanup` § Bring main in does with `origin/<main>`, under the
@@ -354,9 +355,8 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 - After `READY_TO_LAND`, wait, answering `SYNC`, `PREMERGE` and `UNMERGE`
   as above without sending `READY_TO_LAND` again. The coordinator lands the
   PR, then stops and removes this session and its worktree; nothing is sent
-  here first. Awaiting smoke, it may instead stop this session at any idle
-  moment, with no message, and relaunch a fresh one in this worktree
-  (`pickup-epic` § Smoke wait): rewrite the handoff after every push. A fix
+  here first. Awaiting smoke, it keeps this session warm with `PULL_PING`
+  or hands it off with `HIBERNATE` (`pickup-epic` § Smoke wait). A fix
   the requester then describes in this session is theirs to answer: record
   it as any answer, make it, run § 4–5 on it, and send `READY_TO_LAND`
   again.
@@ -436,19 +436,10 @@ claimed at its first launch, so skip § 1–2.
 another session created**: a resume launch may commit and push to the
 handoff's branch, and to no other — the coordinator removed the session
 that created it only after `pickup-epic` § Removing a worker's session's
-check passed, or stopped it with its exit confirmed there and left its
-worktree to this session. Never `main` or `master`.
+check passed. Never `main` or `master`.
 
 1. Read the item and its latest handoff.
-2. ` — in worktree <path>` before ` — resume from handoff`: the item's
-   earlier session, now stopped, made that worktree, and the owner's dev
-   server runs against it. `EnterWorktree` with `path: <path>` — it enters
-   though the stopped session still holds git's lock — then run the check
-   below with no `git switch` and no `git branch -D`, and
-   `git status --porcelain`: any output is the requester's, left there
-   during a smoke — stop and ask.
-
-   Otherwise enter a worktree as usual. `branch: none` → work on the
+2. Enter a worktree as usual. `branch: none` → work on the
    branch it was created on. Otherwise put it on the handoff's branch — the
    PR, if any, stays on it:
 

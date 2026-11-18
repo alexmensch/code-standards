@@ -86,7 +86,9 @@ holds what exists nowhere else:
 - holds, each with its reason and what lifts it;
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
-  `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
+  `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`,
+  and workers kept warm awaiting smoke (§ Smoke wait), each as `pulling —
+  awaiting smoke`;
 - questions this session put to the user (§ Asking the user), each with its
   letter, or held back during a hibernate (§ Hibernate), and not yet
   answered;
@@ -106,10 +108,6 @@ holds what exists nowhere else:
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
   `idle`; § 6's fill step says which of them hold a slot under the cap;
-- kept worktrees (§ Smoke wait), each with its item, its path and the ids of
-  the sessions in it not yet removed, the one that created it first, until
-  the item lands or is released; while its session is stopped awaiting
-  smoke, also `stopped`;
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
 - the mark `USAGE PAUSE until <time>` from a usage pause's start until its
@@ -124,8 +122,7 @@ This session's name — the one workers and every other session message — live
 the run state, so there is one copy to keep current. Set it at kickoff and on
 resume. **Ending the run** — at § 8, at § Hibernate, and when the user tells
 this session to stop or abandon the run — is one step before the final
-message: stop each live worker awaiting smoke (§ Smoke wait), stop every
-watcher and delete the idle watcher's watch file (§ Watchers), then clear
+message: stop every watcher and delete the idle watcher's watch file (§ Watchers), then clear
 the field.
 
 A coordinator killed mid-run cannot clear it, so the field may outlive its
@@ -152,7 +149,9 @@ The tracker skill maps all three operations.
   landing cut off mid-way — finish it through § 7.4, whose `pr-cleanup`
   takes the already-merged route.
 - **Workers**: `claude agents --json`, named `pickup-<item>`; each one listed
-  is a **live worker**.
+  is a **live worker**, except a session the run state lists as stopped
+  (§ Removing a worker's session), which is never counted, timed or
+  messaged however it is listed.
 
 An item in progress with no worker, no PR and no place on the hibernated or
 the user's-own list → ask the user whether it is another session's work or should be released.
@@ -295,15 +294,11 @@ appended to its prompt; every git and `gh` step for it — lanes, review
 check, landing — runs from that checkout, and the project's post-landing
 step does not apply to it. An item preflight wrote an `UNRESOLVED` note on
 gets ` — UNRESOLVED in notes` appended after any ` — tracker in` and
-` — stacked on` suffixes (§ Stacks) and before ` — in worktree` and
-` — resume from handoff`.
+` — stacked on` suffixes (§ Stacks) and before ` — resume from handoff`.
 
 A hibernated item (§ Hand-off) keeps its claim and was preflighted at its
 first launch: relaunch it with ` — resume from handoff` appended to that
-prompt, and check only its lane, from its pushed branch. An item with a
-kept worktree (§ Smoke wait) relaunches the same way, with
-` — in worktree <its path>` before ` — resume from handoff`: a fresh
-session, never `claude attach` or `claude --resume` on a stopped one.
+prompt, and check only its lane, from its pushed branch.
 
 Right after any launch, send the worker `PREMERGE` for each approved,
 unlanded PR it waits on or shares a file with (§ 7 Pre-merge) whose head it
@@ -393,8 +388,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    then run § Pre-merge for that PR before anything else.
 
    Ask in the shape § Asking the user gives. When the report's `SMOKE:`
-   line lists steps, quote them and offer only "smoked, land it" and "not
-   yet" as the options: never a plain "land it" while a manual smoke is
+   line lists steps, quote them and offer only "smoked, land it", "not yet —
+   keep it warm" and "not yet" as the options: never a plain "land it" while a manual smoke is
    owed. A post-merge check filed as an item (`pickup-task` § 3) is
    not owed before the merge: offer "land it", and name that item. The
    answer ends a smoke wait, or keeps it: § Smoke wait.
@@ -451,8 +446,7 @@ version files and lockfiles conflict between any two PRs that both bump them.
    2. § Close the tickets.
    3. Remove the session: § Removing a worker's session, copied into the
       brief, with § Worktree, branches, main's three landing checks as its
-      gate — for a kept worktree, every session listed on it, in the order
-      § Smoke wait gives, copied too. A failed check → stop and return it.
+      gate. A failed check → stop and return it.
    4. From the main checkout: `git fetch --prune`, `git pull --ff-only` on
       `<main>`, and `gh repo view --json deleteBranchOnMerge -q
       .deleteBranchOnMerge` — `false` → report the remote branch left
@@ -476,8 +470,8 @@ version files and lockfiles conflict between any two PRs that both bump them.
    the PR goes to the back of the queue, and every lane holding a pre-merge
    of it goes back behind it.
 
-   One of the user's own items, or a hibernated item with no kept
-   worktree: skip sub-step 3. Landing
+   One of the user's own items, or a hibernated item: skip sub-step 3.
+   Landing
    never stops or removes the user's session, its worktree or its branch.
 
    A landing cut off resumes at step 5 when the session is gone from
@@ -534,8 +528,9 @@ other exit.
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:
   § Hand-off with `HIBERNATE <item> — parked on <#N's item>`.
-- A lane with no live session — hibernated, or stopped awaiting smoke:
-  send nothing; § 5 sends what it is owed on relaunch.
+- A hibernated lane, or one awaiting smoke: send nothing, so the worktree
+  under the user's smoke does not move; § 5 sends what it is owed on
+  relaunch, and § 1 after the user's § 7.1 answer.
   For one of the user's own items, tell the user instead, and record `told
   the user` for that head.
 
@@ -668,12 +663,11 @@ A worker waiting on the user is timed like any other: it asks in plain text
 and ends its turn (`pickup-task` § Reporting to the coordinator), so it is listed idle
 and reads `HIBERNATE`. One the user asked to answer in the question tool's
 dialog is not listed idle while the dialog is open, so it is never matched.
-A worker awaiting smoke (§ Smoke wait) is timed too, for as long as the
-user takes. A worker in a pull wait is never timed — a hand-off would stop
-its command, and the pull timer keeps it warm instead. Per line printed:
+A worker awaiting smoke is timed too, unless kept warm (§ Smoke wait). A
+worker in a pull wait is never timed — a hand-off would stop its command,
+and the pull timer keeps it warm instead. Per line printed:
 
-- `idle` → awaiting smoke: § Smoke wait's stop. Otherwise § Hand-off with
-  `HIBERNATE <item>`.
+- `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
 
 An idle hand-off records what relaunches the item:
@@ -681,6 +675,7 @@ An idle hand-off records what relaunches the item:
 | Handoff phase | Relaunched by |
 | --- | --- |
 | `ready to land`, or `awaiting smoke` once approved | its landing turn — § 7.2 relaunches it only to sync or fix CI |
+| `awaiting smoke`, not approved | the user asking to smoke it, kept warm, or describing a fix (§ Smoke wait) |
 | `awaiting owner answer` | the user saying, in this session, that they will answer it |
 | anything else | `resume`: the user's word, or § Resume |
 
@@ -743,9 +738,10 @@ worktree list`):
 
 Each script below is written to `${TMPDIR:-/tmp}/rm-<step>-<id>.sh` and run
 with `bash <path>`. Any output → stop and ask; the session stays stopped
-and is never removed.
+and is never removed, and the run state lists its id as stopped until the
+user's answer settles it.
 
-1. **Stop**, the whole script — § Smoke wait runs it too:
+1. **Stop**, the whole script:
 
    ```bash
    id=<id>
@@ -759,9 +755,7 @@ and is never removed.
    ```
 
    The pid is read before the stop because `claude agents` reports it null
-   as soon as the stop is accepted, while the process is still exiting; a
-   session already stopped (§ Smoke wait) reports it null and is not
-   stopped again.
+   as soon as the stop is accepted, while the process is still exiting.
 2. **Check**, with the gate's own check appended — § 7.4's landing checks
    or § Hand-off's pushed check — each printing nothing when it passes and
    something when it fails:
@@ -775,11 +769,6 @@ and is never removed.
    `lsof` exits 1 whether or not it finds anything, so its output decides.
 3. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
-
-A kept worktree (§ Smoke wait) holds several sessions: remove each listed,
-the one that created it last. `claude rm` of any other removes the session
-and leaves the worktree, so its step 2 drops the `lsof` call — the user's
-dev server may hold files there.
 
 ## Hand-off — hibernate, park and release
 
@@ -821,35 +810,32 @@ session. A later worker starts fresh from that record (§ 5).
    question — in a whole-run hibernate, in § Hibernate's final message — never
    the question itself.
 
-## Smoke wait — stop the session, keep the worktree
+## Smoke wait — kept warm or handed off
 
 A PR is **awaiting smoke** from a `READY_TO_LAND` whose `SMOKE:` line lists
 steps until the user's § 7.1 answer. It holds no slot (§ 6 fill step), yet
 is not approved: a smoke can change its head, so it sends no `PREMERGE`
-(§ Pre-merge) and is no satisfied blocker (§ 1). Its worker keeps its
-handoff current from that report on (`pickup-task` § Reporting to the
-coordinator).
+(§ Pre-merge) and is no satisfied blocker (§ 1).
 
-- **Stop, never remove.** At its idle watcher line, § Hibernate step 2, or
-  the run's end: § Removing a worker's session step 1, whole — `claude
-  stop` with no message, since
-  a message past the prompt cache's lifetime reloads the whole transcript.
-  `claude stop` keeps the worktree, which the user's dev server runs
-  against; `claude rm` would delete it, so it waits for the landing or a
-  release. Record the kept worktree in the run state, marked `stopped`, with
-  the id.
-- **Relaunch in place** at once on "smoked, land it", or on "not yet" with
-  a fix, holding no slot (§ 6 fill step). § 5 launches a fresh session with
-  ` — in worktree <path>`; `EnterWorktree` with a path enters the worktree
-  although the stopped session still holds git's lock on it. Add the new
-  session's id to the kept worktree's entry, then clear `stopped`. A plain
-  "not yet" leaves it stopped.
+Its worker stays live or is handed off, never `claude stop`ped and left: a
+stopped session can be given a process again and listed as a live idle
+worker, and `claude rm` cannot remove a worktree's creator while keeping
+the worktree.
+
+- **Kept warm** while the user's latest § 7.1 answer is "not yet — keep it
+  warm", or they ask for it later: the run state records it as `pulling —
+  awaiting smoke`, so the idle watcher skips it and the pull timer pings
+  it, and its worktree stays for the user's dev server. Their next § 7.1
+  answer, or a fix starting, clears the record.
+- **Handed off** otherwise, at its idle watcher line, the user's word or
+  § Hibernate step 2: § Hand-off with `HIBERNATE <item>`, as for any worker.
+  The removal deletes the worktree under any dev server running there.
+  The user asking to smoke it later relaunches it (§ 5), kept warm.
 - **A fix is the user's to describe, in the worker's session.** On "not
   yet" with a fix, tell the user only that `pickup-<item>` needs them for
-  it, live or relaunched — never relay or summarise the fix. The item stays
-  awaiting smoke until its next `READY_TO_LAND` and the user's answer.
-- **Remove at landing or release**, every session listed on it, as
-  § Removing a worker's session says for a kept worktree.
+  it — relaunching it first (§ 5) if handed off — never relay or summarise
+  the fix. The item stays awaiting smoke until its next `READY_TO_LAND` and
+  the user's answer.
 
 ## Hibernate
 
@@ -904,14 +890,12 @@ user which ones. The user's own items get nothing.
    is done when every approved PR has landed or stopped that way.
 2. Once step 1 is done — never mid-landing or mid-`SYNC` — § Hand-off for
    every live worker not already sent it and not kept at a stopped landing,
-   with `HIBERNATE <item>`; one awaiting smoke gets § Smoke wait's stop
-   instead, keeping its worktree. Each reaches
+   with `HIBERNATE <item>`. Each reaches
    its next commit boundary before replying, so replies arrive over minutes.
    The user's own items stay listed in the run
    state as they are; hibernate never messages, stops or removes the user's
    session.
-3. Once every worker is removed, stopped awaiting smoke, or kept at a
-   stopped landing: mark the
+3. Once every worker is removed or kept at a stopped landing: mark the
    run state `HIBERNATED` in place of `WINDING DOWN`, end the
    run (§ The coordinator field), and say in the final message that this
    coordinator session is finished and safe to delete. It names each

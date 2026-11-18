@@ -762,11 +762,12 @@ user's answer settles it.
 
    ```bash
    wt=<worktree>
-   out=$( { git -C "$wt" status --porcelain; lsof +D "$wt" 2>/dev/null; } )
+   out=$(git -C "$wt" status --porcelain)
    [ -z "$out" ] || { echo "$out"; exit 1; }
    ```
 
-   `lsof` exits 1 whether or not it finds anything, so its output decides.
+   A process outside the worker, such as the user's dev server, never holds
+   the removal: `claude rm` deletes the worktree under it.
 3. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 

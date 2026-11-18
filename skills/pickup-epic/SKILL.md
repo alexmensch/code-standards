@@ -629,8 +629,9 @@ restart resets its count while the worker's cache clock runs on.
 **Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
 prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time,
 from `scripts/idle-age.sh`, is the age of the last `assistant` entry in the
-worker's transcript — its last model call, the user typing in its session
-included, which is what refreshes the cache. Never the file's modification
+worker's transcript from a model call — the user typing in its session
+included, which is what refreshes the cache; never one Claude Code writes
+itself, model `<synthetic>`. Never the file's modification
 time: non-model lines land there too, this session's own idle-notice
 subscription among them, and reset it with the cache still ageing. `claude
 agents --json` carries no idle timestamp. A transcript with no `assistant`

@@ -602,6 +602,8 @@ if [ -n "$pickup_epic" ]; then
   check "idle-age: a newer system line leaves the age at the last assistant entry" 'near "$(idle_age)" 600'
   transcript "$(entry assistant 900)" "$(entry assistant 300)" "$(entry user 100)"
   check "idle-age: the last assistant entry wins" 'near "$(idle_age)" 300'
+  transcript "$(entry assistant 600)" "$(entry assistant 30 '<synthetic>')"
+  check "idle-age: an entry Claude Code wrote itself is no model call" 'near "$(idle_age)" 600'
   transcript "$(entry user 60)"
   check "idle-age: no assistant entry prints nothing" '[ -z "$(idle_age)" ]'
   check "idle-age: no transcript prints nothing" '[ -z "$(idle_age none)" ]'

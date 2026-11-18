@@ -8,6 +8,8 @@ sid=${1:?usage: idle-age.sh <session id>}
 f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit 2>/dev/null)
 [ -n "$f" ] || exit 0
 
-t=$(grep '"type":"assistant"' "$f" | jq -r 'select(.type == "assistant")
+# Claude Code writes some assistant entries itself — API errors, "No response requested." — with model
+# "<synthetic>"; no model call stands behind them, so they leave the prompt cache ageing.
+t=$(grep '"type":"assistant"' "$f" | jq -r 'select(.type == "assistant" and .message.model != "<synthetic>")
   | .timestamp | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601' 2>/dev/null | tail -1)
 [ -z "$t" ] || echo $(( $(date +%s) - t ))

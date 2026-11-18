@@ -844,8 +844,9 @@ coordinator).
 - **Relaunch in place** at once on "smoked, land it", or on "not yet" with
   a fix, holding no slot (§ 6 fill step). § 5 launches a fresh session with
   ` — in worktree <path>`; `EnterWorktree` with a path enters the worktree
-  although the stopped session still holds git's lock on it. Clear
-  `stopped`. A plain "not yet" leaves it stopped.
+  although the stopped session still holds git's lock on it. Add the new
+  session's id to the kept worktree's entry, then clear `stopped`. A plain
+  "not yet" leaves it stopped.
 - **A fix is the user's to describe, in the worker's session.** On "not
   yet" with a fix, tell the user only that `pickup-<item>` needs them for
   it, live or relaunched — never relay or summarise the fix. The item stays

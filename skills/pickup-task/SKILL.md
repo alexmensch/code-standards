@@ -356,7 +356,10 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   PR, then stops and removes this session and its worktree; nothing is sent
   here first. Awaiting smoke, it may instead stop this session at any idle
   moment, with no message, and relaunch a fresh one in this worktree
-  (`pickup-epic` § Smoke wait): rewrite the handoff after every push.
+  (`pickup-epic` § Smoke wait): rewrite the handoff after every push. A fix
+  the requester then describes in this session is theirs to answer: record
+  it as any answer, make it, run § 4–5 on it, and send `READY_TO_LAND`
+  again.
 - **`WIND_DOWN <item>`** → the coordinator is winding the run down, the
   requester having stepped away, or pausing it at a usage limit. From it
   on, § Hand off's no-question rule

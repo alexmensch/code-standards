@@ -589,6 +589,22 @@ if [ -n "$pickup_epic" ]; then
   echo 'x' > "$US/u.json"
   check "usage: an unreadable snapshot is unwatched" '[[ "$(usage normal)" == "UNWATCHED unreadable"* ]]'
   check "usage: an unknown band is a usage error" '! usage low >/dev/null 2>&1'
+
+  IA="$STATE/idle"; mkdir -p "$IA/projects/p"
+  ago() { date -u -r $(( $(date +%s) - $1 )) +%Y-%m-%dT%H:%M:%S.123Z; }
+  # entry <type> <seconds ago> [model]
+  entry() { jq -cn --arg t "$1" --arg ts "$(ago "$2")" --arg m "${3:-claude-x}" \
+    '{type: $t, timestamp: $ts, message: {model: $m}}'; }
+  transcript() { printf '%s\n' "$@" > "$IA/projects/p/s.jsonl"; }
+  idle_age() { CLAUDE_CONFIG_DIR="$IA" bash "$pickup_epic/idle-age.sh" "${1:-s}"; }
+  near() { [ -n "$1" ] && [ "$1" -ge "$2" ] && [ "$1" -le $(( $2 + 5 )) ]; }
+  transcript "$(entry assistant 600)" "$(entry system 10)"
+  check "idle-age: a newer system line leaves the age at the last assistant entry" 'near "$(idle_age)" 600'
+  transcript "$(entry assistant 900)" "$(entry assistant 300)" "$(entry user 100)"
+  check "idle-age: the last assistant entry wins" 'near "$(idle_age)" 300'
+  transcript "$(entry user 60)"
+  check "idle-age: no assistant entry prints nothing" '[ -z "$(idle_age)" ]'
+  check "idle-age: no transcript prints nothing" '[ -z "$(idle_age none)" ]'
 else
   echo "skip usage-check: pickup-epic is not installed"
 fi

@@ -627,18 +627,19 @@ that way first sends `PULL_PING` to each worker kept warm, since the
 restart resets its count while the worker's cache clock runs on.
 
 **Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
-prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
-the age of the last `assistant` entry in the worker's transcript — its last
-model call, the user typing in its session included, which is what refreshes
-the cache. Never the file's modification time: non-model lines land there
-too, this session's own idle-notice subscription among them, and reset it
-with the cache still ageing. `claude agents --json` carries no idle
-timestamp. A transcript with no `assistant` entry counts as none. It reads a file this session rewrites with every
-run-state write: one line per live worker of this run, `<item>`, or `<item>
-warm` while it is kept warm, even one also waiting on the user.
-Left out: the item landing now, a
-worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
-sent `HIBERNATE`, one already reported with no transcript.
+prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time,
+from `scripts/idle-age.sh`, is the age of the last `assistant` entry in the
+worker's transcript — its last model call, the user typing in its session
+included, which is what refreshes the cache. Never the file's modification
+time: non-model lines land there too, this session's own idle-notice
+subscription among them, and reset it with the cache still ageing. `claude
+agents --json` carries no idle timestamp. A transcript with no `assistant`
+entry takes the `no transcript` path. The watcher reads a file this session
+rewrites with every run-state write: one line per live worker of this run,
+`<item>`, or `<item> warm` while it is kept warm, even one also waiting on
+the user. Left out: the item landing now, a worker owed a reply to `SYNC`,
+`PREMERGE`, `UNMERGE` or `LANDING_FIX`, one sent `HIBERNATE`, one already
+reported with no transcript.
 
 ```bash
 w=${p%.pid}.watch; limit=3300; missing=' '
@@ -654,13 +655,10 @@ while sleep 60; do
     mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
     case "$mark" in
       watch)
-        f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit)
-        t=''; [ -z "$f" ] || t=$(grep '"type":"assistant"' "$f" \
-          | jq -r 'select(.type == "assistant") | .timestamp | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601' | tail -1)
-        if [ -z "$t" ]; then
+        age=$(bash <this skill's folder>/scripts/idle-age.sh "$sid")
+        if [ -z "$age" ]; then
           case "$was" in *" $name "*) out="$out$name no transcript"$'\n' ;; *) missing="$missing$name " ;; esac
         else
-          age=$(( $(date +%s) - t ))
           [ "$age" -lt "$limit" ] || out="$out$name idle ${age}s"$'\n'
         fi ;;
     esac

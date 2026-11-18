@@ -109,7 +109,7 @@ holds what exists nowhere else:
 - kept worktrees (§ Smoke wait), each with its item, its path and the ids of
   the sessions in it not yet removed, the one that created it first, until
   the item lands or is released; while its session is stopped awaiting
-  smoke, also `stopped` and the messages queued for it, in order;
+  smoke, also `stopped`;
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
 - the mark `USAGE PAUSE until <time>` from a usage pause's start until its
@@ -305,10 +305,10 @@ kept worktree (§ Smoke wait) relaunches the same way, with
 ` — in worktree <its path>` before ` — resume from handoff`: a fresh
 session, never `claude attach` or `claude --resume` on a stopped one.
 
-Right after any launch, send the worker each message queued for it
-(§ Smoke wait), in order, then `PREMERGE` for each approved, unlanded PR it
-waits on or shares a file with (§ 7 Pre-merge) whose head it does not
-already hold, so it starts on the approved content.
+Right after any launch, send the worker `PREMERGE` for each approved,
+unlanded PR it waits on or shares a file with (§ 7 Pre-merge) whose head it
+does not already hold, so it starts on the approved content, and `UNMERGE`
+for each pre-merge the run state lists for it whose PR has left the run.
 
 `ListAgents` prints this session's name; quote it exactly, since names
 contain spaces. A different permission mode holds every message between the
@@ -534,8 +534,8 @@ other exit.
   to each lane holding it, and drop those entries on `UNMERGED #N`. A lane
   whose item waits on #N's item then waits on an unapproved blocker:
   § Hand-off with `HIBERNATE <item> — parked on <#N's item>`.
-- A hibernated lane has no worker: send nothing; § 5 sends it on relaunch.
-  A stopped one awaiting smoke: queue it (§ Smoke wait).
+- A lane with no live session — hibernated, or stopped awaiting smoke:
+  send nothing; § 5 sends what it is owed on relaunch.
   For one of the user's own items, tell the user instead, and record `told
   the user` for that head.
 
@@ -838,9 +838,6 @@ coordinator).
   against; `claude rm` would delete it, so it waits for the landing or a
   release. Record the kept worktree in the run state, marked `stopped`, with
   the id.
-- **Queue its messages.** A `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`
-  owed to a stopped one goes into its run-state entry, in order; § 5 sends
-  them right after its relaunch.
 - **Relaunch in place** at once on "smoked, land it", or on "not yet" with
   a fix, holding no slot (§ 6 fill step). § 5 launches a fresh session with
   ` — in worktree <path>`; `EnterWorktree` with a path enters the worktree

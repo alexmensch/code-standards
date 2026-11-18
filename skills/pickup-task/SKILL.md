@@ -436,15 +436,17 @@ claimed at its first launch, so skip § 1–2.
 another session created**: a resume launch may commit and push to the
 handoff's branch, and to no other — the coordinator removed the session
 that created it only after `pickup-epic` § Removing a worker's session's
-check passed. Never
-`main` or `master`.
+check passed, or stopped it with its exit confirmed there and left its
+worktree to this session. Never `main` or `master`.
 
 1. Read the item and its latest handoff.
 2. ` — in worktree <path>` before ` — resume from handoff`: the item's
    earlier session, now stopped, made that worktree, and the owner's dev
    server runs against it. `EnterWorktree` with `path: <path>` — it enters
    though the stopped session still holds git's lock — then run the check
-   below with no `git switch` and no `git branch -D`.
+   below with no `git switch` and no `git branch -D`, and
+   `git status --porcelain`: any output is the requester's, left there
+   during a smoke — stop and ask.
 
    Otherwise enter a worktree as usual. `branch: none` → work on the
    branch it was created on. Otherwise put it on the handoff's branch — the

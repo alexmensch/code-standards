@@ -755,7 +755,7 @@ is removed.
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
-   desc() { for c in $(pgrep -P "$1"); do echo "$c"; desc "$c"; done; }
+   desc() { for c in $(pgrep -P "${1}"); do echo "$c"; desc "$c"; done; }
    kids=$([ -z "$pid" ] || desc "$pid")
    [ -z "$pid" ] || claude stop "$id" >/dev/null || { echo "claude stop $id failed"; exit 1; }
    end=$((SECONDS+60))

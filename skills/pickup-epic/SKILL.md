@@ -837,7 +837,8 @@ the worktree.
   § Hibernate step 2: § Hand-off with `HIBERNATE <item>`, as for any worker.
   The removal deletes the worktree under any dev server running there.
   The user asking to smoke it later relaunches it (§ 5) at once, holding no
-  slot (§ 6 fill step), kept warm.
+  slot (§ 6 fill step), kept warm; tell the user its new worktree path
+  (`git worktree list`) to start the dev server on.
 - **A fix is the user's to describe, in the worker's session.** On "not
   yet" with a fix, tell the user only that `pickup-<item>` needs them for
   it — relaunching it first (§ 5) if handed off, at once and holding no

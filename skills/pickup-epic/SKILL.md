@@ -741,38 +741,44 @@ worker's id — the 8-character short id `claude agents --json` prints, never
 the full session UUID, which matches no entry — and its worktree (`git
 worktree list`):
 
-1. **Stop and check.** Write this to `${TMPDIR:-/tmp}/rm-check-<id>.sh`,
-   append the gate's own check — § 7.4's landing checks or § Hand-off's
-   pushed check — and run `bash <path>`. Every appended check prints
-   nothing when it passes and something when it fails:
+Each script below is written to `${TMPDIR:-/tmp}/rm-<step>-<id>.sh` and run
+with `bash <path>`. Any output → stop and ask; the session stays stopped
+and is never removed.
+
+1. **Stop**, the whole script — § Smoke wait runs it too:
 
    ```bash
-   id=<id>; wt=<worktree>
+   id=<id>
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
    [ -z "$pid" ] || claude stop "$id" >/dev/null || { echo "claude stop $id failed"; exit 1; }
    end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
-   out=$( { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && echo "session process $pid still running"
-            git -C "$wt" status --porcelain
-            lsof +D "$wt" 2>/dev/null; } )
-   [ -z "$out" ] || { echo "$out"; exit 1; }
+   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo "session process $pid still running"; exit 1; fi
    ```
 
    The pid is read before the stop because `claude agents` reports it null
    as soon as the stop is accepted, while the process is still exiting; a
    session already stopped (§ Smoke wait) reports it null and is not
    stopped again.
-   Any output → stop and ask; the session stays stopped and is never
-   removed. `lsof` exits 1 whether or not it finds anything, so its output
-   decides.
-2. `claude rm <id>`. It deletes the worktree, git's record of it and the
+2. **Check**, with the gate's own check appended — § 7.4's landing checks
+   or § Hand-off's pushed check — each printing nothing when it passes and
+   something when it fails:
+
+   ```bash
+   wt=<worktree>
+   out=$( { git -C "$wt" status --porcelain; lsof +D "$wt" 2>/dev/null; } )
+   [ -z "$out" ] || { echo "$out"; exit 1; }
+   ```
+
+   `lsof` exits 1 whether or not it finds anything, so its output decides.
+3. `claude rm <id>`. It deletes the worktree, git's record of it and the
    local branch. A `kept` reply or a non-zero exit → stop and ask.
 
 A kept worktree (§ Smoke wait) holds several sessions: remove each listed,
 the one that created it last. `claude rm` of any other removes the session
-and leaves the worktree, so its step 1 drops the `lsof` line — the user's
+and leaves the worktree, so its step 2 drops the `lsof` call — the user's
 dev server may hold files there.
 
 ## Hand-off — hibernate, park and release
@@ -825,8 +831,8 @@ handoff current from that report on (`pickup-task` § Reporting to the
 coordinator).
 
 - **Stop, never remove.** At its idle watcher line, § Hibernate step 2, or
-  the run's end: § Removing a worker's session step 1's script from `id=`
-  through the `while` wait — `claude stop` with no message, since
+  the run's end: § Removing a worker's session step 1, whole — `claude
+  stop` with no message, since
   a message past the prompt cache's lifetime reloads the whole transcript.
   `claude stop` keeps the worktree, which the user's dev server runs
   against; `claude rm` would delete it, so it waits for the landing or a

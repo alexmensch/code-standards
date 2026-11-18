@@ -614,6 +614,13 @@ if [ -n "$pickup_epic" ]; then
   sleep 0.5
   check "descendants: finds every child and grandchild" '[ "$(bash "$pickup_epic/descendants.sh" "$tree" | wc -l)" -eq 3 ]'
   check "descendants: a process with no children prints nothing" '[ -z "$(bash "$pickup_epic/descendants.sh" "$leaf")" ]'
+  shell=$(pgrep -P "$tree" -f /shell-snapshots/)
+  check "new-shells: a snapshot shell not asked about is printed, the plain child is not" \
+    '[ "$(bash "$pickup_epic/new-shells.sh" "$tree")" = "$shell" ]'
+  check "new-shells: a shell already asked about prints nothing" '[ -z "$(bash "$pickup_epic/new-shells.sh" "$tree" "1,$shell")" ]'
+  check "new-shells: a new shell beside an asked one prints every live shell" \
+    '[ "$(bash "$pickup_epic/new-shells.sh" "$tree" 1)" = "$shell" ]'
+  check "new-shells: a process with no shells prints nothing" '[ -z "$(bash "$pickup_epic/new-shells.sh" "$leaf")" ]'
   kill $(bash "$pickup_epic/descendants.sh" "$tree") "$tree" "$leaf" 2>/dev/null; wait 2>/dev/null
 else
   echo "skip usage-check: pickup-epic is not installed"

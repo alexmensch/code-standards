@@ -87,9 +87,8 @@ holds what exists nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
-- workers asked their state: sent `STATE_CHECK` (§ Watchers), until a
-  report from them other than `IDLE`. One is still timed, never asked
-  again meanwhile;
+- workers asked their state (§ Watchers' `background`), each with the
+  pids it was asked about;
 - workers awaiting smoke that the user asked to keep warm (§ Smoke wait),
   each as `kept warm — awaiting smoke`. A worker in a pull wait or on this
   list is **kept warm**: the pull timer pings it and the idle watcher never
@@ -323,8 +322,7 @@ shows a different ID for a session than `claude agents` does.
 
 ## 6. React — replan on every event
 
-On every report, idle notice, landing or user answer: § 1 again, then (any
-report but `IDLE` also clears the worker's asked state):
+On every report, idle notice, landing or user answer: § 1 again, then:
 
 | Event | Coordinator |
 | --- | --- |
@@ -336,7 +334,7 @@ report but `IDLE` also clears the worker's asked state):
 | `PULL_WAIT` | record the pull wait |
 | `PULL_ETA` | update that worker's ETA in the run state — an `— awaiting smoke` reply changes nothing; ignored once the worker is no longer kept warm |
 | `PULL_DONE` | clear the pull wait |
-| `IDLE` | the worker keeps its asked state: timed like any idle worker |
+| `IDLE` | nothing changes |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | § 7.1 now; on approval, queue it. A `SMOKE:` line listing steps → awaiting smoke (§ Smoke wait) |
@@ -636,14 +634,15 @@ prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time,
 from `scripts/idle-age.sh`, is the age of the last `assistant` entry in the
 worker's transcript from a model call — the user typing in its session
 included, which is what refreshes the cache; never one Claude Code writes
-itself, model `<synthetic>`. Never the file's modification
-time: non-model lines land there too, this session's own idle-notice
-subscription among them, and reset it with the cache still ageing. `claude
-agents --json` carries no idle timestamp. A transcript with no `assistant`
-entry takes the `no transcript` path. The watcher reads a file this session
-rewrites with every run-state write: one line per live worker of this run,
-`<item>`, or `<item> warm` while it is kept warm, even one also waiting on
-the user, or `<item> asked` while it is asked its state. Left out: the item landing now, a worker owed a reply to `SYNC`,
+itself, model `<synthetic>`. Never the file's modification time: non-model
+lines land there too, this session's own idle-notice subscription among
+them, and reset it with the cache still ageing. `claude agents --json`
+carries no idle timestamp. A transcript with no `assistant` entry takes the
+`no transcript` path. The watcher reads a file this session rewrites with
+every run-state write: one line per live worker of this run — `<item> warm`
+while it is kept warm, even one also waiting on the user and one asked its
+state; otherwise `<item> asked <pids>` once asked its state; otherwise
+`<item>`. Left out: the item landing now, a worker owed a reply to `SYNC`,
 `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one sent `HIBERNATE`, one already
 reported with no transcript.
 
@@ -658,10 +657,11 @@ while sleep 60; do
   out=''; was=$missing; missing=' '
   while read -r name sid pid; do
     case "$name" in pickup-*) ;; *) continue ;; esac
-    mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
-    if [ "$mark" = watch ] && [ -n "$pid" ] && pgrep -P "$pid" -f /shell-snapshots/ >/dev/null; then
-      out="$out$name background"$'\n'; continue
-    fi
+    read -r mark asked < <(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2)), $(3)}' "$w")
+    case "$mark" in watch | asked)
+      shells=$([ -z "$pid" ] || bash <this skill's folder>/scripts/new-shells.sh "$pid" "$asked")
+      [ -z "$shells" ] || { out="$out$name background $shells"$'\n'; continue; } ;;
+    esac
     case "$mark" in
       watch | asked)
         age=$(bash <this skill's folder>/scripts/idle-age.sh "$sid")
@@ -686,14 +686,15 @@ and the pull timer keeps it warm instead.
 
 A worker that ends its turn on a command it started and sends no
 `PULL_WAIT` looks idle, and its hand-off would stop the command. The
-watcher notices it: a live child of the worker's process running a shell
-that sources a `shell-snapshots/` file is a command the worker's Bash tool
-started — its other children, such as `caffeinate`, are not. The
+watcher notices it through `scripts/new-shells.sh`: a shell under the
+worker's process that sources a `shell-snapshots/` file runs a command its
+Bash tool started, and one not yet asked about makes it print. The
 coordinator never infers the worker's state from that: the worker owns it,
 and is asked. Per line printed:
 
-- `background` → send `STATE_CHECK <item>` and record it asked; the
-  worker replies `PULL_WAIT` or `IDLE` (§ 6).
+- `background <pids>` → send `STATE_CHECK <item>` and record it asked about
+  those pids; the worker replies `PULL_WAIT` or `IDLE` (§ 6). Asked, it is
+  still timed, and asked again only about a shell not on its list.
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
 

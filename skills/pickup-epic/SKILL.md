@@ -836,10 +836,12 @@ the worktree.
 - **Handed off** otherwise, at its idle watcher line, the user's word or
   § Hibernate step 2: § Hand-off with `HIBERNATE <item>`, as for any worker.
   The removal deletes the worktree under any dev server running there.
-  The user asking to smoke it later relaunches it (§ 5), kept warm.
+  The user asking to smoke it later relaunches it (§ 5) at once, holding no
+  slot (§ 6 fill step), kept warm.
 - **A fix is the user's to describe, in the worker's session.** On "not
   yet" with a fix, tell the user only that `pickup-<item>` needs them for
-  it — relaunching it first (§ 5) if handed off — never relay or summarise
+  it — relaunching it first (§ 5) if handed off, at once and holding no
+  slot — never relay or summarise
   the fix. The item stays awaiting smoke until its next `READY_TO_LAND` and
   the user's answer.
 

@@ -607,6 +607,14 @@ if [ -n "$pickup_epic" ]; then
   transcript "$(entry user 60)"
   check "idle-age: no assistant entry prints nothing" '[ -z "$(idle_age)" ]'
   check "idle-age: no transcript prints nothing" '[ -z "$(idle_age none)" ]'
+
+  # tree: a shell running a snapshot shell (with its own child) and a plain child, standing in for caffeinate
+  bash -c 'sh -c "sleep 30; : /shell-snapshots/x" & sleep 30 & wait' & tree=$!
+  sleep 30 & leaf=$!
+  sleep 0.5
+  check "descendants: finds every child and grandchild" '[ "$(bash "$pickup_epic/descendants.sh" "$tree" | wc -l)" -eq 3 ]'
+  check "descendants: a process with no children prints nothing" '[ -z "$(bash "$pickup_epic/descendants.sh" "$leaf")" ]'
+  kill $(bash "$pickup_epic/descendants.sh" "$tree") "$tree" "$leaf" 2>/dev/null; wait 2>/dev/null
 else
   echo "skip usage-check: pickup-epic is not installed"
 fi

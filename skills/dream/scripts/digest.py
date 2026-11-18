@@ -114,11 +114,11 @@ class Window:
         self.bead_ids = bead_id_pattern(self.beads)
 
     def lines(self, b, rx=None):
-        """Note lines dated inside the window, matching rx when given."""
+        """Note lines dated inside the window, matching rx when given, without their date."""
         for line in (b.get("notes") or "").splitlines():
             m = DATED.match(line)
             if m and self.start[:10] <= m.group(1) <= self.end[:10] and (rx is None or rx.search(line)):
-                yield line
+                yield line[m.end():].strip()
 
 
 def prs_section(w):
@@ -171,7 +171,7 @@ def decisions_section(w):
     rows = [f"{i} ans{c['ans']} ask{c['ask']} fix{c['fix']} ref{c['ref']}  {t}"
             for _, i, c, t in sorted(tally, reverse=True)[:20]]
     rows.append("decision lines (first 160 chars):")
-    lines = [f"{b['id']}: {l[11:171]}" for b in w.beads.values() for l in w.lines(b, OWNER)]
+    lines = [f"{b['id']}: {l[:160]}" for b in w.beads.values() for l in w.lines(b, OWNER)]
     lines += [f"{b['id']} [close]: {b['close_reason'][:200]}" for b in w.closed
               if "owner" in (b.get("close_reason") or "").lower()]
     return ("Mid-flight decisions per bead in window: owner answers / open questions / "
@@ -181,7 +181,7 @@ def decisions_section(w):
 def revisions_section(w):
     return ("Revisions: decision lines in window that supersede, re-ask, correct or move scope "
             "(classify the cause)"), capped(
-        [f"{b['id']}: {l[11:251]}" for b in w.beads.values() for l in w.lines(b, REVISION)],
+        [f"{b['id']}: {l[:240]}" for b in w.beads.values() for l in w.lines(b, REVISION)],
         CAPS["revisions"])
 
 

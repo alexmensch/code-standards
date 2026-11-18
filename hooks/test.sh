@@ -658,12 +658,13 @@ EOF
     notes: $n, dependencies: $d}'; }
   w=2026-01-02T12:00:00Z
   {
-    bead t-ep.1 t-ep 2 "$w" "" "HIP 27989 drawn twice; see t-a3f8" "2026-01-02 OWNER K1: keep HIP 27989
+    bead t-ep.1 t-ep 2 "$w" "" "HIP 27989 drawn twice; see a3f8" "2026-01-02 OWNER K1: keep HIP 27989
 2025-06-01 OWNER Z9: an answer from before the window" \
       '[{"type": "caused-by", "depends_on_id": "t-mech"}]'
-    bead t-ep.2 t-ep 2 2025-01-01T00:00:00Z "" "HIP 27989 again, t-a3f8 and K1" "2026-01-03 CORRECTION: was false"
-    bead t-other.1 t-other 3 2025-01-01T00:00:00Z "" "HIP 27989 in another epic, cites \`oldTerm\`, t-a3f8 and K1"
-    bead t-mech t-other 3 2025-01-01T00:00:00Z "" "the mechanism"
+    bead t-ep.2 t-ep 2 2025-01-01T00:00:00Z "" "HIP 27989 again, a3f8 and K1" "2026-01-03 CORRECTION: was false"
+    bead t-other.1 t-other 3 2025-01-01T00:00:00Z "" "HIP 27989 in another epic, cites \`oldTerm\`, a3f8 and K1"
+    bead t-mech t-other 3 2025-01-01T00:00:00Z "" "the mechanism, t-a3f8 in full"
+    bead t-a3f8 t-other 3 2025-01-01T00:00:00Z "" "a bead cited by its short ID"
     bead t-k.1 t-k 2 2025-01-01T00:00:00Z "" "a kaizen item" "2025-12-01 DREAM #1..#2 KAIZEN CHECK: no change"
     bead t-k.2 t-k 2 2025-01-01T00:00:00Z 2025-12-01T00:00:00Z "a closed kaizen item"
     jq -cn '{id: "t-k", parent: "", priority: 3, issue_type: "epic", created_at: "2025-01-01T00:00:00Z",
@@ -681,7 +682,7 @@ EOF
   check "dream: no window is a usage error" '[[ "$(digest)" == usage:* ]]'
   ids=$(in_section "Recurring identifiers" "$out")
   check "dream: an identifier in 3 beads under 2 parents recurs" '[[ "$ids" == "HIP 27989 (3 beads, 2 parents)"* ]]'
-  check "dream: bead IDs and answer letters are no identifiers" '[[ "$ids" != *a3f8* && "$ids" != *K1* ]]'
+  check "dream: bead IDs, short or full, and answer letters are no identifiers" '[[ "$ids" != *a3f8* && "$ids" != *K1* ]]'
   check "dream: decision lines come from the window only" \
     '[[ "$out" == *"OWNER K1: keep"* && "$out" != *"OWNER Z9"* ]]'
   check "dream: a correction counts as a revision" \

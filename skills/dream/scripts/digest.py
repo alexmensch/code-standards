@@ -83,9 +83,12 @@ def text(b):
 
 
 def bead_id_pattern(beads):
-    prefixes = {i.split(".")[0].rsplit("-", 1)[0] for i in beads if "-" in i}
-    alt = "|".join(sorted(map(re.escape, prefixes), key=len, reverse=True)) or "(?!)"
-    return re.compile(rf"\b(?:{alt})-[A-Za-z0-9]+(?:\.\d+)*\b")
+    """Any bead ID, written in full or without its prefix."""
+    roots = [i.split(".")[0].rsplit("-", 1) for i in beads if "-" in i]
+
+    def alt(parts):
+        return "|".join(sorted(map(re.escape, set(parts)), key=len, reverse=True)) or "(?!)"
+    return re.compile(rf"\b(?:(?:{alt(r[0] for r in roots)})-)?(?:{alt(r[1] for r in roots)})(?:\.\d+)*\b")
 
 
 def identifiers(s, bead_ids):

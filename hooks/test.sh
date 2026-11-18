@@ -665,8 +665,12 @@ EOF
     bead t-other.1 t-other 3 2025-01-01T00:00:00Z "" "HIP 27989 in another epic, cites \`oldTerm\`, a3f8 and K1"
     bead t-mech t-other 3 2025-01-01T00:00:00Z "" "the mechanism, t-a3f8 in full"
     bead t-a3f8 t-other 3 2025-01-01T00:00:00Z "" "a bead cited by its short ID"
+    bead t-ep.1.1 t-ep.1 3 "$w" "" "GJ 551 under a task"
+    bead t-ep.3 t-ep 3 2025-01-01T00:00:00Z "" "GJ 551 under the epic"
     bead t-k.1 t-k 2 2025-01-01T00:00:00Z "" "a kaizen item" "2025-12-01 DREAM #1..#2 KAIZEN CHECK: no change"
     bead t-k.2 t-k 2 2025-01-01T00:00:00Z 2025-12-01T00:00:00Z "a closed kaizen item"
+    for e in t-ep t-other; do jq -cn --arg e "$e" '{id: $e, parent: "", priority: 2, issue_type: "epic",
+      created_at: "2025-01-01T00:00:00Z", status: "open", title: $e}'; done
     jq -cn '{id: "t-k", parent: "", priority: 3, issue_type: "epic", created_at: "2025-01-01T00:00:00Z",
       status: "open", title: "kaizen", metadata: {dream_record: "DREAM #0: rejected X"}}'
   } | jq -s . > "$DS/d/beads.json"
@@ -681,7 +685,8 @@ EOF
   check "dream: an unmerged PR is refused" '[[ "$(digest 1 4)" == *"not merged: #4"* ]]'
   check "dream: no window is a usage error" '[[ "$(digest)" == usage:* ]]'
   ids=$(in_section "Recurring identifiers" "$out")
-  check "dream: an identifier in 3 beads under 2 parents recurs" '[[ "$ids" == "HIP 27989 (3 beads, 2 parents)"* ]]'
+  check "dream: an identifier in 3 beads under 2 epics recurs" '[[ "$ids" == "HIP 27989 (3 beads, 2 epics)"* ]]'
+  check "dream: two tasks under one epic are one epic" '[[ "$ids" != *"GJ 551"* ]]'
   check "dream: bead IDs, short or full, and answer letters are no identifiers" '[[ "$ids" != *a3f8* && "$ids" != *K1* ]]'
   check "dream: decision lines come from the window only" \
     '[[ "$out" == *"OWNER K1: keep"* && "$out" != *"OWNER Z9"* ]]'

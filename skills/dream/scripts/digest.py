@@ -78,6 +78,17 @@ def parent_of(b):
     return "-"
 
 
+def epic_of(b, beads):
+    """The nearest ancestor epic, by the parent field."""
+    seen = set()
+    while (p := parent_of(b)) in beads and p not in seen:
+        seen.add(p)
+        b = beads[p]
+        if b.get("issue_type") == "epic":
+            return p
+    return "-"
+
+
 def text(b):
     return " ".join(b.get(k) or "" for k in ("title", "description", "notes"))
 
@@ -197,11 +208,11 @@ def recurring(label, extract, mn):
                     idx[tok].add(b["id"])
         rows = []
         for tok, ids in idx.items():
-            parents = {parent_of(w.beads[i]) for i in ids}
-            if len(ids) >= mn and len(parents) >= 2 and ids & w.active:
-                rows.append((len(ids), tok, sorted(ids), len(parents)))
-        return f"{label}: in >= {mn} beads under >= 2 parents, >= 1 active in window", [
-            f"{tok} ({n} beads, {np} parents): {' '.join(ids[:10])}"
+            epics = {epic_of(w.beads[i], w.beads) for i in ids}
+            if len(ids) >= mn and len(epics) >= 2 and ids & w.active:
+                rows.append((len(ids), tok, sorted(ids), len(epics)))
+        return f"{label}: in >= {mn} beads under >= 2 epics, >= 1 active in window", [
+            f"{tok} ({n} beads, {np} epics): {' '.join(ids[:10])}"
             for n, tok, ids, np in sorted(rows, reverse=True)[:CAPS["recurring"]]]
     return section_
 

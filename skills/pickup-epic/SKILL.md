@@ -836,8 +836,8 @@ session. A later worker starts fresh from that record (§ 5).
 
    The branch stays on origin; for a released item, report it to the user —
    deleting a remote branch is theirs.
-3. **Run state**: any pull wait or kept-warm record of the item is cleared. A hibernated or
-   parked item joins the hibernated list, with what relaunches it (§ The
+3. **Run state**: any pull wait, kept-warm or asked record of the item is
+   cleared. A hibernated or parked item joins the hibernated list, with what relaunches it (§ The
    run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.

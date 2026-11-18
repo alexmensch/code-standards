@@ -755,14 +755,20 @@ is removed.
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
+   desc() { for c in $(pgrep -P "$1"); do echo "$c"; desc "$c"; done; }
+   kids=$([ -z "$pid" ] || desc "$pid")
    [ -z "$pid" ] || claude stop "$id" >/dev/null || { echo "claude stop $id failed"; exit 1; }
    end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then echo "session process $pid still running"; exit 1; fi
+   left=$(for k in $kids; do kill -0 "$k" 2>/dev/null && ps -o pid=,command= -p "$k"; done)
+   [ -z "$left" ] || { echo "the worker's processes outlived it:"; echo "$left"; exit 1; }
    ```
 
-   The pid is read before the stop because `claude agents` reports it null
-   as soon as the stop is accepted, while the process is still exiting.
+   The pid and its descendants are read before the stop: `claude agents`
+   reports the pid null as soon as the stop is accepted, while the process
+   is still exiting, and a background command the worker started survives
+   the stop, re-parented to process 1.
 2. **Check**, with the gate's own check appended — § 7.4's landing checks
    or § Hand-off's pushed check — each printing nothing when it passes and
    something when it fails:

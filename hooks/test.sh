@@ -589,6 +589,39 @@ if [ -n "$pickup_epic" ]; then
   echo 'x' > "$US/u.json"
   check "usage: an unreadable snapshot is unwatched" '[[ "$(usage normal)" == "UNWATCHED unreadable"* ]]'
   check "usage: an unknown band is a usage error" '! usage low >/dev/null 2>&1'
+
+  IA="$STATE/idle"; mkdir -p "$IA/projects/p"
+  ago() { date -u -r $(( $(date +%s) - $1 )) +%Y-%m-%dT%H:%M:%S.123Z; }
+  # entry <type> <seconds ago> [model]
+  entry() { jq -cn --arg t "$1" --arg ts "$(ago "$2")" --arg m "${3:-claude-x}" \
+    '{type: $t, timestamp: $ts, message: {model: $m}}'; }
+  transcript() { printf '%s\n' "$@" > "$IA/projects/p/s.jsonl"; }
+  idle_age() { CLAUDE_CONFIG_DIR="$IA" bash "$pickup_epic/idle-age.sh" "${1:-s}"; }
+  near() { [ -n "$1" ] && [ "$1" -ge "$2" ] && [ "$1" -le $(( $2 + 5 )) ]; }
+  transcript "$(entry assistant 600)" "$(entry system 10)"
+  check "idle-age: a newer system line leaves the age at the last assistant entry" 'near "$(idle_age)" 600'
+  transcript "$(entry assistant 900)" "$(entry assistant 300)" "$(entry user 100)"
+  check "idle-age: the last assistant entry wins" 'near "$(idle_age)" 300'
+  transcript "$(entry assistant 600)" "$(entry assistant 30 '<synthetic>')"
+  check "idle-age: an entry Claude Code wrote itself is no model call" 'near "$(idle_age)" 600'
+  transcript "$(entry user 60)"
+  check "idle-age: no assistant entry prints nothing" '[ -z "$(idle_age)" ]'
+  check "idle-age: no transcript prints nothing" '[ -z "$(idle_age none)" ]'
+
+  # tree: a shell running a snapshot shell (with its own child) and a plain child, standing in for caffeinate
+  bash -c 'sh -c "sleep 30; : /shell-snapshots/x" & sleep 30 & wait' & tree=$!
+  sleep 30 & leaf=$!
+  sleep 0.5
+  check "descendants: finds every child and grandchild" '[ "$(bash "$pickup_epic/descendants.sh" "$tree" | wc -l)" -eq 3 ]'
+  check "descendants: a process with no children prints nothing" '[ -z "$(bash "$pickup_epic/descendants.sh" "$leaf")" ]'
+  shell=$(pgrep -P "$tree" -f /shell-snapshots/)
+  check "new-shells: a snapshot shell not asked about is printed, the plain child is not" \
+    '[ "$(bash "$pickup_epic/new-shells.sh" "$tree")" = "$shell" ]'
+  check "new-shells: a shell already asked about prints nothing" '[ -z "$(bash "$pickup_epic/new-shells.sh" "$tree" "1,$shell")" ]'
+  check "new-shells: a new shell beside an asked one prints every live shell" \
+    '[ "$(bash "$pickup_epic/new-shells.sh" "$tree" 1)" = "$shell" ]'
+  check "new-shells: a process with no shells prints nothing" '[ -z "$(bash "$pickup_epic/new-shells.sh" "$leaf")" ]'
+  kill $(bash "$pickup_epic/descendants.sh" "$tree") "$tree" "$leaf" 2>/dev/null; wait 2>/dev/null
 else
   echo "skip usage-check: pickup-epic is not installed"
 fi

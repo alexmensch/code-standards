@@ -87,6 +87,8 @@ holds what exists nowhere else:
 - workers waiting on the user: a `NEEDS_INPUT` with no later `UNBLOCKED`;
 - workers in a pull wait: a `PULL_WAIT` with no later `PULL_DONE`, each as
   `pulling — <what>, ETA <time>` from its latest `PULL_WAIT` or `PULL_ETA`;
+- workers asked their state (§ Watchers' `background`), each with the
+  pids it was asked about;
 - workers awaiting smoke that the user asked to keep warm (§ Smoke wait),
   each as `kept warm — awaiting smoke`. A worker in a pull wait or on this
   list is **kept warm**: the pull timer pings it and the idle watcher never
@@ -332,6 +334,7 @@ On every report, idle notice, landing or user answer: § 1 again, then:
 | `PULL_WAIT` | record the pull wait |
 | `PULL_ETA` | update that worker's ETA in the run state — an `— awaiting smoke` reply changes nothing; ignored once the worker is no longer kept warm |
 | `PULL_DONE` | clear the pull wait |
+| `IDLE` | nothing changes |
 | `FILED` | the new items are in the tree; rank them with the rest. The worker's item now waits on one → the park row below |
 | `PLAN_CHANGE` | hold every item downstream of the affected ones, and their lane-mates, anywhere in the tree; tell the user; launch none until the user settles it and it is written into the items |
 | `READY_TO_LAND` | § 7.1 now; on approval, queue it. A `SMOKE:` line listing steps → awaiting smoke (§ Smoke wait) |
@@ -627,15 +630,21 @@ that way first sends `PULL_PING` to each worker kept warm, since the
 restart resets its count while the worker's cache clock runs on.
 
 **Idle watcher.** Hands a worker off at `limit` seconds idle, inside the
-prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time is
-the age of the worker's transcript, which every model call writes — the
-user typing in the worker's session included; `claude agents --json`
-carries no idle timestamp. It reads a file this session rewrites with every
-run-state write: one line per live worker of this run, `<item>`, or `<item>
-warm` while it is kept warm, even one also waiting on the user.
-Left out: the item landing now, a
-worker owed a reply to `SYNC`, `PREMERGE`, `UNMERGE` or `LANDING_FIX`, one
-sent `HIBERNATE`, one already reported with no transcript.
+prompt cache's one-hour lifetime (§ Hibernate gives the cost). Idle time,
+from `scripts/idle-age.sh`, is the age of the last `assistant` entry in the
+worker's transcript from a model call — the user typing in its session
+included, which is what refreshes the cache; never one Claude Code writes
+itself, model `<synthetic>`. Never the file's modification time: non-model
+lines land there too, this session's own idle-notice subscription among
+them, and reset it with the cache still ageing. `claude agents --json`
+carries no idle timestamp. A transcript with no `assistant` entry takes the
+`no transcript` path. The watcher reads a file this session rewrites with
+every run-state write: one line per live worker of this run — `<item> warm`
+while it is kept warm, even one also waiting on the user and one asked its
+state; otherwise `<item> asked <pids>` once asked its state; otherwise
+`<item>`. Left out: the item landing now, a worker owed a reply to `SYNC`,
+`PREMERGE`, `UNMERGE` or `LANDING_FIX`, one sent `HIBERNATE`, one already
+reported with no transcript.
 
 ```bash
 w=${p%.pid}.watch; limit=3300; missing=' '
@@ -643,19 +652,22 @@ while sleep 60; do
   mine || exit 0
   [ -f "$w" ] || { echo "watcher: $w missing"; exit 1; }
   a=$(claude agents --json) || { echo "watcher: claude agents failed"; exit 1; }
-  rows=$(jq -r '.[] | select(.status == "idle") | "\(.name // "") \(.sessionId)"' <<< "$a") \
+  rows=$(jq -r '.[] | select(.status == "idle") | "\(.name // "") \(.sessionId) \(.pid // "")"' <<< "$a") \
     || { echo "watcher: jq failed"; exit 1; }
   out=''; was=$missing; missing=' '
-  while read -r name sid; do
+  while read -r name sid pid; do
     case "$name" in pickup-*) ;; *) continue ;; esac
-    mark=$(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2))}' "$w")
+    read -r mark asked < <(awk -v i="${name#pickup-}" '$(1) == i {print ($(2) == "" ? "watch" : $(2)), $(3)}' "$w")
+    case "$mark" in watch | asked)
+      shells=$([ -z "$pid" ] || bash <this skill's folder>/scripts/new-shells.sh "$pid" "$asked")
+      [ -z "$shells" ] || { out="$out$name background $shells"$'\n'; continue; } ;;
+    esac
     case "$mark" in
-      watch)
-        f=$(find "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" -name "$sid.jsonl" -print -quit)
-        if [ -z "$f" ]; then
+      watch | asked)
+        age=$(bash <this skill's folder>/scripts/idle-age.sh "$sid")
+        if [ -z "$age" ]; then
           case "$was" in *" $name "*) out="$out$name no transcript"$'\n' ;; *) missing="$missing$name " ;; esac
         else
-          age=$(( $(date +%s) - $(date -r "$f" +%s) ))
           [ "$age" -lt "$limit" ] || out="$out$name idle ${age}s"$'\n'
         fi ;;
     esac
@@ -670,8 +682,19 @@ and reads `HIBERNATE`. One the user asked to answer in the question tool's
 dialog is not listed idle while the dialog is open, so it is never matched.
 A worker awaiting smoke is timed too, unless kept warm (§ Smoke wait). A
 worker in a pull wait is never timed — a hand-off would stop its command,
-and the pull timer keeps it warm instead. Per line printed:
+and the pull timer keeps it warm instead.
 
+A worker that ends its turn on a command it started and sends no
+`PULL_WAIT` looks idle, and its hand-off would stop the command. The
+watcher notices it through `scripts/new-shells.sh`: a shell under the
+worker's process that sources a `shell-snapshots/` file runs a command its
+Bash tool started, and one not yet asked about makes it print. The
+coordinator never infers the worker's state from that: the worker owns it,
+and is asked. Per line printed:
+
+- `background <pids>` → send `STATE_CHECK <item>` and record it asked about
+  those pids; the worker replies `PULL_WAIT` or `IDLE` (§ 6). Asked, it is
+  still timed, and asked again only about a shell not on its list.
 - `idle` → § Hand-off with `HIBERNATE <item>`.
 - `no transcript` (two passes running) → ask the user to look at that worker.
 
@@ -755,8 +778,7 @@ is removed.
    entry=$(claude agents --json --all | jq -c --arg id "$id" '.[] | select(.id==$id)')
    [ -n "$entry" ] || { echo "session $id not found"; exit 1; }
    pid=$(jq -r '.pid // empty' <<< "$entry")
-   desc() { for c in $(pgrep -P "${1}"); do echo "$c"; desc "$c"; done; }
-   kids=$([ -z "$pid" ] || desc "$pid")
+   kids=$([ -z "$pid" ] || bash <this skill's folder>/scripts/descendants.sh "$pid")
    [ -z "$pid" ] || claude stop "$id" >/dev/null || { echo "claude stop $id failed"; exit 1; }
    end=$((SECONDS+60))
    while [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && [ "$SECONDS" -lt "$end" ]; do sleep 1; done
@@ -814,8 +836,8 @@ session. A later worker starts fresh from that record (§ 5).
 
    The branch stays on origin; for a released item, report it to the user —
    deleting a remote branch is theirs.
-3. **Run state**: any pull wait or kept-warm record of the item is cleared. A hibernated or
-   parked item joins the hibernated list, with what relaunches it (§ The
+3. **Run state**: any pull wait, kept-warm or asked record of the item is
+   cleared. A hibernated or parked item joins the hibernated list, with what relaunches it (§ The
    run state). A released item does not:
    release its claim now, never earlier — a replan before the old session is
    gone could launch a second worker on it — and it ranks with the rest.

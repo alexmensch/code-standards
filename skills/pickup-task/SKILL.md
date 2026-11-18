@@ -282,6 +282,7 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 | `PULL_WAIT` | the turn is about to end on a background command — a data pull, a build — whatever its length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
 | `PULL_ETA` | the reply to `PULL_PING`: while the command runs, `PULL_ETA <item> — ETA <time>`; awaiting smoke with none running, `PULL_ETA <item> — awaiting smoke` |
 | `PULL_DONE` | the command has exited or been stopped, whatever its result |
+| `IDLE` | the reply to `STATE_CHECK` when no wait stands on a command still running: `IDLE <item> — <each command still running, and why nothing waits on it>` |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Ask in this session, in plain text, then end the turn**, as § Asking
@@ -303,6 +304,11 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   command's current ETA, from its progress output; awaiting smoke with no
   command running, `PULL_ETA <item> — awaiting smoke`. End the turn.
   Neither → ignore it: `PULL_DONE` already answered it.
+- **`STATE_CHECK <item>`** → the coordinator saw this session idle with a
+  command it started still running, and no `PULL_WAIT` from it. In a pull
+  wait already → ignore it: the `PULL_WAIT` crossed it. Waiting on a
+  command → send the `PULL_WAIT` the turn's end owed. Otherwise reply
+  `IDLE`. End the turn.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
   `pr-cleanup` § Bring main in does with `origin/<main>`, under the
@@ -362,12 +368,12 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   again.
 - **`WIND_DOWN <item>`** → the coordinator is winding the run down, the
   requester having stepped away, or pausing it at a usage limit. From it
-  on, § Hand off's no-question rule
-  holds. Reach the next commit boundary as § Hand off step 1 says, but
-  leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
-  and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
-  `LANDING_FIX` and `PULL_PING` as above, where a decision any of them
-  raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
+  on, § Hand off's no-question rule holds. Reach the next commit boundary
+  as § Hand off step 1 says, but leave every background command running.
+  Push, reply `WOUND_DOWN`, and start nothing further: wait, answering
+  `SYNC`, `PREMERGE`, `UNMERGE`, `LANDING_FIX`, `PULL_PING` and
+  `STATE_CHECK` as above, where a decision any of them raises is held back
+  and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
   A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
   paused: the step its result calls for goes into the handoff's `next:`.
 - **`CONTINUE <item>`** → the pause is over. Ask each held-back question,
@@ -402,9 +408,11 @@ settles it.
    commit-sized chunk in progress, or the review or triage step this session
    is in — the part that does not depend on a held-back question. Commit
    normally — never a WIP commit — and push. A branch with no commits of its
-   own is not pushed; its handoff says `branch: none`. In a pull wait,
-   stop the background command rather than wait for it, send `PULL_DONE`,
-   and put its re-run in `next:`.
+   own is not pushed; its handoff says `branch: none`. Stop every
+   background command this session started that is still running — the
+   session's removal stops on one that outlives it. The one in a pull wait
+   is stopped rather than waited for: send `PULL_DONE` and put its re-run in
+   `next:`. Any other goes into `next:` only if the work needs it again.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
    The latest one is the item's handoff; a resumed session's own supersedes
    it:

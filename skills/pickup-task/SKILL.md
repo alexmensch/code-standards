@@ -282,6 +282,7 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
 | `PULL_WAIT` | the turn is about to end on a background command — a data pull, a build — whatever its length, started with `run_in_background` so its exit re-invokes this session: `PULL_WAIT <item> — <what is running>, ETA <time>` |
 | `PULL_ETA` | the reply to `PULL_PING`: while the command runs, `PULL_ETA <item> — ETA <time>`; awaiting smoke with none running, `PULL_ETA <item> — awaiting smoke` |
 | `PULL_DONE` | the command has exited or been stopped, whatever its result |
+| `IDLE` | the reply to `STATE_CHECK` when no wait stands on a command still running: `IDLE <item> — <each command still running, and why nothing waits on it>` |
 | `WOUND_DOWN` | the reply to `WIND_DOWN` once paused, and again whenever a later message raises a decision it holds back: `WOUND_DOWN <item> [#PR] — at <head sha>`, detail `question: held back` or `question: none` |
 
 - **Ask in this session, in plain text, then end the turn**, as § Asking
@@ -303,6 +304,10 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   command's current ETA, from its progress output; awaiting smoke with no
   command running, `PULL_ETA <item> — awaiting smoke`. End the turn.
   Neither → ignore it: `PULL_DONE` already answered it.
+- **`STATE_CHECK <item>`** → this session is idle with a command it
+  started still running, and no `PULL_WAIT` stands. Waiting on it → send
+  the `PULL_WAIT` the turn's end owed. Otherwise reply `IDLE`. End the
+  turn.
 - **`SYNC #N`** → bring the PR's base branch, `<base>` (`gh pr view <N>
   --json baseRefName`: `<main>` unless stacked), into this branch as
   `pr-cleanup` § Bring main in does with `origin/<main>`, under the
@@ -366,7 +371,7 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   holds. Reach the next commit boundary as § Hand off step 1 says, but
   leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
   and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
-  `LANDING_FIX` and `PULL_PING` as above, where a decision any of them
+  `LANDING_FIX`, `PULL_PING` and `STATE_CHECK` as above, where a decision any of them
   raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
   A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
   paused: the step its result calls for goes into the handoff's `next:`.

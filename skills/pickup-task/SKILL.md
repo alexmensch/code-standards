@@ -367,12 +367,12 @@ First line `<KIND> <item> [#PR] — <one line>`, detail below it.
   again.
 - **`WIND_DOWN <item>`** → the coordinator is winding the run down, the
   requester having stepped away, or pausing it at a usage limit. From it
-  on, § Hand off's no-question rule
-  holds. Reach the next commit boundary as § Hand off step 1 says, but
-  leave a background command in a pull wait running. Push, reply `WOUND_DOWN`,
-  and start nothing further: wait, answering `SYNC`, `PREMERGE`, `UNMERGE`,
-  `LANDING_FIX`, `PULL_PING` and `STATE_CHECK` as above, where a decision any of them
-  raises is held back and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
+  on, § Hand off's no-question rule holds. Reach the next commit boundary
+  as § Hand off step 1 says, but leave every background command running.
+  Push, reply `WOUND_DOWN`, and start nothing further: wait, answering
+  `SYNC`, `PREMERGE`, `UNMERGE`, `LANDING_FIX`, `PULL_PING` and
+  `STATE_CHECK` as above, where a decision any of them raises is held back
+  and answered with `WOUND_DOWN` in place of `NEEDS_INPUT`.
   A pull that exits meanwhile gets its `PULL_DONE`, and the worker stays
   paused: the step its result calls for goes into the handoff's `next:`.
 - **`CONTINUE <item>`** → the pause is over. Ask each held-back question,
@@ -407,9 +407,11 @@ settles it.
    commit-sized chunk in progress, or the review or triage step this session
    is in — the part that does not depend on a held-back question. Commit
    normally — never a WIP commit — and push. A branch with no commits of its
-   own is not pushed; its handoff says `branch: none`. In a pull wait,
-   stop the background command rather than wait for it, send `PULL_DONE`,
-   and put its re-run in `next:`.
+   own is not pushed; its handoff says `branch: none`. Stop every
+   background command this session started that is still running — the
+   session's removal stops on one that outlives it. The one in a pull wait
+   is stopped rather than waited for: send `PULL_DONE` and put its re-run in
+   `next:`. Any other goes into `next:` only if the work needs it again.
 2. **Write the handoff** onto the item with the tracker's handoff operation.
    The latest one is the item's handoff; a resumed session's own supersedes
    it:

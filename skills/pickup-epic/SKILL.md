@@ -743,8 +743,9 @@ worktree list`):
 
 Each script below is written to `${TMPDIR:-/tmp}/rm-<step>-<id>.sh` and run
 with `bash <path>`. Any output → stop and ask; the session stays stopped
-and is never removed, and the run state lists its id as stopped until the
-user's answer settles it.
+and is never removed, the run state lists its id as stopped until the
+user's answer settles it, and its item is not relaunched until that session
+is removed.
 
 1. **Stop**, the whole script:
 

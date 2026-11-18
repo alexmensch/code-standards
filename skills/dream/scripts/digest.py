@@ -12,11 +12,12 @@ from dataclasses import dataclass
 
 TRIVIAL_CLOSE = re.compile(r"^(Shipped|Landed|Merged) (in|by|via) .{0,60}$", re.I)
 DATED = re.compile(r"(\d{4}-\d{2}-\d{2})\b")
+OWNER = re.compile(r"\bOWNER\b|\(owner\b|owner answer|owner:", re.I)
 KINDS = (
-    ("ans", r"\bOWNER\b|\(owner\b|owner answer|owner:"),
-    ("ask", r"OPEN QUESTION|UNRESOLVED|SAVED_QUESTION|awaiting owner"),
-    ("fix", r"CORRECTION|was false|supersede"),
-    ("ref", r"refuted|premise"),
+    ("ans", OWNER),
+    ("ask", re.compile(r"OPEN QUESTION|UNRESOLVED|SAVED_QUESTION|awaiting owner", re.I)),
+    ("fix", re.compile(r"CORRECTION|was false|supersede", re.I)),
+    ("ref", re.compile(r"refuted|premise", re.I)),
 )
 REVISION = re.compile(
     r"supersede|overrides|re-ask|no longer|moves out of|moved to|instead of|CORRECTION|was false|"
@@ -164,14 +165,13 @@ def decisions_section(w):
     tally = []
     for b in w.beads.values():
         lines = list(w.lines(b))
-        c = {k: sum(1 for l in lines if re.search(rx, l, re.I)) for k, rx in KINDS}
+        c = {k: sum(1 for l in lines if rx.search(l)) for k, rx in KINDS}
         if sum(c.values()) >= 2:
             tally.append((sum(c.values()), b["id"], c, b["title"][:80]))
     rows = [f"{i} ans{c['ans']} ask{c['ask']} fix{c['fix']} ref{c['ref']}  {t}"
             for _, i, c, t in sorted(tally, reverse=True)[:20]]
     rows.append("decision lines (first 160 chars):")
-    owner = re.compile(r"\bOWNER\b", re.I)
-    lines = [f"{b['id']}: {l[11:171]}" for b in w.beads.values() for l in w.lines(b, owner)]
+    lines = [f"{b['id']}: {l[11:171]}" for b in w.beads.values() for l in w.lines(b, OWNER)]
     lines += [f"{b['id']} [close]: {b['close_reason'][:200]}" for b in w.closed
               if "owner" in (b.get("close_reason") or "").lower()]
     return ("Mid-flight decisions per bead in window: owner answers / open questions / "

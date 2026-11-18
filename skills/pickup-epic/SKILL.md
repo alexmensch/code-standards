@@ -110,6 +110,9 @@ holds what exists nowhere else:
   what relaunches it: `resume`, `<X> lands` (met at X's approval, § 1), or
   for one hibernated idle the event § Watchers names. Idle ones are marked
   `idle`; § 6's fill step says which of them hold a slot under the cap;
+- sessions stopped by a failed removal check (§ Removing a worker's
+  session), each with its item, id and worktree, until the user's answer
+  settles it;
 - the mark `WINDING DOWN` from a hibernate's start, and `HIBERNATED` in its
   place once the whole run is hibernated (§ Hibernate);
 - the mark `USAGE PAUSE until <time>` from a usage pause's start until its

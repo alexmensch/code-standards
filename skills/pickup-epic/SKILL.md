@@ -351,13 +351,13 @@ a resume.
 
 **Then fill free slots — never silently.** While the run state is marked
 `WINDING DOWN` or `USAGE PAUSE`, this step launches nothing and reports nothing
-(§ Hibernate step 1). Otherwise, a slot is held by work a worker drives
-itself — implementing, review, triage and fixes, a pull or build it runs,
-and a question it waits on mid-work. A live worker or an idle-hibernated
-item holds one under the cap until it is awaiting smoke or its PR is
-approved (§ 7.1). From then until it lands its pace is the user's, and it
-holds none, whatever it still owes — a smoke's fix, a `LANDING_FIX`, a
-`SYNC` whose conflict goes to the user. A slot is free while the items
+(§ Hibernate step 1). Otherwise, a live worker or an idle-hibernated item
+holds a slot under the cap while it drives its own work — implementing,
+review, triage and fixes, a pull or build it runs, a question it waits on
+mid-work — until it is awaiting smoke or its PR is approved (§ 7.1). From
+then until it lands its pace is the user's, and it holds none, whatever it
+still owes: a smoke's fix, a `LANDING_FIX`, a `SYNC` whose conflict goes to
+the user. A slot is free while the items
 holding one number fewer than the cap. Fill it: first hibernated items
 whose relaunch event has happened, then rank, preflight, launch. A slot still free with nothing launching → tell the user each
 candidate and why it cannot start: blocked by X, not ready (§ 3), a lane
